@@ -1,0 +1,11 @@
+[package]
+name = "celik-export"
+description = "PDF / JSON / XLSX export of Serbian smart-card documents"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+celik-core = { workspace = true, default-features = false }
+serde_json.workspace = true
+thiserror.workspace = true
