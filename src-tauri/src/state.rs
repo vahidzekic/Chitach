@@ -275,7 +275,7 @@ mod tests {
     }
 
     fn doc() -> Document {
-        Document::Medical(Box::new(MedicalDocument::default()))
+        Document::Medical(Box::<MedicalDocument>::default())
     }
 
     #[test]

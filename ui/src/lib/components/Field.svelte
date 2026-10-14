@@ -83,9 +83,8 @@
     user-select: text;
   }
   .val.mono {
-    font-family: var(--mono);
-    font-size: 13.5px;
-    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums slashed-zero;
+    letter-spacing: 0.04em;
   }
   .suffix {
     color: var(--text-3);

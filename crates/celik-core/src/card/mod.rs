@@ -160,7 +160,14 @@ pub(crate) fn read(card: &dyn CardTransport, offset: usize, length: usize) -> Re
     }
 
     let read_size = length.min(0xFF);
-    let apdu = build_apdu(0x00, 0xB0, (offset >> 8) as u8, offset as u8, &[], read_size);
+    let apdu = build_apdu(
+        0x00,
+        0xB0,
+        (offset >> 8) as u8,
+        offset as u8,
+        &[],
+        read_size,
+    );
     let mut rsp = card.transmit(&apdu)?;
     if rsp.len() < 2 {
         return Err(CardError::Parse("reading binary: bad status code".into()));
@@ -170,7 +177,12 @@ pub(crate) fn read(card: &dyn CardTransport, offset: usize, length: usize) -> Re
 }
 
 /// Reads `length` bytes from `offset` in chunks of at most `chunk` bytes.
-pub(crate) fn read_chunks(card: &dyn CardTransport, mut offset: usize, mut length: usize, chunk: usize) -> Result<Vec<u8>> {
+pub(crate) fn read_chunks(
+    card: &dyn CardTransport,
+    mut offset: usize,
+    mut length: usize,
+    chunk: usize,
+) -> Result<Vec<u8>> {
     let mut output = Vec::with_capacity(length);
     while length > 0 {
         let data = read(card, offset, length.min(chunk))?;
@@ -185,10 +197,19 @@ pub(crate) fn read_chunks(card: &dyn CardTransport, mut offset: usize, mut lengt
 }
 
 /// Sends a SELECT command and checks for `90 00`.
-pub(crate) fn select(card: &dyn CardTransport, p1: u8, p2: u8, name: &[u8], ne: usize) -> Result<Vec<u8>> {
+pub(crate) fn select(
+    card: &dyn CardTransport,
+    p1: u8,
+    p2: u8,
+    name: &[u8],
+    ne: usize,
+) -> Result<Vec<u8>> {
     let apdu = build_apdu(0x00, 0xA4, p1, p2, name, ne);
     let rsp = card.transmit(&apdu)?;
-    check_ok(&rsp, &format!("selecting file {}", crate::apdu::to_hex(name)))?;
+    check_ok(
+        &rsp,
+        &format!("selecting file {}", crate::apdu::to_hex(name)),
+    )?;
     Ok(rsp)
 }
 

@@ -21,7 +21,10 @@ impl<'de> Deserialize<'de> for OrderedFields {
             fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 f.write_str("a JSON object")
             }
-            fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> std::result::Result<OrderedFields, A::Error> {
+            fn visit_map<A: MapAccess<'de>>(
+                self,
+                mut map: A,
+            ) -> std::result::Result<OrderedFields, A::Error> {
                 let mut v = Vec::new();
                 while let Some((k, val)) = map.next_entry::<String, Value>()? {
                     v.push((k, val));
@@ -42,7 +45,8 @@ pub(crate) fn rows(doc: &Document) -> Result<Vec<(String, String)>> {
         Document::Vehicle(d) => serde_json::to_string(d),
     }
     .map_err(|e| ExportError::Xlsx(e.to_string()))?;
-    let fields: OrderedFields = serde_json::from_str(&json).map_err(|e| ExportError::Xlsx(e.to_string()))?;
+    let fields: OrderedFields =
+        serde_json::from_str(&json).map_err(|e| ExportError::Xlsx(e.to_string()))?;
     Ok(fields
         .0
         .into_iter()

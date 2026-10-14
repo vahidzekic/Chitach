@@ -74,19 +74,30 @@ pub fn parse_id_residence_file(data: &[u8], doc: &mut IdDocument) -> Result<()> 
 /// bytes but still reject data that is not a JPEG image.
 pub fn parse_and_assign_id_photo_file(data: &[u8], doc: &mut IdDocument) -> Result<()> {
     if data.len() < 4 || data[0] != 0xFF || data[1] != 0xD8 {
-        return Err(CardError::Parse("decoding photo file: not a JPEG image".into()));
+        return Err(CardError::Parse(
+            "decoding photo file: not a JPEG image".into(),
+        ));
     }
     doc.portrait = data.to_vec();
     Ok(())
 }
 
 /// Parses the four ID card files (photo file already stripped of its 4 byte header).
-pub fn parse_id_document(document_file: &[u8], personal_file: &[u8], residence_file: &[u8], photo_file: &[u8]) -> Result<IdDocument> {
+pub fn parse_id_document(
+    document_file: &[u8],
+    personal_file: &[u8],
+    residence_file: &[u8],
+    photo_file: &[u8],
+) -> Result<IdDocument> {
     let mut doc = IdDocument::default();
-    parse_id_document_file(document_file, &mut doc).map_err(|e| super::context(e, "parsing document file"))?;
-    parse_id_personal_file(personal_file, &mut doc).map_err(|e| super::context(e, "parsing personal file"))?;
-    parse_id_residence_file(residence_file, &mut doc).map_err(|e| super::context(e, "parsing residence file"))?;
-    parse_and_assign_id_photo_file(photo_file, &mut doc).map_err(|e| super::context(e, "parsing photo file"))?;
+    parse_id_document_file(document_file, &mut doc)
+        .map_err(|e| super::context(e, "parsing document file"))?;
+    parse_id_personal_file(personal_file, &mut doc)
+        .map_err(|e| super::context(e, "parsing personal file"))?;
+    parse_id_residence_file(residence_file, &mut doc)
+        .map_err(|e| super::context(e, "parsing residence file"))?;
+    parse_and_assign_id_photo_file(photo_file, &mut doc)
+        .map_err(|e| super::context(e, "parsing photo file"))?;
     Ok(doc)
 }
 
@@ -101,11 +112,20 @@ pub(crate) struct IdFiles {
 
 impl IdFiles {
     pub fn read(mut read_file: impl FnMut(&[u8]) -> Result<Vec<u8>>) -> Result<Self> {
-        let document = read_file(&ID_DOCUMENT_FILE_LOC).map_err(|e| super::context(e, "reading document file"))?;
-        let personal = read_file(&ID_PERSONAL_FILE_LOC).map_err(|e| super::context(e, "reading personal file"))?;
-        let residence = read_file(&ID_RESIDENCE_FILE_LOC).map_err(|e| super::context(e, "reading residence file"))?;
-        let photo = read_file(&ID_PHOTO_FILE_LOC).map_err(|e| super::context(e, "reading photo file"))?;
-        Ok(Self { document, personal, residence, photo: super::trim4b(&photo).to_vec() })
+        let document = read_file(&ID_DOCUMENT_FILE_LOC)
+            .map_err(|e| super::context(e, "reading document file"))?;
+        let personal = read_file(&ID_PERSONAL_FILE_LOC)
+            .map_err(|e| super::context(e, "reading personal file"))?;
+        let residence = read_file(&ID_RESIDENCE_FILE_LOC)
+            .map_err(|e| super::context(e, "reading residence file"))?;
+        let photo =
+            read_file(&ID_PHOTO_FILE_LOC).map_err(|e| super::context(e, "reading photo file"))?;
+        Ok(Self {
+            document,
+            personal,
+            residence,
+            photo: super::trim4b(&photo).to_vec(),
+        })
     }
 
     pub fn parse(&self) -> Result<IdDocument> {

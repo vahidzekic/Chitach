@@ -413,9 +413,9 @@ pub(crate) fn canonicalize(el: &Element, ancestors: &[&Element]) -> String {
     let mut xml_attrs: BTreeMap<String, String> = BTreeMap::new();
     for anc in ancestors {
         for attr in &anc.attrs {
-            if attr.space == XMLNS && (attr.key != "xml" || attr.value != XML_NAMESPACE) {
-                namespaces.insert(attr.key.clone(), attr.value.clone());
-            } else if attr.space.is_empty() && attr.key == XMLNS {
+            if (attr.space == XMLNS && (attr.key != "xml" || attr.value != XML_NAMESPACE))
+                || (attr.space.is_empty() && attr.key == XMLNS)
+            {
                 namespaces.insert(attr.key.clone(), attr.value.clone());
             } else if attr.space == "xml" {
                 xml_attrs.insert(attr.key.clone(), attr.value.clone());
@@ -477,14 +477,9 @@ impl Parser {
     }
 
     fn starts_with(&self, s: &str) -> bool {
-        let mut i = self.pos;
-        for c in s.chars() {
-            if self.chars.get(i) != Some(&c) {
-                return false;
-            }
-            i += 1;
-        }
-        true
+        s.chars()
+            .enumerate()
+            .all(|(i, c)| self.chars.get(self.pos + i) == Some(&c))
     }
 
     fn skip_ws(&mut self) {
@@ -794,7 +789,9 @@ mod tests {
     #[test]
     fn serializes_like_etree() {
         assert_eq!(
-            roundtrip("<?xml version=\"1.0\"?>\n<a x='1&amp;2'><b></b>t&lt;\"'&#65;<![CDATA[<x>]]></a>\n"),
+            roundtrip(
+                "<?xml version=\"1.0\"?>\n<a x='1&amp;2'><b></b>t&lt;\"'&#65;<![CDATA[<x>]]></a>\n"
+            ),
             "<?xml version=\"1.0\"?>\n<a x=\"1&amp;2\"><b/>t&lt;&quot;&apos;A&lt;x&gt;</a>\n"
         );
         assert_eq!(roundtrip("<a>\r\nb\rc</a>"), "<a>\nb\nc</a>");

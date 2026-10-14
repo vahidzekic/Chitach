@@ -164,7 +164,8 @@ fn info_string(pdf: &[u8], key: &[u8]) -> String {
     let info_ref = doc.trailer.get(b"Info").unwrap().as_reference().unwrap();
     let info = doc.get_dictionary(info_ref).unwrap();
     let raw = info.get(key).unwrap().as_str().unwrap();
-    lopdf::decode_text_string(info.get(key).unwrap()).unwrap_or_else(|_| String::from_utf8_lossy(raw).into())
+    lopdf::decode_text_string(info.get(key).unwrap())
+        .unwrap_or_else(|_| String::from_utf8_lossy(raw).into())
 }
 
 fn squash(s: &str) -> String {
@@ -190,7 +191,12 @@ fn pdfs_parse_and_contain_text() {
                 "Datumštampe:",
                 "skraćujesenaprvadvakaraktera",
             ],
-            "if" => &["Podaciostrancu", "Državljanstvo:", "РускаФедерација", "SRB,БЕОГРАД"],
+            "if" => &[
+                "Podaciostrancu",
+                "Državljanstvo:",
+                "РускаФедерација",
+                "SRB,БЕОГРАД",
+            ],
             "rp" => &["Napomena:", "Напомена<тест>&више", "Nazivdokumenta:"],
             "med" => &[
                 "ПРЕГЛЕДКАРТИЦЕЗДРАВСТВЕНОГОСИГУРАЊА(КЗО)",
@@ -219,7 +225,13 @@ fn pdfs_parse_and_contain_text() {
 #[test]
 fn id_pdf_cyrillic_labels() {
     let doc = Document::Id(Box::new(id_doc()));
-    let pdf = to_pdf(&doc, PdfOptions { cyrillic_labels: true }).unwrap();
+    let pdf = to_pdf(
+        &doc,
+        PdfOptions {
+            cyrillic_labels: true,
+        },
+    )
+    .unwrap();
     dump("rs_id_cyr.pdf", &pdf);
     let text = squash(&pdf_text(&pdf));
     assert!(text.contains("ЧИТАЧЕЛЕКТРОНСКЕЛИЧНЕКАРТЕ:ШТАМПАПОДАТАКА"));
@@ -230,7 +242,11 @@ fn id_pdf_cyrillic_labels() {
 
 #[test]
 fn pdf_metadata() {
-    let pdf = to_pdf(&Document::Medical(Box::new(medical_doc())), PdfOptions::default()).unwrap();
+    let pdf = to_pdf(
+        &Document::Medical(Box::new(medical_doc())),
+        PdfOptions::default(),
+    )
+    .unwrap();
     assert_eq!(info_string(&pdf, b"Title"), "PETAR PETROVIĆ");
     assert_eq!(info_string(&pdf, b"Author"), "Chitach");
     assert_eq!(info_string(&pdf, b"Creator"), "Chitach");
@@ -276,15 +292,18 @@ fn json_roundtrip_and_shape() {
 fn json_go_escaping() {
     let json = to_json(&Document::Id(Box::new(foreigner_doc("RP")))).unwrap();
     let text = String::from_utf8(json).unwrap();
-    assert!(text.contains(r#""ENote":"Напомена <тест> & више""#), "{text}");
+    assert!(
+        text.contains(r#""ENote":"Напомена \u003cтест\u003e \u0026 више""#),
+        "{text}"
+    );
 }
 
 #[test]
 fn json_matches_go_field_order() {
-    let json = String::from_utf8(to_json(&Document::Vehicle(Box::new(vehicle_doc()))).unwrap()).unwrap();
-    let keys: Vec<&str> = json.split("\":").filter_map(|p| p.rsplit('"').next()).collect();
-    assert_eq!(&keys[..3], &["AuthorityIssuing", "ColourOfVehicle", "CommercialDescription"]);
-    assert_eq!(keys.last(), Some(&"YearOfProduction"));
+    let json =
+        String::from_utf8(to_json(&Document::Vehicle(Box::new(vehicle_doc()))).unwrap()).unwrap();
+    assert!(json.starts_with(r#"{"AuthorityIssuing":"MUP R. SRBIJE","ColourOfVehicle":"CRNA","#));
+    assert!(json.ends_with(r#""VehicleType":"1K","YearOfProduction":"2015"}"#));
 }
 
 #[test]
@@ -298,7 +317,16 @@ fn xlsx_is_zip_with_sheet() {
 
 #[test]
 fn file_names() {
-    assert_eq!(file_name(&Document::Id(Box::new(id_doc())), "pdf"), "петар_петровић.pdf");
-    assert_eq!(file_name(&Document::Medical(Box::new(medical_doc())), "json"), "petar_petrović.json");
-    assert_eq!(file_name(&Document::Vehicle(Box::new(vehicle_doc())), "xlsx"), "bg123ab_petrović_petar.xlsx");
+    assert_eq!(
+        file_name(&Document::Id(Box::new(id_doc())), "pdf"),
+        "петар_петровић.pdf"
+    );
+    assert_eq!(
+        file_name(&Document::Medical(Box::new(medical_doc())), "json"),
+        "petar_petrović.json"
+    );
+    assert_eq!(
+        file_name(&Document::Vehicle(Box::new(vehicle_doc())), "xlsx"),
+        "bg123ab_petrović_petar.xlsx"
+    );
 }

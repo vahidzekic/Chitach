@@ -138,14 +138,16 @@ const formatInfo: Record<ExportFormat, { name: string; ext: string; saved: strin
   xlsx: { name: "Excel", ext: "xlsx", saved: "ui.xlsxSaved" },
 };
 
-async function rememberDir(path: string) {
-  const s = app.settings;
+/** Remember the last used directory locally (the backend persists it on export). */
+function rememberDir(path: string) {
   const dir = dirName(path);
-  if (!s || !dir || s.lastDir === dir) return;
-  const next = { ...$state.snapshot(s), lastDir: dir } as Settings;
+  if (app.settings && dir) app.settings.lastDir = dir;
+}
+
+/** Reload settings from the backend (it updates `lastDir` after export). */
+async function refreshSettings() {
   try {
-    await api.saveSettings(next);
-    app.settings = next;
+    app.settings = await api.getSettings();
   } catch {
     /* not critical */
   }
@@ -162,7 +164,8 @@ export async function exportDocument(format: ExportFormat): Promise<void> {
     });
     if (!path) return;
     const out = await api.exportDocument(format, path);
-    await rememberDir(out);
+    rememberDir(out);
+    void refreshSettings();
     toast("success", t(f.saved), {
       detail: baseName(out),
       action: { label: t("ui.open"), run: () => void openPath(out) },
@@ -177,6 +180,6 @@ export async function saveFileAs(defaultName: string, ext: string, typeName: str
     defaultPath: joinPath(app.settings?.lastDir ?? "", defaultName),
     filters: [{ name: typeName, extensions: [ext] }],
   });
-  if (path) void rememberDir(path);
+  if (path) rememberDir(path);
   return path;
 }

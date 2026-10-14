@@ -78,7 +78,9 @@ fn dash(s: &str) -> &str {
 }
 
 pub fn build(doc: &VehicleDocument) -> Result<Vec<u8>> {
-    let mut w = W { pdf: Canvas::new()? };
+    let mut w = W {
+        pdf: Canvas::new()?,
+    };
 
     w.pdf.set_font(FontStyle::Bold, false, 29.0);
     w.pdf.set_xy(TEXT_LEFT_MARGIN, 35.0);
@@ -89,7 +91,10 @@ pub fn build(doc: &VehicleDocument) -> Result<Vec<u8>> {
 
     w.pdf.set_xy(TEXT_LEFT_MARGIN, 90.0);
     w.pdf.set_font_size(21.0);
-    w.cell(&format!("Registarska oznaka: {}", doc.registration_number_of_vehicle));
+    w.cell(&format!(
+        "Registarska oznaka: {}",
+        doc.registration_number_of_vehicle
+    ));
 
     w.pdf.set_xy(TEXT_LEFT_MARGIN, 145.0);
     w.pdf.set_font_size(12.0);
@@ -103,7 +108,10 @@ pub fn build(doc: &VehicleDocument) -> Result<Vec<u8>> {
     w.tab();
     w.put_data("Zabrana otuđenja", "");
     w.new_line();
-    w.put_paragraph(&format!("{},\n{}", doc.authority_issuing, doc.competent_authority));
+    w.put_paragraph(&format!(
+        "{},\n{}",
+        doc.authority_issuing, doc.competent_authority
+    ));
 
     w.put_data("Broj saobraćajne", &doc.unambiguous_number);
     w.new_line();

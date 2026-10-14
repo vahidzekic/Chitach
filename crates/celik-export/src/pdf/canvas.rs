@@ -17,8 +17,8 @@ use ttf_parser::{Face, GlyphId};
 use crate::ExportError;
 
 /// A4 page size as used by gopdf (`PageSizeA4`).
-pub const PAGE_W: f64 = 595.28;
-pub const PAGE_H: f64 = 841.89;
+pub const PAGE_W: f64 = 595.0;
+pub const PAGE_H: f64 = 842.0;
 
 static FONT_REGULAR: &[u8] = include_bytes!("../../../../assets/fonts/liberationSansRegular.ttf");
 static FONT_BOLD: &[u8] = include_bytes!("../../../../assets/fonts/liberationSansBold.ttf");
@@ -46,12 +46,16 @@ struct FontState {
 
 impl FontState {
     fn new(data: &'static [u8], base_name: &'static str) -> Result<Self, ExportError> {
-        let face = Face::parse(data, 0).map_err(|e| ExportError::Pdf(format!("parsing font: {e}")))?;
+        let face =
+            Face::parse(data, 0).map_err(|e| ExportError::Pdf(format!("parsing font: {e}")))?;
         let upem = face.units_per_em() as i64;
         let os2 = face.tables().os2;
         let typo_ascender = face.typographic_ascender().unwrap_or(face.ascender()) as f64;
         let (win_ascent, win_descent) = match os2 {
-            Some(t) => (t.windows_ascender() as f64, (t.windows_descender() as f64).abs()),
+            Some(t) => (
+                t.windows_ascender() as f64,
+                (t.windows_descender() as f64).abs(),
+            ),
             None => (face.ascender() as f64, (face.descender() as f64).abs()),
         };
         let (underline_position, underline_thickness) = face
@@ -99,7 +103,11 @@ pub enum ImageKind {
     /// Raw JPEG data (DCTDecode) with number of color components.
     Jpeg { data: Vec<u8>, components: u8 },
     /// 8-bit samples, zlib compressed; `gray` = 1 component, else RGB; optional 8-bit alpha (compressed).
-    Raw { data: Vec<u8>, gray: bool, alpha: Option<Vec<u8>> },
+    Raw {
+        data: Vec<u8>,
+        gray: bool,
+        alpha: Option<Vec<u8>>,
+    },
 }
 
 impl Image {
@@ -109,7 +117,10 @@ impl Image {
             return jpeg_info(bytes).map(|(width, height, components)| Image {
                 width,
                 height,
-                kind: ImageKind::Jpeg { data: bytes.to_vec(), components },
+                kind: ImageKind::Jpeg {
+                    data: bytes.to_vec(),
+                    components,
+                },
             });
         }
         if bytes.starts_with(b"\x89PNG") {
@@ -180,8 +191,20 @@ fn decode_png(bytes: &[u8]) -> Option<Image> {
             alpha.push(px[channels - 1]);
         }
     }
-    let alpha = if has_alpha && alpha.iter().any(|&a| a != 255) { Some(deflate(&alpha)) } else { None };
-    Some(Image { width, height, kind: ImageKind::Raw { data: deflate(&color), gray: color_n == 1, alpha } })
+    let alpha = if has_alpha && alpha.iter().any(|&a| a != 255) {
+        Some(deflate(&alpha))
+    } else {
+        None
+    };
+    Some(Image {
+        width,
+        height,
+        kind: ImageKind::Raw {
+            data: deflate(&color),
+            gray: color_n == 1,
+            alpha,
+        },
+    })
 }
 
 fn deflate(data: &[u8]) -> Vec<u8> {
@@ -213,7 +236,10 @@ impl Canvas {
     pub fn new() -> Result<Self, ExportError> {
         Ok(Self {
             content: Content::new(),
-            fonts: [FontState::new(FONT_REGULAR, "LiberationSans")?, FontState::new(FONT_BOLD, "LiberationSans-Bold")?],
+            fonts: [
+                FontState::new(FONT_REGULAR, "LiberationSans")?,
+                FontState::new(FONT_BOLD, "LiberationSans-Bold")?,
+            ],
             images: Vec::new(),
             x: 0.0,
             y: 0.0,
@@ -274,7 +300,12 @@ impl Canvas {
 
     /// gopdf `Rectangle(x0, y0, x1, y1, "D", 0, 0)`.
     pub fn rectangle_stroke(&mut self, x0: f64, y0: f64, x1: f64, y1: f64) {
-        self.content.rect(x0 as f32, (PAGE_H - y1) as f32, (x1 - x0) as f32, (y1 - y0) as f32);
+        self.content.rect(
+            x0 as f32,
+            (PAGE_H - y1) as f32,
+            (x1 - x0) as f32,
+            (y1 - y0) as f32,
+        );
         self.content.stroke();
     }
 
@@ -284,7 +315,14 @@ impl Canvas {
         self.images.push(img);
         let name = format!("Im{idx}");
         self.content.save_state();
-        self.content.transform([w as f32, 0.0, 0.0, h as f32, x as f32, (PAGE_H - y - h) as f32]);
+        self.content.transform([
+            w as f32,
+            0.0,
+            0.0,
+            h as f32,
+            x as f32,
+            (PAGE_H - y - h) as f32,
+        ]);
         self.content.x_object(Name(name.as_bytes()));
         self.content.restore_state();
     }
@@ -294,7 +332,9 @@ impl Canvas {
         let f = self.font_state();
         let mut sum: i64 = 0;
         for c in text.chars() {
-            let Some(gid) = f.face.glyph_index(c) else { continue };
+            let Some(gid) = f.face.glyph_index(c) else {
+                continue;
+            };
             let width = f.pdf_width(gid) as i64;
             let space_in_units = (f.upem as f64 / self.size) * self.char_spacing;
             sum += width + ttf_to_pdf_unit(space_in_units as i64, f.upem);
@@ -311,7 +351,9 @@ impl Canvas {
         {
             let f = &mut self.fonts[font_idx];
             for c in text.chars() {
-                let Some(gid) = f.face.glyph_index(c) else { continue };
+                let Some(gid) = f.face.glyph_index(c) else {
+                    continue;
+                };
                 let new = f.remapper.remap(gid.0);
                 let w = f.pdf_width(gid);
                 f.used.entry(new).or_insert((c, w));
@@ -323,9 +365,11 @@ impl Canvas {
         if !encoded.is_empty() {
             let font_name = format!("F{font_idx}");
             self.content.begin_text();
-            self.content.set_font(Name(font_name.as_bytes()), size as f32);
+            self.content
+                .set_font(Name(font_name.as_bytes()), size as f32);
             self.content.set_char_spacing(self.char_spacing as f32);
-            self.content.next_line(self.x as f32, (PAGE_H - self.y - ascender) as f32);
+            self.content
+                .next_line(self.x as f32, (PAGE_H - self.y - ascender) as f32);
             self.content.show(Str(&encoded));
             self.content.end_text();
         }
@@ -339,7 +383,8 @@ impl Canvas {
             let pos = f.underline_position / upem * size * UNDERLINE_COEF_POSITION;
             let thick = f.underline_thickness / upem * size;
             let y = PAGE_H - self.y + pos - baseline;
-            self.content.rect(self.x as f32, y as f32, width as f32, thick as f32);
+            self.content
+                .rect(self.x as f32, y as f32, width as f32, thick as f32);
             self.content.fill_nonzero();
         }
         self.x += width;
@@ -418,7 +463,11 @@ impl Canvas {
                 .map_err(|e| ExportError::Pdf(format!("subsetting font: {e}")))?;
             let tag = subset_tag(&f.used);
             let base = format!("{tag}+{}", f.base_name);
-            let system_info = SystemInfo { registry: Str(b"Adobe"), ordering: Str(b"Identity"), supplement: 0 };
+            let system_info = SystemInfo {
+                registry: Str(b"Adobe"),
+                ordering: Str(b"Identity"),
+                supplement: 0,
+            };
 
             pdf.type0_font(type0)
                 .base_font(Name(base.as_bytes()))
@@ -469,10 +518,13 @@ impl Canvas {
                 cmap.pair(g, c);
             }
             let cmap_data = cmap.finish();
-            pdf.cmap(cmap_id, cmap_data.as_slice()).system_info(system_info);
+            pdf.cmap(cmap_id, cmap_data.as_slice())
+                .system_info(system_info);
 
             let compressed = deflate(&subset);
-            pdf.stream(file_id, &compressed).filter(Filter::FlateDecode).pair(Name(b"Length1"), subset.len() as i32);
+            pdf.stream(file_id, &compressed)
+                .filter(Filter::FlateDecode)
+                .pair(Name(b"Length1"), subset.len() as i32);
 
             font_ids.push((format!("F{idx}"), type0));
         }
@@ -488,7 +540,9 @@ impl Canvas {
                 ImageKind::Jpeg { data, components } => {
                     let mut x = pdf.image_xobject(id, data);
                     x.filter(Filter::DctDecode);
-                    x.width(img.width as i32).height(img.height as i32).bits_per_component(8);
+                    x.width(img.width as i32)
+                        .height(img.height as i32)
+                        .bits_per_component(8);
                     match components {
                         1 => x.color_space().device_gray(),
                         4 => x.color_space().device_cmyk(),
@@ -498,7 +552,9 @@ impl Canvas {
                 ImageKind::Raw { data, gray, alpha } => {
                     let mut x = pdf.image_xobject(id, data);
                     x.filter(Filter::FlateDecode);
-                    x.width(img.width as i32).height(img.height as i32).bits_per_component(8);
+                    x.width(img.width as i32)
+                        .height(img.height as i32)
+                        .bits_per_component(8);
                     if *gray {
                         x.color_space().device_gray();
                     } else {
@@ -511,7 +567,9 @@ impl Canvas {
                     if let (Some(smask), Some(alpha)) = (smask_id, alpha) {
                         let mut m = pdf.image_xobject(smask, alpha);
                         m.filter(Filter::FlateDecode);
-                    m.width(img.width as i32).height(img.height as i32).bits_per_component(8);
+                        m.width(img.width as i32)
+                            .height(img.height as i32)
+                            .bits_per_component(8);
                         m.color_space().device_gray();
                     }
                 }
@@ -521,7 +579,9 @@ impl Canvas {
 
         {
             let mut page = pdf.page(page_id);
-            page.media_box(Rect::new(0.0, 0.0, PAGE_W as f32, PAGE_H as f32)).parent(pages_id).contents(content_id);
+            page.media_box(Rect::new(0.0, 0.0, PAGE_W as f32, PAGE_H as f32))
+                .parent(pages_id)
+                .contents(content_id);
             let mut res = page.resources();
             {
                 let mut fonts = res.fonts();
@@ -539,7 +599,8 @@ impl Canvas {
 
         let content = self.content.finish();
         let compressed = deflate(content.as_slice());
-        pdf.stream(content_id, &compressed).filter(Filter::FlateDecode);
+        pdf.stream(content_id, &compressed)
+            .filter(Filter::FlateDecode);
 
         let now = Local::now();
         let offset_min = now.offset().fix().local_minus_utc() / 60;
@@ -556,7 +617,10 @@ impl Canvas {
             .author(TextStr("Chitach"))
             .subject(TextStr(&info.subject))
             .creator(TextStr("Chitach"))
-            .producer(TextStr(concat!("Chitach celik-export ", env!("CARGO_PKG_VERSION"))))
+            .producer(TextStr(concat!(
+                "Chitach celik-export ",
+                env!("CARGO_PKG_VERSION")
+            )))
             .creation_date(date);
 
         Ok(pdf.finish())

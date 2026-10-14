@@ -259,14 +259,14 @@ export function createMockApi(): Api {
     },
     async updateRfzo() {
       await delay(900);
-      if (state.document?.kind !== "medical") throw "error.dataUpdate";
+      if (state.document?.kind !== "medical") throw "error.notMedicalCard";
       state.document.data.ValidUntil = "31.12.2027.";
       state.readId++;
       emit();
       return clone(state.document);
     },
     async pinTriesLeft() {
-      if (state.document?.kind !== "id") throw "crypto.wrongCard";
+      if (state.document?.kind !== "id") throw "error.notIdCard";
       return 3;
     },
     async changePin(oldPin) {
@@ -275,7 +275,7 @@ export function createMockApi(): Api {
     },
     async listCertificates() {
       await delay(300);
-      if (state.document?.kind !== "id") throw "crypto.wrongCard";
+      if (state.document?.kind !== "id") throw "error.notIdCard";
       return clone(sampleCerts);
     },
     async saveCertificate() {
@@ -319,13 +319,13 @@ export function createMockApi(): Api {
     },
     async signLogin(_vendor, _slot, pin) {
       await delay(700);
-      if (pin === "0000") throw "xmlSign.loginError";
+      if (pin === "0000") throw "error.wrongPin";
       loggedIn = true;
       return clone(sampleTokenCerts);
     },
     async signXmlFile(_certId, _inputPath, outputPath) {
       await delay(900);
-      if (!loggedIn) throw "xmlSign.signError";
+      if (!loggedIn) throw "error.notLoggedIn";
       console.info("[mock] signed ->", outputPath);
     },
     async signLogout() {

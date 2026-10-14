@@ -5,7 +5,9 @@
 //! CHANGE REFERENCE DATA) for the real card readers in [`crate::card`] to work on it.
 
 use crate::card::gemalto::{AID_ID, AID_IF, AID_PKCS15, AID_RP};
-use crate::card::id::{ID_DOCUMENT_FILE_LOC, ID_PERSONAL_FILE_LOC, ID_PHOTO_FILE_LOC, ID_RESIDENCE_FILE_LOC};
+use crate::card::id::{
+    ID_DOCUMENT_FILE_LOC, ID_PERSONAL_FILE_LOC, ID_PHOTO_FILE_LOC, ID_RESIDENCE_FILE_LOC,
+};
 use crate::card::medical::{
     AID_MEDICAL, MED_DOCUMENT_FILE_LOC, MED_FIXED_PERSONAL_FILE_LOC, MED_VARIABLE_ADMIN_FILE_LOC,
     MED_VARIABLE_PERSONAL_FILE_LOC,
@@ -50,12 +52,19 @@ pub struct VirtualCard {
 impl VirtualCard {
     /// Empty card with the given ATR (like Go's `MakeVirtualCard`).
     pub fn new(atr: impl Into<Vec<u8>>) -> Self {
-        Self { atr: atr.into(), ..Default::default() }
+        Self {
+            atr: atr.into(),
+            ..Default::default()
+        }
     }
 
     /// Card with the given raw files (file id -> complete file content, including headers).
     pub fn with_files(atr: impl Into<Vec<u8>>, files: HashMap<Vec<u8>, Vec<u8>>) -> Self {
-        Self { atr: atr.into(), files, ..Default::default() }
+        Self {
+            atr: atr.into(),
+            files,
+            ..Default::default()
+        }
     }
 
     /// Adds a raw file (complete content, including any card specific header).
@@ -96,7 +105,13 @@ impl VirtualCard {
     }
 
     /// Gemalto ID card (`SERID` application) from the TLV payloads and portrait JPEG.
-    pub fn gemalto_id(atr: &[u8], document: &[u8], personal: &[u8], residence: &[u8], portrait_jpeg: &[u8]) -> Self {
+    pub fn gemalto_id(
+        atr: &[u8],
+        document: &[u8],
+        personal: &[u8],
+        residence: &[u8],
+        portrait_jpeg: &[u8],
+    ) -> Self {
         Self::gemalto_with_aid(atr, AID_ID, document, personal, residence, portrait_jpeg)
     }
 
@@ -123,7 +138,13 @@ impl VirtualCard {
     }
 
     /// Apollo ID card from the TLV payloads and portrait JPEG.
-    pub fn apollo_id(atr: &[u8], document: &[u8], personal: &[u8], residence: &[u8], portrait_jpeg: &[u8]) -> Self {
+    pub fn apollo_id(
+        atr: &[u8],
+        document: &[u8],
+        personal: &[u8],
+        residence: &[u8],
+        portrait_jpeg: &[u8],
+    ) -> Self {
         let mut photo = vec![0u8; 4];
         photo.extend_from_slice(portrait_jpeg);
         Self::new(atr)
@@ -141,15 +162,19 @@ impl VirtualCard {
             MED_VARIABLE_PERSONAL_FILE_LOC,
             MED_VARIABLE_ADMIN_FILE_LOC,
         ];
-        ids.iter().zip(files).fold(Self::new(atr).with_aid(AID_MEDICAL), |c, (id, f)| c.with_file(id, gemalto_file(f)))
+        ids.iter()
+            .zip(files)
+            .fold(Self::new(atr).with_aid(AID_MEDICAL), |c, (id, f)| {
+                c.with_file(id, gemalto_file(f))
+            })
     }
 
     /// Vehicle registration card from the four BER payloads.
     pub fn vehicle(atr: &[u8], files: [&[u8]; 4]) -> Self {
-        VEHICLE_FILES
-            .iter()
-            .zip(files)
-            .fold(Self::new(atr).with_aid(INIT_COMMANDS[0][0]), |c, (id, f)| c.with_file(id, vehicle_file(f)))
+        VEHICLE_FILES.iter().zip(files).fold(
+            Self::new(atr).with_aid(INIT_COMMANDS[0][0]),
+            |c, (id, f)| c.with_file(id, vehicle_file(f)),
+        )
     }
 
     /// All APDUs sent to the card so far.
@@ -294,7 +319,8 @@ pub fn apollo_file(payload: &[u8]) -> Vec<u8> {
 /// Prefixes a BER record with the header found on vehicle cards.
 pub fn vehicle_file(ber_payload: &[u8]) -> Vec<u8> {
     let mut f = vec![
-        0x78, 0x0E, 0x4F, 0x0C, 0xA0, 0x00, 0x00, 0x00, 0x18, 0x65, 0x56, 0x4C, 0x2D, 0x30, 0x30, 0x31,
+        0x78, 0x0E, 0x4F, 0x0C, 0xA0, 0x00, 0x00, 0x00, 0x18, 0x65, 0x56, 0x4C, 0x2D, 0x30, 0x30,
+        0x31,
     ];
     f.extend_from_slice(ber_payload);
     f
@@ -327,13 +353,36 @@ mod tests {
 
     #[test]
     fn select_and_read() {
-        let c = VirtualCard::new(vec![0x3B]).with_file(&[0x0F, 0x02], (0..=255u8).chain(0..10).collect::<Vec<_>>());
-        assert_eq!(c.transmit(&build_apdu(0, 0xB0, 0, 0, &[], 4)).unwrap(), SW_NO_EF_SELECTED);
-        assert_eq!(c.transmit(&build_apdu(0, 0xA4, 8, 0, &[0x0F, 0x01], 4)).unwrap(), SW_FILE_NOT_FOUND);
-        assert_eq!(c.transmit(&build_apdu(0, 0xA4, 8, 0, &[0x0F, 0x02], 4)).unwrap(), SW_OK);
-        assert_eq!(c.transmit(&build_apdu(0, 0xB0, 0, 2, &[], 3)).unwrap(), vec![2, 3, 4, 0x90, 0]);
-        assert_eq!(c.transmit(&build_apdu(0, 0xB0, 1, 0, &[], 0xFF)).unwrap().len(), 12);
-        assert_eq!(c.transmit(&build_apdu(0, 0xB0, 2, 0, &[], 1)).unwrap(), SW_WRONG_OFFSET);
+        let c = VirtualCard::new(vec![0x3B])
+            .with_file(&[0x0F, 0x02], (0..=255u8).chain(0..10).collect::<Vec<_>>());
+        assert_eq!(
+            c.transmit(&build_apdu(0, 0xB0, 0, 0, &[], 4)).unwrap(),
+            SW_NO_EF_SELECTED
+        );
+        assert_eq!(
+            c.transmit(&build_apdu(0, 0xA4, 8, 0, &[0x0F, 0x01], 4))
+                .unwrap(),
+            SW_FILE_NOT_FOUND
+        );
+        assert_eq!(
+            c.transmit(&build_apdu(0, 0xA4, 8, 0, &[0x0F, 0x02], 4))
+                .unwrap(),
+            SW_OK
+        );
+        assert_eq!(
+            c.transmit(&build_apdu(0, 0xB0, 0, 2, &[], 3)).unwrap(),
+            vec![2, 3, 4, 0x90, 0]
+        );
+        assert_eq!(
+            c.transmit(&build_apdu(0, 0xB0, 1, 0, &[], 0xFF))
+                .unwrap()
+                .len(),
+            12
+        );
+        assert_eq!(
+            c.transmit(&build_apdu(0, 0xB0, 2, 0, &[], 1)).unwrap(),
+            SW_WRONG_OFFSET
+        );
         assert_eq!(c.transmit(&[0, 0xCA, 0, 0]).unwrap(), SW_INS_NOT_SUPPORTED);
         assert_eq!(c.sent_apdus().len(), 7);
     }
@@ -341,8 +390,14 @@ mod tests {
     #[test]
     fn pin() {
         let c = VirtualCard::new(vec![]).with_pin("1234", 3);
-        let verify = |p: &str| c.transmit(&build_apdu(0, 0x20, 0, 0x80, &pad_pin(p), 0)).unwrap();
-        assert_eq!(c.transmit(&build_apdu(0, 0x20, 0, 0x80, &[], 0)).unwrap(), [0x63, 0xC3]);
+        let verify = |p: &str| {
+            c.transmit(&build_apdu(0, 0x20, 0, 0x80, &pad_pin(p), 0))
+                .unwrap()
+        };
+        assert_eq!(
+            c.transmit(&build_apdu(0, 0x20, 0, 0x80, &[], 0)).unwrap(),
+            [0x63, 0xC3]
+        );
         assert_eq!(verify("0000"), [0x63, 0xC2]);
         assert_eq!(verify("1234"), SW_OK);
         assert_eq!(c.pin_tries_left(), 3);

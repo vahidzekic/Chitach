@@ -47,7 +47,8 @@ pub fn build(doc: &MedicalDocument) -> Result<Vec<u8>> {
     pdf.set_font(FontStyle::Regular, false, 11.0);
     pdf.set_line_width(0.58);
 
-    let logo = Image::from_bytes(RFZO_LOGO).ok_or_else(|| ExportError::Pdf("decoding RFZO logo".into()))?;
+    let logo = Image::from_bytes(RFZO_LOGO)
+        .ok_or_else(|| ExportError::Pdf("decoding RFZO logo".into()))?;
     pdf.image(logo, 36.0, 14.0, 144.0, 51.0);
 
     pdf.set_xy(218.6, 49.6);
@@ -56,9 +57,21 @@ pub fn build(doc: &MedicalDocument) -> Result<Vec<u8>> {
     pdf.set_y(68.0);
     let p = &mut pdf;
     section(p, "Општи подаци о осигуранику");
-    put_data(p, "Име:", &with_latin(&doc.given_name, &doc.given_name_latin));
-    put_data(p, "Име једног родитеља:", &with_latin(&doc.parent_name, &doc.parent_name_latin));
-    put_data(p, "Презиме:", &with_latin(&doc.family_name, &doc.family_name_latin));
+    put_data(
+        p,
+        "Име:",
+        &with_latin(&doc.given_name, &doc.given_name_latin),
+    );
+    put_data(
+        p,
+        "Име једног родитеља:",
+        &with_latin(&doc.parent_name, &doc.parent_name_latin),
+    );
+    put_data(
+        p,
+        "Презиме:",
+        &with_latin(&doc.family_name, &doc.family_name_latin),
+    );
     put_data(p, "Датум рођења:", &doc.date_of_birth);
     put_data(p, "Место, општина и држава:", &doc.full_place_address());
     put_data(p, "Улица:", &doc.full_street_address());
@@ -71,14 +84,30 @@ pub fn build(doc: &MedicalDocument) -> Result<Vec<u8>> {
     put_data(p, "Датум издавања:", &doc.date_of_issue);
     put_data(p, "Датум важења:", &doc.date_of_expiry);
     put_data(p, "Оверена до:", &doc.valid_until);
-    put_data(p, "Трајно оверена:", format_yes_no(doc.permanently_valid, Language::SrCyrillic));
+    put_data(
+        p,
+        "Трајно оверена:",
+        format_yes_no(doc.permanently_valid, Language::SrCyrillic),
+    );
 
     section(p, "Подаци о носиоцу осигурања");
-    put_data(p, "Име:", &with_latin(&doc.carrier_given_name, &doc.carrier_given_name_latin));
-    put_data(p, "Презиме:", &with_latin(&doc.carrier_family_name, &doc.carrier_family_name_latin));
+    put_data(
+        p,
+        "Име:",
+        &with_latin(&doc.carrier_given_name, &doc.carrier_given_name_latin),
+    );
+    put_data(
+        p,
+        "Презиме:",
+        &with_latin(&doc.carrier_family_name, &doc.carrier_family_name_latin),
+    );
     put_data(p, "ЛБО:", &doc.carrier_insurant_number);
     put_data(p, "ЈМБГ:", &doc.carrier_id_number);
-    put_data(p, "Члан породице:", format_yes_no(doc.carrier_family_member, Language::SrCyrillic));
+    put_data(
+        p,
+        "Члан породице:",
+        format_yes_no(doc.carrier_family_member, Language::SrCyrillic),
+    );
     put_data(p, "Сродство:", &doc.carrier_relationship);
 
     section(p, "Подаци о осигурању");

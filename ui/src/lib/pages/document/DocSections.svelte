@@ -21,14 +21,11 @@
 
 <style>
   .sections {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-    gap: 16px;
-    align-items: start;
+    columns: 2 340px;
+    column-gap: 16px;
   }
-  @media (max-width: 760px) {
-    .sections {
-      grid-template-columns: minmax(0, 1fr);
-    }
+  .sections > :global(*) {
+    break-inside: avoid;
+    margin-bottom: 16px;
   }
 </style>

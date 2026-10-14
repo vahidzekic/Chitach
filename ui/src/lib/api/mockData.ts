@@ -206,14 +206,14 @@ export const sampleCerts: CertInfo[] = [
     label: "Sertifikat za autentifikaciju",
     subject: "CN=MILICA PETROVIĆ 0101990710006, SERIALNUMBER=PNOSR-0101990710006, C=RS",
     issuer: "CN=MUPCA Gradjani, O=MUP Republike Srbije, C=RS",
-    notAfter: "10.04.2029.",
+    notAfter: "2029-04-10 12:00:00",
   },
   {
     index: 1,
     label: "Kvalifikovani sertifikat za potpis",
     subject: "CN=MILICA PETROVIĆ 0101990710006, SERIALNUMBER=PNOSR-0101990710006, C=RS",
     issuer: "CN=MUPCA Gradjani, O=MUP Republike Srbije, C=RS",
-    notAfter: "10.04.2029.",
+    notAfter: "2029-04-10 12:00:00",
   },
 ];
 
@@ -223,13 +223,13 @@ export const sampleTokenCerts: TokenCert[] = [
     label: "Milica Petrović (potpis)",
     subject: "CN=MILICA PETROVIĆ, C=RS",
     issuer: "CN=MUPCA Gradjani, O=MUP Republike Srbije, C=RS",
-    notAfter: "10.04.2029.",
+    notAfter: "2029-04-10 12:00:00",
   },
   {
     id: "0f1e2d3c4b5a6978",
     label: "Milica Petrović (autentifikacija)",
     subject: "CN=MILICA PETROVIĆ, C=RS",
     issuer: "CN=MUPCA Gradjani, O=MUP Republike Srbije, C=RS",
-    notAfter: "10.04.2029.",
+    notAfter: "2029-04-10 12:00:00",
   },
 ];

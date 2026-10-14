@@ -10,7 +10,9 @@ use crate::tlv::{assign_bool_field, assign_field, parse_tlv, TlvFields};
 use crate::{CardError, Result};
 
 /// AID of the medical application (`SERVSZK`).
-pub const AID_MEDICAL: &[u8] = &[0xF3, 0x81, 0x00, 0x00, 0x02, 0x53, 0x45, 0x52, 0x56, 0x53, 0x5A, 0x4B, 0x01];
+pub const AID_MEDICAL: &[u8] = &[
+    0xF3, 0x81, 0x00, 0x00, 0x02, 0x53, 0x45, 0x52, 0x56, 0x53, 0x5A, 0x4B, 0x01,
+];
 
 /// Location of the file with document data.
 pub const MED_DOCUMENT_FILE_LOC: [u8; 2] = [0x0D, 0x01];
@@ -33,7 +35,11 @@ pub struct MedicalCard<'a> {
 
 impl<'a> MedicalCard<'a> {
     pub fn new(card: &'a dyn CardTransport, atr: Vec<u8>) -> Self {
-        Self { atr, card, files: Default::default() }
+        Self {
+            atr,
+            card,
+            files: Default::default(),
+        }
     }
 
     /// Reads a file: 4 byte header with the little-endian data length at offset 2.
@@ -57,15 +63,23 @@ impl CardDocument for MedicalCard<'_> {
         &self.atr
     }
     fn init_card(&mut self) -> Result<()> {
-        let rsp = self.card.transmit(&build_apdu(0x00, 0xA4, 0x04, 0x00, AID_MEDICAL, 0))?;
+        let rsp = self
+            .card
+            .transmit(&build_apdu(0x00, 0xA4, 0x04, 0x00, AID_MEDICAL, 0))?;
         super::check_ok(&rsp, "initializing card")
     }
     fn read_card(&mut self) -> Result<()> {
         let names = [
             (MED_DOCUMENT_FILE_LOC, "reading document file"),
             (MED_FIXED_PERSONAL_FILE_LOC, "reading fixed personal file"),
-            (MED_VARIABLE_PERSONAL_FILE_LOC, "reading variable personal file"),
-            (MED_VARIABLE_ADMIN_FILE_LOC, "reading variable administrative file"),
+            (
+                MED_VARIABLE_PERSONAL_FILE_LOC,
+                "reading variable personal file",
+            ),
+            (
+                MED_VARIABLE_ADMIN_FILE_LOC,
+                "reading variable administrative file",
+            ),
         ];
         let mut files: [Vec<u8>; 4] = Default::default();
         for (i, (name, what)) in names.iter().enumerate() {
@@ -76,11 +90,17 @@ impl CardDocument for MedicalCard<'_> {
     }
     fn get_document(&self) -> Result<Document> {
         let [a, b, c, d] = &self.files;
-        Ok(Document::Medical(Box::new(parse_medical_document(a, b, c, d)?)))
+        Ok(Document::Medical(Box::new(parse_medical_document(
+            a, b, c, d,
+        )?)))
     }
     /// Newer medical cards share ATR with the ID cards (GEMALTO_ATR_2).
     fn test(&mut self) -> bool {
-        if self.card.transmit(&build_apdu(0x00, 0xA4, 0x04, 0x00, AID_MEDICAL, 0)).is_err() {
+        if self
+            .card
+            .transmit(&build_apdu(0x00, 0xA4, 0x04, 0x00, AID_MEDICAL, 0))
+            .is_err()
+        {
             return false;
         }
         let Ok(rsp) = self.read_file(&MED_DOCUMENT_FILE_LOC) else {
@@ -90,14 +110,19 @@ impl CardDocument for MedicalCard<'_> {
             return false;
         };
         descramble(&mut fields, 1553);
-        fields.get(&1553).is_some_and(|v| v.as_slice() == RFZO_NAME.as_bytes())
+        fields
+            .get(&1553)
+            .is_some_and(|v| v.as_slice() == RFZO_NAME.as_bytes())
     }
 }
 
 /// Decodes UTF-16 (little endian, BOM honoured) text fields of medical cards
 /// into UTF-8 in place. A missing tag becomes an empty value.
 pub fn descramble(fields: &mut TlvFields, tag: u32) {
-    let decoded = fields.get(&tag).map(|bs| decode_utf16(bs)).unwrap_or_default();
+    let decoded = fields
+        .get(&tag)
+        .map(|bs| decode_utf16(bs))
+        .unwrap_or_default();
     fields.insert(tag, decoded.into_bytes());
 }
 
@@ -112,7 +137,9 @@ fn decode_utf16(bs: &[u8]) -> String {
         ([a, b], true) => u16::from_be_bytes([*a, *b]),
         _ => 0xFFFD,
     });
-    char::decode_utf16(units).map(|r| r.unwrap_or(char::REPLACEMENT_CHARACTER)).collect()
+    char::decode_utf16(units)
+        .map(|r| r.unwrap_or(char::REPLACEMENT_CHARACTER))
+        .collect()
 }
 
 pub fn parse_medical_document_file(data: &[u8], doc: &mut MedicalDocument) -> Result<()> {
@@ -162,7 +189,12 @@ pub fn parse_medical_variable_admin_file(data: &[u8], doc: &mut MedicalDocument)
     };
     utf16(&mut f, 1601, &mut doc.parent_name);
     utf16(&mut f, 1602, &mut doc.parent_name_latin);
-    doc.gender = if f.get(&1603).map(Vec::as_slice) == Some(b"01") { "Мушко" } else { "Женско" }.to_string();
+    doc.gender = if f.get(&1603).map(Vec::as_slice) == Some(b"01") {
+        "Мушко"
+    } else {
+        "Женско"
+    }
+    .to_string();
     assign_field(&f, 1604, &mut doc.personal_number);
     utf16(&mut f, 1605, &mut doc.street);
     assign_field(&f, 1606, &mut doc.post_number);
@@ -203,7 +235,8 @@ pub fn parse_medical_document(
     variable_admin_file: &[u8],
 ) -> Result<MedicalDocument> {
     let mut doc = MedicalDocument::default();
-    parse_medical_document_file(document_file, &mut doc).map_err(|e| super::context(e, "parsing document file"))?;
+    parse_medical_document_file(document_file, &mut doc)
+        .map_err(|e| super::context(e, "parsing document file"))?;
     parse_medical_fixed_personal_file(fixed_personal_file, &mut doc)
         .map_err(|e| super::context(e, "parsing fixed personal file"))?;
     parse_medical_variable_personal_file(variable_personal_file, &mut doc)
@@ -223,7 +256,10 @@ mod tests {
     use super::*;
 
     fn unhex(s: &str) -> Vec<u8> {
-        (0..s.len()).step_by(2).map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap()).collect()
+        (0..s.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap())
+            .collect()
     }
 
     #[test]
@@ -248,7 +284,10 @@ mod tests {
             let mut fields = TlvFields::new();
             fields.insert(i as u32, unhex(data));
             descramble(&mut fields, i as u32);
-            assert_eq!(String::from_utf8(fields[&(i as u32)].clone()).unwrap(), *expected);
+            assert_eq!(
+                String::from_utf8(fields[&(i as u32)].clone()).unwrap(),
+                *expected
+            );
         }
 
         let mut fields = TlvFields::new();

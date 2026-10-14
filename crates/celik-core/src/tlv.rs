@@ -74,15 +74,24 @@ mod tests {
         assert_eq!(parse_tlv(&[]), Err(FormatError::InvalidLength));
 
         let r = parse_tlv(&[
-            0x01, 0x00, 0x05, 0x00, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x09, 0x00, 0x05, 0x00, 0x57, 0x6F, 0x72, 0x6C, 0x64,
+            0x01, 0x00, 0x05, 0x00, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x09, 0x00, 0x05, 0x00, 0x57,
+            0x6F, 0x72, 0x6C, 0x64,
         ])
         .unwrap();
-        let expected: TlvFields = [(9, b"World".to_vec()), (1, b"Hello".to_vec())].into_iter().collect();
+        let expected: TlvFields = [(9, b"World".to_vec()), (1, b"Hello".to_vec())]
+            .into_iter()
+            .collect();
         assert_eq!(r, expected);
 
-        assert_eq!(parse_tlv(&[0x01, 0x00, 0x05, 0x00, 0x48, 0x65]), Err(FormatError::InvalidLength));
+        assert_eq!(
+            parse_tlv(&[0x01, 0x00, 0x05, 0x00, 0x48, 0x65]),
+            Err(FormatError::InvalidLength)
+        );
         assert_eq!(parse_tlv(&[0x02, 0x00]), Err(FormatError::InvalidLength));
-        assert_eq!(parse_tlv(&[0x02, 0x00, 0x01, 0x00]), Err(FormatError::InvalidLength));
+        assert_eq!(
+            parse_tlv(&[0x02, 0x00, 0x01, 0x00]),
+            Err(FormatError::InvalidLength)
+        );
 
         let r = parse_tlv(&[0x02, 0x00, 0x01, 0x00, 0x01]).unwrap();
         assert_eq!(r, [(2, vec![0x01])].into_iter().collect::<TlvFields>());
@@ -118,7 +127,10 @@ mod tests {
 
     #[test]
     fn encode() {
-        assert_eq!(encode_record(0x0102, b"ab"), vec![0x02, 0x01, 0x02, 0x00, b'a', b'b']);
+        assert_eq!(
+            encode_record(0x0102, b"ab"),
+            vec![0x02, 0x01, 0x02, 0x00, b'a', b'b']
+        );
         let data = [encode_record(1, b"x"), encode_record(1546, b"yz")].concat();
         let f = parse_tlv(&data).unwrap();
         assert_eq!(f[&1546], b"yz");

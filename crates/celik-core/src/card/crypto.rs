@@ -29,8 +29,13 @@ impl Certificate {
         Ok(Self { label, der })
     }
 
-    fn with_parsed<T>(&self, f: impl FnOnce(&x509_parser::certificate::X509Certificate<'_>) -> T) -> Option<T> {
-        x509_parser::parse_x509_certificate(&self.der).ok().map(|(_, c)| f(&c))
+    fn with_parsed<T>(
+        &self,
+        f: impl FnOnce(&x509_parser::certificate::X509Certificate<'_>) -> T,
+    ) -> Option<T> {
+        x509_parser::parse_x509_certificate(&self.der)
+            .ok()
+            .map(|(_, c)| f(&c))
     }
 
     /// Subject distinguished name (RFC 4514 style).
@@ -46,7 +51,11 @@ impl Certificate {
     /// Common name of the subject, if present.
     pub fn subject_common_name(&self) -> Option<String> {
         self.with_parsed(|c| {
-            c.subject().iter_common_name().next().and_then(|cn| cn.as_str().ok()).map(str::to_string)
+            c.subject()
+                .iter_common_name()
+                .next()
+                .and_then(|cn| cn.as_str().ok())
+                .map(str::to_string)
         })
         .flatten()
     }
@@ -105,7 +114,9 @@ impl<'a> IdCardCrypto<'a> {
     pub fn pin_tries_left(&self) -> Result<u8> {
         self.in_transaction(|| {
             init_crypto(self.card)?;
-            let rsp = self.card.transmit(&build_apdu(0x00, 0x20, 0x00, 0x80, &[], 0))?;
+            let rsp = self
+                .card
+                .transmit(&build_apdu(0x00, 0x20, 0x00, 0x80, &[], 0))?;
             pin_tries_left(&rsp).ok_or_else(|| bad_status(&rsp, "getting pin tries left"))
         })
     }
@@ -121,7 +132,9 @@ impl<'a> IdCardCrypto<'a> {
         self.in_transaction(|| {
             init_crypto(self.card)?;
 
-            let rsp = self.card.transmit(&build_apdu(0x00, 0x20, 0x00, 0x80, &pad_pin(old_pin), 0))?;
+            let rsp =
+                self.card
+                    .transmit(&build_apdu(0x00, 0x20, 0x00, 0x80, &pad_pin(old_pin), 0))?;
             if !response_ok(&rsp) {
                 return Err(pin_error(&rsp, "verifying old pin"));
             }
@@ -129,7 +142,9 @@ impl<'a> IdCardCrypto<'a> {
             let mut data = Vec::with_capacity(16);
             data.extend_from_slice(&pad_pin(old_pin));
             data.extend_from_slice(&pad_pin(new_pin));
-            let rsp = self.card.transmit(&build_apdu(0x00, 0x24, 0x00, 0x80, &data, 0))?;
+            let rsp = self
+                .card
+                .transmit(&build_apdu(0x00, 0x24, 0x00, 0x80, &data, 0))?;
             if !response_ok(&rsp) {
                 return Err(pin_error(&rsp, "changing pin"));
             }
@@ -212,8 +227,17 @@ mod tests {
 
     #[test]
     fn pin_errors() {
-        assert!(matches!(pin_error(&[0x63, 0xC2], ""), CardError::WrongPin(2)));
-        assert!(matches!(pin_error(&[0x69, 0x83], ""), CardError::PinBlocked));
-        assert!(matches!(pin_error(&[0x6A, 0x82], ""), CardError::BadStatus(0x6A, 0x82)));
+        assert!(matches!(
+            pin_error(&[0x63, 0xC2], ""),
+            CardError::WrongPin(2)
+        ));
+        assert!(matches!(
+            pin_error(&[0x69, 0x83], ""),
+            CardError::PinBlocked
+        ));
+        assert!(matches!(
+            pin_error(&[0x6A, 0x82], ""),
+            CardError::BadStatus(0x6A, 0x82)
+        ));
     }
 }

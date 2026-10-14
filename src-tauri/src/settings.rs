@@ -202,10 +202,12 @@ mod tests {
 
     #[test]
     fn serializes_camel_case() {
-        let mut s = Settings::default();
-        s.language = Language::SrCyrl;
-        s.mode = Mode::XmlSign;
-        s.auto_save = AutoSave::SaveAndOpen;
+        let mut s = Settings {
+            language: Language::SrCyrl,
+            mode: Mode::XmlSign,
+            auto_save: AutoSave::SaveAndOpen,
+            ..Default::default()
+        };
         s.pkcs11_paths.mup = "/x.so".into();
         let v = serde_json::to_value(&s).unwrap();
         assert_eq!(v["language"], "sr-Cyrl");
@@ -262,8 +264,10 @@ mod tests {
     fn save_and_load_roundtrip() {
         let dir = std::env::temp_dir().join(format!("chitach-settings-{}", std::process::id()));
         let path = dir.join(FILE_NAME);
-        let mut s = Settings::default();
-        s.last_dir = "/home/x".into();
+        let s = Settings {
+            last_dir: "/home/x".into(),
+            ..Default::default()
+        };
         s.save(&path).unwrap();
         assert_eq!(Settings::load(Some(&path)), s);
         std::fs::write(&path, "garbage").unwrap();

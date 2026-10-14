@@ -93,8 +93,8 @@ isto kao u Baš Čeliku, jer i poller i Smartbox traže ekskluzivan pristup čit
 ## Konfiguracija i podaci
 
 * Podešavanja: `settings.json` u konfiguracionom direktorijumu aplikacije
-  (Linux `~/.config/rs.chitach.app/`, macOS `~/Library/Application Support/rs.chitach.app/`,
-  Windows `%APPDATA%\rs.chitach.app\`).
+  (Linux `~/.config/rs.chitach.desktop/`, macOS `~/Library/Application Support/rs.chitach.desktop/`,
+  Windows `%APPDATA%\rs.chitach.desktop\`).
 * Aplikacija ne šalje podatke nigde osim: RFZO servisu (samo na klik "Ažuriraj",
   šalje LBO i broj kartice) i GitHub API-ju (provera nove verzije, ako je uključena).
 

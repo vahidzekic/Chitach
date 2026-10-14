@@ -65,11 +65,11 @@ The detailed user guide (in Serbian) is in [docs/05-korisnicko-uputstvo.md](docs
 
 | ID card | Health insurance card |
 |---|---|
-| ![ID card](docs/screenshots/id.png) | ![Health insurance card](docs/screenshots/medical.png) |
+| ![ID card](docs/screenshots/02-id-card.png) | ![Health insurance card](docs/screenshots/03-medical.png) |
 | **Vehicle registration** | **Waiting for a card** |
-| ![Vehicle registration](docs/screenshots/vehicle.png) | ![Waiting for a card](docs/screenshots/waiting.png) |
+| ![Vehicle registration](docs/screenshots/04-vehicle.png) | ![Waiting for a card](docs/screenshots/01-waiting.png) |
 | **Settings** | **Dark theme** |
-| ![Settings](docs/screenshots/settings.png) | ![Dark theme](docs/screenshots/dark.png) |
+| ![Settings](docs/screenshots/05-settings.png) | ![Dark theme](docs/screenshots/06-dark-id-card.png) |
 
 *Screenshots show made-up sample data.*
 

@@ -16,7 +16,11 @@ pub struct Apollo<'a> {
 
 impl<'a> Apollo<'a> {
     pub fn new(card: &'a dyn CardTransport, atr: Vec<u8>) -> Self {
-        Self { atr, card, files: IdFiles::default() }
+        Self {
+            atr,
+            card,
+            files: IdFiles::default(),
+        }
     }
 
     /// Reads a file: 6 byte header with the little-endian data length at offset 4.

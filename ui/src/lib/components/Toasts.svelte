@@ -42,7 +42,7 @@
   .toasts {
     position: fixed;
     right: 20px;
-    bottom: 20px;
+    bottom: 76px;
     display: flex;
     flex-direction: column;
     gap: 10px;

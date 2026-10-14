@@ -72,6 +72,7 @@ export function translateError(e: unknown): { title: string; detail?: string } {
   }
   if (/^[\w-]+(\.[\w-]+)+$/.test(key) && hasKey(key)) {
     if (key === "error.wrongPin" && arg === "0") return { title: t("error.pinBlocked"), detail };
+    if (key === "error.wrongPin" && arg === undefined) return { title: t("error.wrongPinNoCount"), detail };
     return { title: arg !== undefined ? t(key, arg) : t(key), detail };
   }
   // Not a known key: show raw text as detail under a generic title.

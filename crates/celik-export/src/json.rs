@@ -37,6 +37,9 @@ fn go_escape(s: &str) -> String {
 mod tests {
     #[test]
     fn escape() {
-        assert_eq!(super::go_escape(r#"{"A":"<a & b>"}"#), r#"{"A":"<a & b>"}"#);
+        assert_eq!(
+            super::go_escape(r#"{"A":"<a & b>"}"#),
+            "{\"A\":\"\\u003ca \\u0026 b\\u003e\"}"
+        );
     }
 }

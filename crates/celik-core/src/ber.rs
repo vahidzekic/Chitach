@@ -45,12 +45,22 @@ pub fn parse_ber(data: &[u8]) -> Result<Ber, BerError> {
     let mut ber = Ber::default();
 
     for (tag, value) in primitive {
-        ber.add(Ber { tag, primitive: true, data: value.to_vec(), children: Vec::new() })?;
+        ber.add(Ber {
+            tag,
+            primitive: true,
+            data: value.to_vec(),
+            children: Vec::new(),
+        })?;
     }
 
     for (tag, value) in constructed {
         let sub = parse_ber(value)?;
-        ber.add(Ber { tag, primitive: false, data: Vec::new(), children: sub.children })?;
+        ber.add(Ber {
+            tag,
+            primitive: false,
+            data: Vec::new(),
+            children: sub.children,
+        })?;
     }
 
     Ok(ber)
@@ -161,7 +171,11 @@ impl Ber {
 
     fn levels(&self) -> Vec<String> {
         if self.primitive {
-            vec![format!("{:X}: {}", self.tag, String::from_utf8_lossy(&self.data))]
+            vec![format!(
+                "{:X}: {}",
+                self.tag,
+                String::from_utf8_lossy(&self.data)
+            )]
         } else {
             let mut out = vec![format!("{}:", self.tag)];
             for child in &self.children {
@@ -187,7 +201,9 @@ pub fn parse_length(data: &[u8]) -> Result<(u32, usize), FormatError> {
         0x81 if data.len() >= 2 => Ok((data[1] as u32, 2)),
         0x82 if data.len() >= 3 => Ok((u16::from_be_bytes([data[1], data[2]]) as u32, 3)),
         0x83 if data.len() >= 4 => Ok((u32::from_be_bytes([0, data[1], data[2], data[3]]), 4)),
-        0x84 if data.len() >= 5 => Ok((u32::from_be_bytes([data[1], data[2], data[3], data[4]]), 5)),
+        0x84 if data.len() >= 5 => {
+            Ok((u32::from_be_bytes([data[1], data[2], data[3], data[4]]), 5))
+        }
         _ => Err(FormatError::InvalidLength),
     }
 }
@@ -202,7 +218,11 @@ pub fn parse_tag(data: &[u8]) -> Result<(u32, bool, usize), FormatError> {
     } else if data.len() >= 2 && data[1] & 0x80 == 0 {
         Ok((u16::from_be_bytes([data[0], data[1]]) as u32, primitive, 2))
     } else if data.len() >= 3 {
-        Ok(((data[0] as u32) << 16 | (data[1] as u32) << 8 | data[2] as u32, primitive, 3))
+        Ok((
+            (data[0] as u32) << 16 | (data[1] as u32) << 8 | data[2] as u32,
+            primitive,
+            3,
+        ))
     } else {
         Err(FormatError::InvalidLength)
     }
@@ -224,6 +244,7 @@ pub fn encode_record(tag: &[u8], value: &[u8]) -> Vec<u8> {
 }
 
 #[cfg(test)]
+#[allow(clippy::type_complexity)]
 mod tests {
     use super::*;
     use FormatError::*;
@@ -256,7 +277,10 @@ mod tests {
             (&[0b00100001], Ok((0b00100001, false, 1))),
             (&[0b10111111, 0b00101111], Ok((0xBF2F, false, 2))),
             (&[0b10111111, 0b10101111], Err(InvalidLength)),
-            (&[0b10111111, 0b10101111, 0b11010101], Ok((0xBFAFD5, false, 3))),
+            (
+                &[0b10111111, 0b10101111, 0b11010101],
+                Ok((0xBFAFD5, false, 3)),
+            ),
         ];
         for (data, expected) in cases {
             assert_eq!(parse_tag(data), expected, "{data:02X?}");
@@ -269,7 +293,10 @@ mod tests {
             &[0x71],
             &[
                 encode_record(&[0x81], b"BG123AB"),
-                encode_record(&[0xA1], &encode_record(&[0xA2], &encode_record(&[0x83], b"Name"))),
+                encode_record(
+                    &[0xA1],
+                    &encode_record(&[0xA2], &encode_record(&[0x83], b"Name")),
+                ),
                 encode_record(&[0x9F, 0x33], b"SRB"),
             ]
             .concat(),
@@ -290,10 +317,17 @@ mod tests {
 
     #[test]
     fn merge() {
-        let a = encode_record(&[0x71], &[encode_record(&[0x81], b"A"), encode_record(&[0x82], b"B")].concat());
+        let a = encode_record(
+            &[0x71],
+            &[encode_record(&[0x81], b"A"), encode_record(&[0x82], b"B")].concat(),
+        );
         let b = encode_record(
             &[0x71],
-            &[encode_record(&[0x82], b"C"), encode_record(&[0xA3], &encode_record(&[0x87], b"D"))].concat(),
+            &[
+                encode_record(&[0x82], b"C"),
+                encode_record(&[0xA3], &encode_record(&[0x87], b"D")),
+            ]
+            .concat(),
         );
         let mut t = parse_ber(&a).unwrap();
         t.merge(parse_ber(&b).unwrap()).unwrap();
@@ -302,12 +336,22 @@ mod tests {
         assert_eq!(t.access(&[0x71, 0xA3, 0x87]), Some(&b"D"[..]));
 
         // Same tag, different kind.
-        let leaf = Ber { tag: 0x81, primitive: false, ..Default::default() };
+        let leaf = Ber {
+            tag: 0x81,
+            primitive: false,
+            ..Default::default()
+        };
         assert_eq!(t.children[0].add(leaf), Err(BerError::TypesMismatch));
 
-        let mut other = Ber { tag: 5, ..Default::default() };
+        let mut other = Ber {
+            tag: 5,
+            ..Default::default()
+        };
         assert_eq!(other.merge(t.clone()), Err(BerError::TagsMismatch));
-        let mut leaf = Ber { primitive: true, ..Default::default() };
+        let mut leaf = Ber {
+            primitive: true,
+            ..Default::default()
+        };
         assert_eq!(leaf.add(Ber::default()), Err(BerError::AddIntoPrimitive));
     }
 

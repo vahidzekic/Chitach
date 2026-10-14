@@ -386,3 +386,9 @@ a {
     transition-duration: 0.001ms !important;
   }
 }
+
+@media (max-width: 900px) {
+  .page {
+    padding: 22px 22px 32px;
+  }
+}

@@ -269,7 +269,11 @@ pub fn distinguished_name_string(name: &X509Name) -> String {
         }
     }
     if !n.common_name.is_empty() {
-        rdns.push(vec![("2.5.4.3".into(), Some(n.common_name.clone()), vec![])]);
+        rdns.push(vec![(
+            "2.5.4.3".into(),
+            Some(n.common_name.clone()),
+            vec![],
+        )]);
     }
     if !n.serial_number.is_empty() {
         rdns.push(vec![(
@@ -415,9 +419,9 @@ fn populate_signature(root: &mut Element, cert_der: &[u8]) -> Result<()> {
     let x509_data = signature
         .create_element("KeyInfo")
         .create_element("X509Data");
-    x509_data.create_element("X509Certificate").set_text(
-        &base64::engine::general_purpose::STANDARD_NO_PAD.encode(cert_der),
-    );
+    x509_data
+        .create_element("X509Certificate")
+        .set_text(&base64::engine::general_purpose::STANDARD_NO_PAD.encode(cert_der));
     let issuer_serial = x509_data.create_element("X509IssuerSerial");
     issuer_serial
         .create_element("X509IssuerName")
@@ -471,8 +475,7 @@ fn canonical_signed_info(root: &Element) -> Result<String> {
 pub fn sign_xml(xml: &[u8], signer: &dyn DigestSigner, cert_der: &[u8]) -> Result<String> {
     let text = std::str::from_utf8(xml)
         .map_err(|e| SignError::Xml(format!("parsing XML: invalid UTF-8: {e}")))?;
-    let mut doc =
-        Document::parse(text).map_err(|e| SignError::Xml(format!("parsing XML: {e}")))?;
+    let mut doc = Document::parse(text).map_err(|e| SignError::Xml(format!("parsing XML: {e}")))?;
     {
         let root = doc
             .root_mut()
@@ -536,7 +539,9 @@ pub fn verify_signed_xml(xml: &str) -> Result<Vec<u8>> {
         .child("SignedInfo")
         .ok_or_else(|| SignError::Xml("unable to find SignedInfo element".into()))?;
 
-    let algorithm = |el: Option<&Element>| el.and_then(|e| e.attr_value("Algorithm"));
+    fn algorithm(el: Option<&Element>) -> Option<&str> {
+        el.and_then(|e| e.attr_value("Algorithm"))
+    }
     if algorithm(signed_info.child("CanonicalizationMethod")) != Some(C14N_ALGORITHM) {
         return Err(SignError::Xml("unsupported canonicalization method".into()));
     }

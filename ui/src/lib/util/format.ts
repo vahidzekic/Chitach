@@ -52,3 +52,9 @@ export async function copyText(text: string): Promise<boolean> {
     }
   }
 }
+
+/** Certificate dates come as "YYYY-MM-DD HH:MM:SS" (UTC); show them as "DD.MM.YYYY." */
+export function formatCertDate(s: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  return m ? `${m[3]}.${m[2]}.${m[1]}.` : s;
+}

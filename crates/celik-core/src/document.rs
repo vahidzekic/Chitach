@@ -161,7 +161,10 @@ impl IdDocument {
 
     pub fn full_address(&self, reverse: bool) -> String {
         let mut street = self.street.clone();
-        if !self.house_number.is_empty() || !self.house_letter.is_empty() || !self.entrance.is_empty() {
+        if !self.house_number.is_empty()
+            || !self.house_letter.is_empty()
+            || !self.entrance.is_empty()
+        {
             street.push(' ');
             street.push_str(&self.house_number);
             street.push_str(&self.house_letter);
@@ -182,7 +185,11 @@ impl IdDocument {
     }
 
     pub fn full_place_of_birth(&self) -> String {
-        join_with_comma(&[&self.place_of_birth, &self.community_of_birth, &self.state_of_birth])
+        join_with_comma(&[
+            &self.place_of_birth,
+            &self.community_of_birth,
+            &self.state_of_birth,
+        ])
     }
 
     /// Base file name without extension (e.g. `petar_petrovic`).
@@ -193,7 +200,11 @@ impl IdDocument {
 
 impl MedicalDocument {
     pub fn full_name(&self) -> String {
-        join_with_comma(&[&self.given_name_latin, &self.parent_name_latin, &self.family_name_latin])
+        join_with_comma(&[
+            &self.given_name_latin,
+            &self.parent_name_latin,
+            &self.family_name_latin,
+        ])
     }
 
     pub fn full_street_address(&self) -> String {
@@ -222,7 +233,9 @@ impl VehicleDocument {
     pub fn file_stem(&self) -> String {
         format!(
             "{}_{}_{}",
-            self.registration_number_of_vehicle, self.owners_surname_or_business_name, self.owner_name
+            self.registration_number_of_vehicle,
+            self.owners_surname_or_business_name,
+            self.owner_name
         )
         .to_lowercase()
     }
@@ -246,6 +259,8 @@ pub(crate) mod b64 {
     }
     pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<u8>, D::Error> {
         let s = String::deserialize(d)?;
-        base64::engine::general_purpose::STANDARD.decode(s).map_err(serde::de::Error::custom)
+        base64::engine::general_purpose::STANDARD
+            .decode(s)
+            .map_err(serde::de::Error::custom)
     }
 }

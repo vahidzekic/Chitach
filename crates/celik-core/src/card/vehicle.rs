@@ -15,18 +15,34 @@ use crate::{CardError, Result};
 pub const INIT_COMMANDS: [[&[u8]; 3]; 3] = [
     [
         &[0xA0, 0x00, 0x00, 0x01, 0x51, 0x00, 0x00],
-        &[0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00, 0x07, 0x00, 0x00, 0xFE, 0x00, 0x00, 0x01, 0x00],
-        &[0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00, 0x07, 0x00, 0x00, 0xFE, 0x00, 0x00, 0xAD, 0xF2],
+        &[
+            0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00, 0x07, 0x00, 0x00, 0xFE, 0x00, 0x00,
+            0x01, 0x00,
+        ],
+        &[
+            0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00, 0x07, 0x00, 0x00, 0xFE, 0x00, 0x00,
+            0xAD, 0xF2,
+        ],
     ],
     [
         &[0xA0, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00],
-        &[0xF3, 0x81, 0x00, 0x00, 0x02, 0x53, 0x45, 0x52, 0x56, 0x4C, 0x04, 0x02, 0x01],
-        &[0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00, 0x07, 0x00, 0x00, 0xFE, 0x00, 0x00, 0xAD, 0xF2],
+        &[
+            0xF3, 0x81, 0x00, 0x00, 0x02, 0x53, 0x45, 0x52, 0x56, 0x4C, 0x04, 0x02, 0x01,
+        ],
+        &[
+            0xA0, 0x00, 0x00, 0x00, 0x77, 0x01, 0x08, 0x00, 0x07, 0x00, 0x00, 0xFE, 0x00, 0x00,
+            0xAD, 0xF2,
+        ],
     ],
     [
         &[0xA0, 0x00, 0x00, 0x00, 0x18, 0x43, 0x4D, 0x00],
-        &[0xA0, 0x00, 0x00, 0x00, 0x18, 0x34, 0x14, 0x01, 0x00, 0x65, 0x56, 0x4C, 0x2D, 0x30, 0x30, 0x31],
-        &[0xA0, 0x00, 0x00, 0x00, 0x18, 0x65, 0x56, 0x4C, 0x2D, 0x30, 0x30, 0x31],
+        &[
+            0xA0, 0x00, 0x00, 0x00, 0x18, 0x34, 0x14, 0x01, 0x00, 0x65, 0x56, 0x4C, 0x2D, 0x30,
+            0x30, 0x31,
+        ],
+        &[
+            0xA0, 0x00, 0x00, 0x00, 0x18, 0x65, 0x56, 0x4C, 0x2D, 0x30, 0x30, 0x31,
+        ],
     ],
 ];
 
@@ -42,7 +58,11 @@ pub struct VehicleCard<'a> {
 
 impl<'a> VehicleCard<'a> {
     pub fn new(card: &'a dyn CardTransport, atr: Vec<u8>) -> Self {
-        Self { atr, card, files: Default::default() }
+        Self {
+            atr,
+            card,
+            files: Default::default(),
+        }
     }
 
     /// Reads a file whose size is encoded in a BER header.
@@ -58,10 +78,14 @@ impl<'a> VehicleCard<'a> {
     }
 
     fn try_to_select(&self, cmds: &[&[u8]; 3]) -> Result<()> {
-        let rsp = self.card.transmit(&build_apdu(0x00, 0xA4, 0x04, 0x00, cmds[0], 0))?;
+        let rsp = self
+            .card
+            .transmit(&build_apdu(0x00, 0xA4, 0x04, 0x00, cmds[0], 0))?;
         super::check_ok(&rsp, "first command")?;
-        self.card.transmit(&build_apdu(0x00, 0xA4, 0x04, 0x00, cmds[1], 0))?;
-        self.card.transmit(&build_apdu(0x00, 0xA4, 0x04, 0x0C, cmds[2], 0))?;
+        self.card
+            .transmit(&build_apdu(0x00, 0xA4, 0x04, 0x00, cmds[1], 0))?;
+        self.card
+            .transmit(&build_apdu(0x00, 0xA4, 0x04, 0x0C, cmds[2], 0))?;
         Ok(())
     }
 }
@@ -87,13 +111,17 @@ impl CardDocument for VehicleCard<'_> {
     fn read_card(&mut self) -> Result<()> {
         let mut files: [Vec<u8>; 4] = Default::default();
         for (i, name) in VEHICLE_FILES.iter().enumerate() {
-            files[i] = self.read_file(name).map_err(|e| super::context(e, &format!("reading document {i} file")))?;
+            files[i] = self
+                .read_file(name)
+                .map_err(|e| super::context(e, &format!("reading document {i} file")))?;
         }
         self.files = files;
         Ok(())
     }
     fn get_document(&self) -> Result<Document> {
-        Ok(Document::Vehicle(Box::new(parse_vehicle_document(&self.files)?)))
+        Ok(Document::Vehicle(Box::new(parse_vehicle_document(
+            &self.files,
+        )?)))
     }
     fn test(&mut self) -> bool {
         self.init_card().is_ok()
@@ -101,7 +129,9 @@ impl CardDocument for VehicleCard<'_> {
 }
 
 /// Parses the vehicle file header. Returns `(length, offset)` of the data.
-pub fn parse_vehicle_card_file_size(data: &[u8]) -> std::result::Result<(usize, usize), FormatError> {
+pub fn parse_vehicle_card_file_size(
+    data: &[u8],
+) -> std::result::Result<(usize, usize), FormatError> {
     if data.len() < 2 {
         return Err(FormatError::InvalidLength);
     }
@@ -124,8 +154,10 @@ pub fn parse_vehicle_card_file_size(data: &[u8]) -> std::result::Result<(usize, 
 pub fn parse_vehicle_document<F: AsRef<[u8]>>(files: &[F]) -> Result<VehicleDocument> {
     let mut data = Ber::default();
     for (i, file) in files.iter().enumerate() {
-        let parsed = parse_ber(file.as_ref()).map_err(|e| CardError::Parse(format!("parsing {i} file: {e}")))?;
-        data.merge(parsed).map_err(|e| CardError::Parse(format!("merging {i} data: {e}")))?;
+        let parsed = parse_ber(file.as_ref())
+            .map_err(|e| CardError::Parse(format!("parsing {i} file: {e}")))?;
+        data.merge(parsed)
+            .map_err(|e| CardError::Parse(format!("merging {i} data: {e}")))?;
     }
 
     let mut doc = VehicleDocument::default();
@@ -164,15 +196,27 @@ pub fn parse_vehicle_document<F: AsRef<[u8]>>(files: &[F]) -> Result<VehicleDocu
     d.assign_from(&mut doc.users_personal_no, &[0x72, 0xC3]);
     d.assign_from(&mut doc.owners_personal_no, &[0x72, 0xC2]);
 
-    d.assign_from(&mut doc.owners_surname_or_business_name, &[0x71, 0xA1, 0xA2, 0x83]);
+    d.assign_from(
+        &mut doc.owners_surname_or_business_name,
+        &[0x71, 0xA1, 0xA2, 0x83],
+    );
     d.assign_from(&mut doc.owner_name, &[0x71, 0xA1, 0xA2, 0x84]);
     d.assign_from(&mut doc.owner_address, &[0x71, 0xA1, 0xA2, 0x85]);
 
-    d.assign_from(&mut doc.users_surname_or_business_name, &[0x71, 0xA1, 0xA9, 0x83]);
+    d.assign_from(
+        &mut doc.users_surname_or_business_name,
+        &[0x71, 0xA1, 0xA9, 0x83],
+    );
     d.assign_from(&mut doc.users_name, &[0x71, 0xA1, 0xA9, 0x84]);
     d.assign_from(&mut doc.users_address, &[0x71, 0xA1, 0xA9, 0x85]);
-    if doc.users_name.is_empty() && doc.users_surname_or_business_name.is_empty() && doc.users_address.is_empty() {
-        d.assign_from(&mut doc.users_surname_or_business_name, &[0x72, 0xA1, 0xA9, 0x83]);
+    if doc.users_name.is_empty()
+        && doc.users_surname_or_business_name.is_empty()
+        && doc.users_address.is_empty()
+    {
+        d.assign_from(
+            &mut doc.users_surname_or_business_name,
+            &[0x72, 0xA1, 0xA9, 0x83],
+        );
         d.assign_from(&mut doc.users_name, &[0x72, 0xA1, 0xA9, 0x84]);
         d.assign_from(&mut doc.users_address, &[0x72, 0xA1, 0xA9, 0x85]);
     }
@@ -181,6 +225,7 @@ pub fn parse_vehicle_document<F: AsRef<[u8]>>(files: &[F]) -> Result<VehicleDocu
 }
 
 #[cfg(test)]
+#[allow(clippy::type_complexity)]
 mod tests {
     use super::*;
     use FormatError::*;
@@ -193,14 +238,15 @@ mod tests {
             (vec![0x01, 0x02, 0x03, 0x04], Err(InvalidLength)),
             (
                 vec![
-                    0x78, 0x0E, 0x4F, 0x0C, 0xA0, 0x00, 0x00, 0x00, 0x18, 0x65, 0x56, 0x4C, 0x2D, 0x30, 0x30, 0x31, 0x72,
+                    0x78, 0x0E, 0x4F, 0x0C, 0xA0, 0x00, 0x00, 0x00, 0x18, 0x65, 0x56, 0x4C, 0x2D,
+                    0x30, 0x30, 0x31, 0x72,
                 ],
                 Err(InvalidLength),
             ),
             (
                 vec![
-                    0x78, 0x0E, 0x4F, 0x0C, 0xA0, 0x00, 0x00, 0x00, 0x18, 0x65, 0x56, 0x4C, 0x2D, 0x30, 0x30, 0x31, 0x72,
-                    0x27,
+                    0x78, 0x0E, 0x4F, 0x0C, 0xA0, 0x00, 0x00, 0x00, 0x18, 0x65, 0x56, 0x4C, 0x2D,
+                    0x30, 0x30, 0x31, 0x72, 0x27,
                 ],
                 Ok((41, 16)),
             ),

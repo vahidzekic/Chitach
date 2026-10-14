@@ -9,13 +9,21 @@ use crate::document::Document;
 use crate::{CardError, Result};
 
 /// AID of the ID card application (`SERID`).
-pub const AID_ID: &[u8] = &[0xF3, 0x81, 0x00, 0x00, 0x02, 0x53, 0x45, 0x52, 0x49, 0x44, 0x01];
+pub const AID_ID: &[u8] = &[
+    0xF3, 0x81, 0x00, 0x00, 0x02, 0x53, 0x45, 0x52, 0x49, 0x44, 0x01,
+];
 /// AID of the identity card for foreigners application (`SERIF`).
-pub const AID_IF: &[u8] = &[0xF3, 0x81, 0x00, 0x00, 0x02, 0x53, 0x45, 0x52, 0x49, 0x46, 0x01];
+pub const AID_IF: &[u8] = &[
+    0xF3, 0x81, 0x00, 0x00, 0x02, 0x53, 0x45, 0x52, 0x49, 0x46, 0x01,
+];
 /// AID of the residence permit application (`SERRP`).
-pub const AID_RP: &[u8] = &[0xF3, 0x81, 0x00, 0x00, 0x02, 0x53, 0x45, 0x52, 0x52, 0x50, 0x01];
+pub const AID_RP: &[u8] = &[
+    0xF3, 0x81, 0x00, 0x00, 0x02, 0x53, 0x45, 0x52, 0x52, 0x50, 0x01,
+];
 /// AID of the PKCS#15 cryptography application.
-pub const AID_PKCS15: &[u8] = &[0xA0, 0x00, 0x00, 0x00, 0x63, 0x50, 0x4B, 0x43, 0x53, 0x2D, 0x31, 0x35];
+pub const AID_PKCS15: &[u8] = &[
+    0xA0, 0x00, 0x00, 0x00, 0x63, 0x50, 0x4B, 0x43, 0x53, 0x2D, 0x31, 0x35,
+];
 
 /// Signature files.
 pub const SIGNATURE_FILES: [[u8; 2]; 2] = [[0x0F, 0x1C], [0x0F, 0x1D]];
@@ -31,7 +39,11 @@ pub struct Gemalto<'a> {
 
 impl<'a> Gemalto<'a> {
     pub fn new(card: &'a dyn CardTransport, atr: Vec<u8>) -> Self {
-        Self { atr, card, files: IdFiles::default() }
+        Self {
+            atr,
+            card,
+            files: IdFiles::default(),
+        }
     }
 
     /// Reads a file: 4 byte header with the little-endian data length at offset 2.
@@ -55,7 +67,9 @@ pub(crate) fn init_card(card: &dyn CardTransport) -> Result<()> {
             return Ok(());
         }
     }
-    Err(CardError::Parse("initializing identity document card: unknown card type".into()))
+    Err(CardError::Parse(
+        "initializing identity document card: unknown card type".into(),
+    ))
 }
 
 pub(crate) fn read_file(card: &dyn CardTransport, name: &[u8]) -> Result<Vec<u8>> {

@@ -1,15 +1,24 @@
 //! Port of bas-celik `localization` package.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Language { SrLatin, SrCyrillic, En, Ru }
+pub enum Language {
+    SrLatin,
+    SrCyrillic,
+    En,
+    Ru,
+}
 
 const CYRILLIC: [char; 60] = [
-    'А', 'Б', 'В', 'Г', 'Д', 'Ђ', 'Е', 'Ж', 'З', 'И', 'Ј', 'К', 'Л', 'Љ', 'М', 'Н', 'Њ', 'О', 'П', 'Р', 'С', 'Т', 'Ћ', 'У', 'Ф', 'Х', 'Ц', 'Ч', 'Џ', 'Ш',
-    'а', 'б', 'в', 'г', 'д', 'ђ', 'е', 'ж', 'з', 'и', 'ј', 'к', 'л', 'љ', 'м', 'н', 'њ', 'о', 'п', 'р', 'с', 'т', 'ћ', 'у', 'ф', 'х', 'ц', 'ч', 'џ', 'ш',
+    'А', 'Б', 'В', 'Г', 'Д', 'Ђ', 'Е', 'Ж', 'З', 'И', 'Ј', 'К', 'Л', 'Љ', 'М', 'Н', 'Њ', 'О', 'П',
+    'Р', 'С', 'Т', 'Ћ', 'У', 'Ф', 'Х', 'Ц', 'Ч', 'Џ', 'Ш', 'а', 'б', 'в', 'г', 'д', 'ђ', 'е', 'ж',
+    'з', 'и', 'ј', 'к', 'л', 'љ', 'м', 'н', 'њ', 'о', 'п', 'р', 'с', 'т', 'ћ', 'у', 'ф', 'х', 'ц',
+    'ч', 'џ', 'ш',
 ];
 const LATIN: [&str; 60] = [
-    "A", "B", "V", "G", "D", "Đ", "E", "Ž", "Z", "I", "J", "K", "L", "Lj", "M", "N", "Nj", "O", "P", "R", "S", "T", "Ć", "U", "F", "H", "C", "Č", "Dž", "Š",
-    "a", "b", "v", "g", "d", "đ", "e", "ž", "z", "i", "j", "k", "l", "lj", "m", "n", "nj", "o", "p", "r", "s", "t", "ć", "u", "f", "h", "c", "č", "dž", "š",
+    "A", "B", "V", "G", "D", "Đ", "E", "Ž", "Z", "I", "J", "K", "L", "Lj", "M", "N", "Nj", "O",
+    "P", "R", "S", "T", "Ć", "U", "F", "H", "C", "Č", "Dž", "Š", "a", "b", "v", "g", "d", "đ", "e",
+    "ž", "z", "i", "j", "k", "l", "lj", "m", "n", "nj", "o", "p", "r", "s", "t", "ć", "u", "f",
+    "h", "c", "č", "dž", "š",
 ];
 
 pub fn cyrillic_to_latin(s: &str) -> String {
@@ -46,7 +55,10 @@ pub fn format_date(s: &mut String) {
         *s = "Nije dostupan".into();
         return;
     }
-    *s = format!("{}{}.{}{}.{}{}{}{}.", c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]);
+    *s = format!(
+        "{}{}.{}{}.{}{}{}{}.",
+        c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]
+    );
 }
 
 /// `YYYYMMDD` -> `DD.MM.YYYY`.
@@ -55,12 +67,20 @@ pub fn format_date_ymd(s: &mut String) {
     if c.len() != 8 {
         return;
     }
-    *s = format!("{}{}.{}{}.{}{}{}{}", c[6], c[7], c[4], c[5], c[0], c[1], c[2], c[3]);
+    *s = format!(
+        "{}{}.{}{}.{}{}{}{}",
+        c[6], c[7], c[4], c[5], c[0], c[1], c[2], c[3]
+    );
 }
 
 /// Join non-empty strings with ", ".
 pub fn join_with_comma(parts: &[&str]) -> String {
-    parts.iter().filter(|p| !p.is_empty()).copied().collect::<Vec<_>>().join(", ")
+    parts
+        .iter()
+        .filter(|p| !p.is_empty())
+        .copied()
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 #[cfg(test)]
@@ -69,7 +89,12 @@ mod tests {
 
     #[test]
     fn dates() {
-        for (i, e) in [("23051987", "23.05.1987."), ("01010000", "Nije dostupan"), ("123", "123"), ("", "")] {
+        for (i, e) in [
+            ("23051987", "23.05.1987."),
+            ("01010000", "Nije dostupan"),
+            ("123", "123"),
+            ("", ""),
+        ] {
             let mut s = i.to_string();
             format_date(&mut s);
             assert_eq!(s, e);

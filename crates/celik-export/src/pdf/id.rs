@@ -1,7 +1,9 @@
 //! ID card PDF. Port of bas-celik (MIT, (c) Nikola Ubavić) `document/idPrint.go`
 //! and `IdDocument.BuildPdf`.
 
-use celik_core::document::{ID_TYPE_APOLLO, ID_TYPE_ID, ID_TYPE_IDENTITY_FOREIGNER, ID_TYPE_RESIDENCE_PERMIT};
+use celik_core::document::{
+    ID_TYPE_APOLLO, ID_TYPE_ID, ID_TYPE_IDENTITY_FOREIGNER, ID_TYPE_RESIDENCE_PERMIT,
+};
 use celik_core::localization::{cyrillic_to_latin, join_with_comma};
 use celik_core::IdDocument;
 
@@ -42,7 +44,11 @@ impl IdPdfWriter<'_> {
 
     fn put_data(&mut self, label: &str, data: &str) {
         let y = self.pdf.get_y();
-        let label = if self.cyrillic_labels { label.to_string() } else { cyrillic_to_latin(label) };
+        let label = if self.cyrillic_labels {
+            label.to_string()
+        } else {
+            cyrillic_to_latin(label)
+        };
 
         self.pdf.set_x(self.text_left_margin);
         let texts = self.pdf.split_text_with_word_wrap(&label, 120.0);
@@ -90,10 +96,12 @@ impl IdPdfWriter<'_> {
 
         let image_height = 159.0;
         if let Some(img) = Image::from_bytes(&self.doc.portrait) {
-            self.pdf.image(img, self.left_margin, image_y, 119.9, image_height);
+            self.pdf
+                .image(img, self.left_margin, image_y, 119.9, image_height);
         }
         self.pdf.set_line_width(0.48);
-        self.pdf.rectangle_stroke(self.left_margin, image_y, 179.0, image_y + image_height);
+        self.pdf
+            .rectangle_stroke(self.left_margin, image_y, 179.0, image_y + image_height);
     }
 
     fn section_title(&mut self, title: &str) {
@@ -226,7 +234,10 @@ impl IdPdfWriter<'_> {
         self.put_data("Држављанство:", &d.nationality_full);
         self.put_data("Датум рођења:", &d.date_of_birth);
         self.put_data("Основ боравка:", &d.purpose_of_stay);
-        self.put_data(self.address_label(), &join_with_comma(&[&d.state, &d.full_address(true)]));
+        self.put_data(
+            self.address_label(),
+            &join_with_comma(&[&d.state, &d.full_address(true)]),
+        );
         self.put_data("Датум промене адресе:", &d.address_date);
         self.put_data("Евиденцијски број\nстранца:", &d.personal_number);
         self.put_data("Пол:", &d.sex);
@@ -318,5 +329,8 @@ pub fn build(doc: &IdDocument, cyrillic_labels: bool, print_date: &str) -> Resul
         _ => w.print_regular_id(),
     }
 
-    w.pdf.finish(Info { title: format!("{} {}", doc.given_name, doc.surname), subject: "Lična karta".into() })
+    w.pdf.finish(Info {
+        title: format!("{} {}", doc.given_name, doc.surname),
+        subject: "Lična karta".into(),
+    })
 }

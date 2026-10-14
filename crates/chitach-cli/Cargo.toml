@@ -12,3 +12,4 @@ path = "src/main.rs"
 [dependencies]
 celik-core = { workspace = true, features = ["pcsc", "rfzo"] }
 celik-export.workspace = true
+log.workspace = true

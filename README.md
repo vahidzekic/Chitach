@@ -65,11 +65,11 @@ Detaljno uputstvo za instalaciju i upotrebu: **[docs/05-korisnicko-uputstvo.md](
 
 | Lična karta | Zdravstvena knjižica |
 |---|---|
-| ![Lična karta](docs/screenshots/id.png) | ![Zdravstvena knjižica](docs/screenshots/medical.png) |
+| ![Lična karta](docs/screenshots/02-id-card.png) | ![Zdravstvena knjižica](docs/screenshots/03-medical.png) |
 | **Saobraćajna dozvola** | **Čekanje na karticu** |
-| ![Saobraćajna dozvola](docs/screenshots/vehicle.png) | ![Čekanje na karticu](docs/screenshots/waiting.png) |
+| ![Saobraćajna dozvola](docs/screenshots/04-vehicle.png) | ![Čekanje na karticu](docs/screenshots/01-waiting.png) |
 | **Podešavanja** | **Tamna tema** |
-| ![Podešavanja](docs/screenshots/settings.png) | ![Tamna tema](docs/screenshots/dark.png) |
+| ![Podešavanja](docs/screenshots/05-settings.png) | ![Tamna tema](docs/screenshots/06-dark-id-card.png) |
 
 *Na slikama su izmišljeni primer podaci.*
 

@@ -125,9 +125,9 @@ Otvaraju se ikonicom zupčanika.
 Promena moda rada važi posle ponovnog pokretanja aplikacije. Podešavanja se čuvaju u
 `settings.json`:
 
-* Linux: `~/.config/rs.chitach.app/settings.json`
-* macOS: `~/Library/Application Support/rs.chitach.app/settings.json`
-* Windows: `%APPDATA%\rs.chitach.app\settings.json`
+* Linux: `~/.config/rs.chitach.desktop/settings.json`
+* macOS: `~/Library/Application Support/rs.chitach.desktop/settings.json`
+* Windows: `%APPDATA%\rs.chitach.desktop\settings.json`
 
 ### Smartbox (ePorezi)
 
@@ -155,13 +155,15 @@ Primeri (tačan spisak opcija daje `chitach-cli --help`):
 chitach-cli --list                          # spisak čitača
 chitach-cli --atr                           # ATR kartice
 chitach-cli --pdf licna.pdf                 # PDF
-chitach-cli --json podaci.json --xlsx podaci.xlsx
+chitach-cli --json podaci.json --excel podaci.xlsx
 chitach-cli --pdf licna.pdf --cyrillic-labels
-chitach-cli --rfzo --json knjizica.json     # zdravstvena + "overena do" sa RFZO
+chitach-cli --rfzo-valid-until --json knjizica.json   # zdravstvena + "overena do" sa RFZO
+chitach-cli --reader 1 --pdf dokument.pdf   # čitač po indeksu iz --list
+chitach-cli --verbose --pdf dokument.pdf    # dodatni detalji u terminalu
 chitach-cli --version
 ```
 
-Ako je priključeno više čitača, čitač se bira opcijom za izbor čitača (vidi `--help`).
+Ako je priključeno više čitača, čitač se bira opcijom `--reader <indeks>` (indeks iz `--list`).
 
 ## 5. Rešavanje problema
 

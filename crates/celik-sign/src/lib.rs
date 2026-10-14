@@ -28,16 +28,19 @@ pub type Result<T> = std::result::Result<T, SignError>;
 /// Lowercase hex encoding (Go `hex.EncodeToString`).
 pub fn hex_encode(data: &[u8]) -> String {
     use std::fmt::Write;
-    data.iter().fold(String::with_capacity(data.len() * 2), |mut s, b| {
-        let _ = write!(s, "{b:02x}");
-        s
-    })
+    data.iter()
+        .fold(String::with_capacity(data.len() * 2), |mut s, b| {
+            let _ = write!(s, "{b:02x}");
+            s
+        })
 }
 
 /// Hex decoding (Go `hex.DecodeString`: case-insensitive, even length required).
 pub fn hex_decode(s: &str) -> Result<Vec<u8>> {
-    if s.len() % 2 != 0 {
-        return Err(SignError::Other("encoding/hex: odd length hex string".into()));
+    if !s.len().is_multiple_of(2) {
+        return Err(SignError::Other(
+            "encoding/hex: odd length hex string".into(),
+        ));
     }
     s.as_bytes()
         .chunks(2)
