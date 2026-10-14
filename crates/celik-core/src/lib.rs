@@ -15,6 +15,7 @@ pub mod pin;
 pub mod reader;
 #[cfg(feature = "rfzo")]
 pub mod rfzo;
+pub mod sample;
 pub mod tlv;
 pub mod virtual_card;
 
