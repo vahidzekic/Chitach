@@ -19,6 +19,11 @@ celik-sign.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 log.workspace = true
+x509-parser.workspace = true
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+semver = "1"
+sys-locale = "0.3"
+ureq = "3"

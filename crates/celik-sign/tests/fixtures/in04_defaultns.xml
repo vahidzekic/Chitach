@@ -1,0 +1,4 @@
+<Root xmlns="urn:default" xml:lang="sr" z="1" a="x&#9;y&#10;z" xmlns:b="urn:b" b:attr="v" xmlns:a="urn:a" a:attr="w">
+<Child xmlns="urn:default" xmlns:c="urn:c"><c:Inner c:k="1" k="2"/></Child>
+<Other xmlns="">no ns</Other>
+</Root>

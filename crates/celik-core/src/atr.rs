@@ -1,1 +1,122 @@
-//! TODO: port from bas-celik
+//! Known ATRs (Answer To Reset) of Serbian document cards and ATR based detection.
+//!
+//! Port of bas-celik `card/atr.go` and the ATR constants from
+//! `gemalto.go`, `apollo.go`, `medical.go`, `vehicle.go` (MIT, (c) Nikola Ubavić).
+
+use crate::card::CardKind;
+
+/// First generation of ID cards (Apollo OS), not manufactured anymore.
+pub const APOLLO_ATR: &[u8] = &[
+    0x3B, 0xB9, 0x18, 0x00, 0x81, 0x31, 0xFE, 0x9E, 0x80, 0x73, 0xFF, 0x61, 0x40, 0x83, 0x00, 0x00, 0x00, 0xDF,
+];
+
+/// Gemalto ID card (also used by some vehicle cards).
+pub const GEMALTO_ATR_1: &[u8] = &[
+    0x3B, 0xFF, 0x94, 0x00, 0x00, 0x81, 0x31, 0x80, 0x43, 0x80, 0x31, 0x80, 0x65, 0xB0, 0x85, 0x02, 0x01, 0xF3,
+    0x12, 0x0F, 0xFF, 0x82, 0x90, 0x00, 0x79,
+];
+
+/// Available since January 2023 (maybe). Shared by ID, medical and vehicle cards.
+pub const GEMALTO_ATR_2: &[u8] = &[
+    0x3B, 0xF9, 0x96, 0x00, 0x00, 0x80, 0x31, 0xFE, 0x45, 0x53, 0x43, 0x45, 0x37, 0x20, 0x47, 0x43, 0x4E, 0x33,
+    0x5E,
+];
+
+/// Available since July 2023.
+pub const GEMALTO_ATR_3: &[u8] = &[
+    0x3B, 0x9E, 0x96, 0x80, 0x31, 0xFE, 0x45, 0x53, 0x43, 0x45, 0x20, 0x38, 0x2E, 0x30, 0x2D, 0x43, 0x31, 0x56,
+    0x30, 0x0D, 0x0A, 0x6F,
+];
+
+/// Available since June 2024.
+pub const GEMALTO_ATR_4: &[u8] = &[
+    0x3B, 0x9E, 0x96, 0x80, 0x31, 0xFE, 0x45, 0x53, 0x43, 0x45, 0x20, 0x38, 0x2E, 0x30, 0x2D, 0x43, 0x32, 0x56,
+    0x30, 0x0D, 0x0A, 0x6C,
+];
+
+/// Possibly the first version of the medical card.
+pub const MEDICAL_ATR_1: &[u8] = &[
+    0x3B, 0xF4, 0x13, 0x00, 0x00, 0x81, 0x31, 0xFE, 0x45, 0x52, 0x46, 0x5A, 0x4F, 0xED,
+];
+
+/// Available since March 2023?
+pub const MEDICAL_ATR_2: &[u8] = &[
+    0x3B, 0x9E, 0x97, 0x80, 0x31, 0xFE, 0x45, 0x53, 0x43, 0x45, 0x20, 0x38, 0x2E, 0x30, 0x2D, 0x43, 0x31, 0x56,
+    0x30, 0x0D, 0x0A, 0x6E,
+];
+
+/// Possibly deprecated.
+pub const VEHICLE_ATR_0: &[u8] = &[
+    0x3B, 0xDB, 0x96, 0x00, 0x80, 0xB1, 0xFE, 0x45, 0x1F, 0x83, 0x00, 0x31, 0xC0, 0x64, 0x1A, 0x18, 0x01, 0x00,
+    0x0F, 0x90, 0x00, 0x52,
+];
+
+/// Same as [`GEMALTO_ATR_1`].
+pub const VEHICLE_ATR_1: &[u8] = GEMALTO_ATR_1;
+
+pub const VEHICLE_ATR_2: &[u8] = &[
+    0x3B, 0x9D, 0x13, 0x81, 0x31, 0x60, 0x37, 0x80, 0x31, 0xC0, 0x69, 0x4D, 0x54, 0x43, 0x4F, 0x53, 0x73, 0x02,
+    0x02, 0x04, 0x40,
+];
+
+pub const VEHICLE_ATR_3: &[u8] = &[
+    0x3B, 0x9D, 0x13, 0x81, 0x31, 0x60, 0x37, 0x80, 0x31, 0xC0, 0x69, 0x4D, 0x54, 0x43, 0x4F, 0x53, 0x73, 0x02,
+    0x05, 0x04, 0x47,
+];
+
+pub const VEHICLE_ATR_4: &[u8] = &[
+    0x3B, 0x9D, 0x18, 0x81, 0x31, 0xFC, 0x35, 0x80, 0x31, 0xC0, 0x69, 0x4D, 0x54, 0x43, 0x4F, 0x53, 0x73, 0x02,
+    0x05, 0x02, 0xD4,
+];
+
+/// Returns the possible document types for the given ATR, in the order in
+/// which they should be probed. Ambiguous ATRs return several candidates.
+pub fn detect_card_document_by_atr(atr: &[u8]) -> Vec<CardKind> {
+    if atr == GEMALTO_ATR_1 {
+        vec![CardKind::GemaltoId, CardKind::Vehicle]
+    } else if atr == GEMALTO_ATR_2 || atr == GEMALTO_ATR_3 || atr == GEMALTO_ATR_4 {
+        vec![CardKind::GemaltoId, CardKind::Medical, CardKind::Vehicle]
+    } else if atr == MEDICAL_ATR_1 || atr == MEDICAL_ATR_2 {
+        vec![CardKind::Medical]
+    } else if atr == VEHICLE_ATR_0 || atr == VEHICLE_ATR_2 || atr == VEHICLE_ATR_3 || atr == VEHICLE_ATR_4 {
+        vec![CardKind::Vehicle]
+    } else if atr == APOLLO_ATR {
+        vec![CardKind::ApolloId]
+    } else {
+        vec![CardKind::Unknown]
+    }
+}
+
+/// ATR formatted as lowercase hex (as Bas Celik displays it).
+pub fn atr_to_string(atr: &[u8]) -> String {
+    crate::apdu::to_hex(atr)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use CardKind::*;
+
+    #[test]
+    fn detect_by_atr() {
+        let cases: Vec<(&[u8], Vec<CardKind>)> = vec![
+            (&[], vec![Unknown]),
+            (&[0x01, 0x02], vec![Unknown]),
+            (APOLLO_ATR, vec![ApolloId]),
+            (GEMALTO_ATR_1, vec![GemaltoId, Vehicle]),
+            (GEMALTO_ATR_2, vec![GemaltoId, Medical, Vehicle]),
+            (GEMALTO_ATR_3, vec![GemaltoId, Medical, Vehicle]),
+            (GEMALTO_ATR_4, vec![GemaltoId, Medical, Vehicle]),
+            (MEDICAL_ATR_1, vec![Medical]),
+            (MEDICAL_ATR_2, vec![Medical]),
+            (VEHICLE_ATR_0, vec![Vehicle]),
+            (VEHICLE_ATR_1, vec![GemaltoId, Vehicle]),
+            (VEHICLE_ATR_2, vec![Vehicle]),
+            (VEHICLE_ATR_3, vec![Vehicle]),
+            (VEHICLE_ATR_4, vec![Vehicle]),
+        ];
+        for (atr, expected) in cases {
+            assert_eq!(detect_card_document_by_atr(atr), expected, "ATR {}", atr_to_string(atr));
+        }
+    }
+}

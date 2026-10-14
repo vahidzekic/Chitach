@@ -19,3 +19,4 @@ base64.workspace = true
 pcsc = { workspace = true, optional = true }
 ureq = { version = "3", optional = true }
 x509-parser.workspace = true
+flate2 = "1"

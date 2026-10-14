@@ -29,3 +29,19 @@ pub enum CardError {
 }
 
 pub type Result<T> = std::result::Result<T, CardError>;
+
+/// Low-level format errors of the TLV / BER parsers
+/// (port of bas-celik `card/cardErrors`).
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+pub enum FormatError {
+    #[error("invalid length")]
+    InvalidLength,
+    #[error("invalid format")]
+    InvalidFormat,
+}
+
+impl From<FormatError> for CardError {
+    fn from(e: FormatError) -> Self {
+        CardError::Parse(e.to_string())
+    }
+}

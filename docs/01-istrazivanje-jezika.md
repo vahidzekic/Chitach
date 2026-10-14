@@ -82,3 +82,28 @@ potpunu slobodu dizajna.
 | Instalacije za sve OS | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
 
 **Preporuka: Go + Wails v2 + Svelte/TypeScript.**
+
+## 7. Konačna odluka: Rust + Tauri v2
+
+Nakon pregleda ovog istraživanja korisnik je izabrao **opciju B — Rust + Tauri v2 +
+Svelte 5/TypeScript**, umesto preporučene Go + Wails varijante. Obrazloženje:
+
+* **Jedan jezik za celo jezgro, bez zavisnosti od tuđeg Go modula.** Protokol kartica
+  (APDU, TLV/BER, ATR, Gemalto/Apollo lične karte, zdravstvena, saobraćajna), PDF/JSON/XLSX
+  izvoz, RFZO klijent, Smartbox server i XML potpisivanje se **prenose (port) iz Baš Čelika**
+  u sopstvene Rust crate-ove (`celik-core`, `celik-export`, `celik-sign`). Kod ostaje pod
+  MIT licencom uz navođenje autora originala (vidi `NOTICE`).
+* **Manje i brže binarke**, bez garbage collector-a; memorijska bezbednost Rust-a je bitna
+  za kod koji parsira binarne podatke sa kartice.
+* **Tauri v2 bundler** pravi sve tražene instalacije iz jedne konfiguracije
+  (`.dmg`, NSIS `.exe`, `.msi`, `.deb`, `.rpm`, `.AppImage`), a zvanična
+  `tauri-apps/tauri-action` GitHub akcija ih automatski kači na GitHub Release.
+* **Stabilan i aktivno održavan ekosistem**: `pcsc` crate (PC/SC na sva tri OS-a),
+  `cryptoki` (PKCS#11), `pdf-writer` + `rust_xlsxwriter` (izvoz), `tungstenite` (Smartbox websocket).
+* **Rizik prepisivanja** (navedeno u tabeli iznad) ublažen je tako što se:
+  1. logika prenosi 1:1 iz Baš Čelika (isti algoritmi, iste konstante),
+  2. koriste test podaci (golden fajlovi) iz Baš Čelika za jedinične testove,
+  3. UI razvija nezavisno uz mock režim (`CHITACH_MOCK=1`) bez fizičkog čitača.
+
+Rezultujuća arhitektura je opisana u [02-arhitektura.md](02-arhitektura.md), a plan
+rada u [03-plan-implementacije.md](03-plan-implementacije.md).
