@@ -487,7 +487,8 @@ impl Canvas {
             match &img.kind {
                 ImageKind::Jpeg { data, components } => {
                     let mut x = pdf.image_xobject(id, data);
-                    x.filter(Filter::DctDecode).width(img.width as i32).height(img.height as i32).bits_per_component(8);
+                    x.filter(Filter::DctDecode);
+                    x.width(img.width as i32).height(img.height as i32).bits_per_component(8);
                     match components {
                         1 => x.color_space().device_gray(),
                         4 => x.color_space().device_cmyk(),
@@ -496,7 +497,8 @@ impl Canvas {
                 }
                 ImageKind::Raw { data, gray, alpha } => {
                     let mut x = pdf.image_xobject(id, data);
-                    x.filter(Filter::FlateDecode).width(img.width as i32).height(img.height as i32).bits_per_component(8);
+                    x.filter(Filter::FlateDecode);
+                    x.width(img.width as i32).height(img.height as i32).bits_per_component(8);
                     if *gray {
                         x.color_space().device_gray();
                     } else {
@@ -508,7 +510,8 @@ impl Canvas {
                     x.finish();
                     if let (Some(smask), Some(alpha)) = (smask_id, alpha) {
                         let mut m = pdf.image_xobject(smask, alpha);
-                        m.filter(Filter::FlateDecode).width(img.width as i32).height(img.height as i32).bits_per_component(8);
+                        m.filter(Filter::FlateDecode);
+                    m.width(img.width as i32).height(img.height as i32).bits_per_component(8);
                         m.color_space().device_gray();
                     }
                 }
