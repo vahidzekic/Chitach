@@ -15,7 +15,7 @@
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
 </p>
 
-<p align="center"><a href="https://vahidzekic.github.io/Chitach/">Website (Serbian)</a> · <a href="README.md">Srpski</a></p>
+<p align="center"><a href="https://vahidzekic.github.io/Chitach/#en">Website</a> · <a href="README.md">Srpski</a></p>
 
 ---
 
