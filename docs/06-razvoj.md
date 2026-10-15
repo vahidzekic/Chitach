@@ -115,9 +115,31 @@ Napomene:
 * Verzija mora biti oblika `X.Y.Z`. Pre-release tagovi (`v1.0.0-rc.1`) se objavljuju kao
   pre-release, ali MSI (WiX) ne prihvata pre-release verzije — za njih koristite samo
   `X.Y.Z`.
-* Potpisivanje: macOS je ad-hoc potpisan (`signingIdentity: "-"`). Za notarizaciju dodajte
-  tajne `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`,
-  `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID` i prosledite ih `tauri-action` koraku.
+* Potpisivanje: bez Apple tajni macOS build je ad-hoc potpisan (`signingIdentity: "-"`).
+  Kada su tajne podešene, aplikacija i `chitach-cli` se potpisuju Developer ID sertifikatom
+  i notarizuju (v. ispod).
+
+### macOS potpisivanje i notarizacija
+
+U *Settings → Secrets and variables → Actions → New repository secret* dodajte:
+
+| Tajna | Vrednost |
+|---|---|
+| `APPLE_CERTIFICATE` | **Developer ID Application** sertifikat sa privatnim ključem, izvezen iz Keychain Access kao `.p12`, pa base64: `base64 -i cert.p12 \| pbcopy` |
+| `APPLE_CERTIFICATE_PASSWORD` | lozinka zadata pri izvozu `.p12` |
+| `APPLE_SIGNING_IDENTITY` | puno ime sertifikata, npr. `Developer ID Application: Ime Prezime (TEAMID1234)` (`security find-identity -v -p codesigning`) |
+
+Za notarizaciju još jedno od sledeća dva (preporučeno je prvo):
+
+* **App Store Connect API ključ** (*App Store Connect → Users and Access → Integrations →
+  Team Keys*, uloga *Developer*): `APPLE_API_KEY` (Key ID), `APPLE_API_ISSUER` (Issuer ID)
+  i `APPLE_API_KEY_P8` (ceo sadržaj preuzetog `AuthKey_XXXX.p8` fajla).
+* **Apple ID**: `APPLE_ID` (e-mail), `APPLE_PASSWORD` (app-specific lozinka sa
+  appleid.apple.com) i `APPLE_TEAM_ID`.
+
+Bez `APPLE_CERTIFICATE` build ostaje ad-hoc potpisan, a beleške izdanja zadržavaju uputstvo
+„Open Anyway". Sa sertifikatom, a bez kredencijala za notarizaciju, aplikacija je potpisana,
+ali nije notarizovana (upozorenje u logu).
 
 ## Doprinos
 

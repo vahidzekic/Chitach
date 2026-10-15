@@ -127,6 +127,7 @@ Chitach/
 | Linux arm64 | `Chitach_X.Y.Z_arm64.deb`, `Chitach-X.Y.Z-1.aarch64.rpm`, `Chitach_X.Y.Z_aarch64.AppImage` |
 | CLI | `chitach-cli-macos-universal`, `chitach-cli-windows-x64.exe`, `chitach-cli-linux-x64`, `chitach-cli-linux-arm64` |
 
-macOS build je ad-hoc potpisan (`signingIdentity: "-"`), bez notarizacije — vidi
-[korisničko uputstvo](05-korisnicko-uputstvo.md) za "Open Anyway". Notarizacija i
-Windows code-signing se mogu dodati kasnije preko GitHub tajni.
+macOS build se potpisuje Developer ID sertifikatom i notarizuje kada su Apple tajne
+podešene u repozitorijumu ([06-razvoj.md](06-razvoj.md#macos-potpisivanje-i-notarizacija));
+bez njih je ad-hoc potpisan (`signingIdentity: "-"`), pa važi "Open Anyway" iz
+[korisničkog uputstva](05-korisnicko-uputstvo.md). Windows code-signing još nije podešen.
