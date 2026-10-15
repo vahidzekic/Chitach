@@ -86,18 +86,25 @@ jobs:
           }
           id="$(find_id)"
           if [ -z "$id" ]; then
-            prerelease=""
-            if [[ "$VERSION" == *-* ]]; then prerelease="--prerelease"; fi
-            gh release create "$TAG" \
-              --draft $prerelease \
-              --target "$GITHUB_SHA" \
-              --title "Chitach ${TAG}" \
-              --notes-file notes.md \
-              --generate-notes
-            id="$(find_id)"
+            prerelease=false
+            if [[ "$VERSION" == *-* ]]; then prerelease=true; fi
+            # Take the id from the create response: a freshly created draft
+            # is not always visible in the releases list right away.
+            id="$(gh api -X POST "repos/${GITHUB_REPOSITORY}/releases" \
+              -f tag_name="$TAG" \
+              -f target_commitish="$GITHUB_SHA" \
+              -f name="Chitach ${TAG}" \
+              -f body="$(cat notes.md)" \
+              -F draft=true \
+              -F prerelease="$prerelease" \
+              -F generate_release_notes=true \
+              --jq .id)"
           else
             # Re-run: point the (still draft) release at the commit being built.
             gh release edit "$TAG" --target "$GITHUB_SHA"
+          fi
+          if [ -z "$id" ]; then
+            echo "::error::Could not determine the release id for ${TAG}"; exit 1
           fi
           echo "Release id: $id"
           echo "id=$id" >> "$GITHUB_OUTPUT"
