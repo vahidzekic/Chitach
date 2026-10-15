@@ -79,6 +79,11 @@ jobs:
           Windows SmartScreen may warn about an unknown publisher: *More info → Run anyway*.
 
           EOF
+          # Hand-written notes for this version (docs/izdanja/vX.Y.Z.md) go above the download table.
+          if [ -f "docs/izdanja/${TAG}.md" ]; then
+            cat "docs/izdanja/${TAG}.md" notes.md > notes-full.md
+            mv notes-full.md notes.md
+          fi
           cat notes.md
 
       - name: Create (or reuse) draft release
