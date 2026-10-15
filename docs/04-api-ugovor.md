@@ -138,6 +138,15 @@ export interface HistoryApiResult {
   price: string | null;             // cena upita kako je javlja servis
   detail: string | null; checkedAt: number; cached: boolean;
 }
+// Chitach Pro (jednokratni Lemon Squeezy ključ; otključava proveru kazni i istoriju vozila)
+export interface LicenseInfo {
+  enabled: boolean;                 // zaključavanje uključeno (license::STORE_ID != 0 ili mock); inače je sve besplatno
+  active: boolean;                  // Pro je uključen
+  stored: boolean;                  // ključ je sačuvan (može biti neaktivan: nije proveren > 30 dana)
+  keyHint: string | null;           // poslednja 4 znaka ključa, npr. "…A1B2"
+  email: string | null; validatedAt: number | null;
+  buyUrl: string | null;            // stranica za kupovinu (license::BUY_URL)
+}
 ```
 
 ## Komande
@@ -166,11 +175,22 @@ export interface HistoryApiResult {
 | `sign_logout` | – | `void` | |
 | `smartbox_status` | – | `SmartboxStatus` | |
 | `fines_providers` | – | `FinesInfo` | portali za tablicu trenutne saobraćajne (bez nje: svi, prazna tablica) |
-| `fines_check` | `{ providerId, force?: boolean }` | `FinesCheckResult` | samo `auto` (`json_get`, `html_form`, `json_post`); zahteva `fines.consentGiven` (`error.finesConsent`) i uključen portal (`error.finesProviderDisabled`); keš 30 min, `force` posle ≥ 60 s |
+| `fines_check` | `{ providerId, force?: boolean }` | `FinesCheckResult` | zahteva Chitach Pro kad je uključen (`error.proRequired`); samo `auto` (`json_get`, `html_form`, `json_post`); zahteva `fines.consentGiven` (`error.finesConsent`) i uključen portal (`error.finesProviderDisabled`); keš 30 min, `force` posle ≥ 60 s |
 | `history_info` | – | `HistoryInfo` | lokalna VIN provera i servisi za trenutnu saobraćajnu (bez nje: samo servisi, bez provera) |
 | `history_set_api_key` | `{ providerId, apiKey, secret }` | `void` | samo `api`; čuva u `secrets.json` (Unix: 0600), briše keš tog servisa |
 | `history_remove_api_key` | `{ providerId }` | `void` | |
-| `history_api_check` | `{ providerId, operation, force?: boolean }` | `HistoryApiResult` | zahteva `history.consentGiven` (`error.historyConsent`) i ključ (`error.historyNoKey`); šalje samo VIN; keš 30 min po (servis, operacija, VIN), `force` posle ≥ 60 s |
+| `history_api_check` | `{ providerId, operation, force?: boolean }` | `HistoryApiResult` | zahteva Chitach Pro kad je uključen (`error.proRequired`), `history.consentGiven` (`error.historyConsent`) i ključ (`error.historyNoKey`); šalje samo VIN; keš 30 min po (servis, operacija, VIN), `force` posle ≥ 60 s |
+| `license_info` | – | `LicenseInfo` | |
+| `license_activate` | `{ key }` | `LicenseInfo` | Lemon Squeezy `licenses/activate` (šalje ključ i ime instance, npr. `Chitach (windows x86_64)`); prihvata samo ključeve prodavnice `license::STORE_ID`; čuva u `license.json` (Unix: 0600). Greške: `error.licenseInvalid`, `error.licenseLimit`, `error.licenseWrongProduct`, `error.licenseNetwork`. Mock: ključ `CHITACH-PRO-DEMO` |
+| `license_deactivate` | – | `LicenseInfo` | `licenses/deactivate` (oslobađa mesto), lokalni ključ se briše i bez interneta |
+
+Dok je `license::STORE_ID = 0`, zaključavanje je isključeno: provera kazni i istorija vozila su
+besplatne, a UI ne prikazuje ništa o Pro-u.
+
+Ključ se pri startu ponovo proverava (`licenses/validate`) ako je od poslednje provere prošlo
+više od 7 dana; bez interneta Pro radi još 30 dana od poslednje uspešne provere. Refundiran ili
+onemogućen ključ se briše. Kod je otvoren, pa je ovo zaključavanje za poštene kupce, ne zaštita
+od kopiranja.
 
 ## Događaji (backend → UI, `listen(...)`)
 

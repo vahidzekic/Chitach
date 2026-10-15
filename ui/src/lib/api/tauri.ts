@@ -14,6 +14,7 @@ import type {
   FinesInfo,
   HistoryApiResult,
   HistoryInfo,
+  LicenseInfo,
   NotifyEvent,
   Settings,
   Slot,
@@ -63,6 +64,9 @@ export const tauriApi: Api = {
   historyRemoveApiKey: (providerId) => call("history_remove_api_key", { providerId }),
   historyApiCheck: (providerId, operation, force) =>
     call<HistoryApiResult>("history_api_check", { providerId, operation, force: force ?? false }),
+  licenseInfo: () => call<LicenseInfo>("license_info"),
+  licenseActivate: (key) => call<LicenseInfo>("license_activate", { key }),
+  licenseDeactivate: () => call<LicenseInfo>("license_deactivate"),
 
   onAppState: (cb) => listen<AppState>("app-state", (e) => cb(e.payload)),
   onNotify: (cb) => listen<NotifyEvent>("notify", (e) => cb(e.payload)),

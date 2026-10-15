@@ -3,8 +3,10 @@
   import DocSections from "./DocSections.svelte";
   import FinesPanel from "./FinesPanel.svelte";
   import HistoryPanel from "./HistoryPanel.svelte";
+  import ProLock from "./ProLock.svelte";
   import type { VehicleDocument } from "../../api/types";
   import { t } from "../../i18n/index.svelte";
+  import { app } from "../../stores/app.svelte";
   import { isPast } from "../../util/format";
   import type { BadgeDef, SectionDef } from "./fields";
 
@@ -141,9 +143,13 @@
 
 <DocSections {sections} />
 
-<FinesPanel />
+{#if app.license && (!app.license.enabled || app.license.active)}
+  <FinesPanel />
 
-<HistoryPanel />
+  <HistoryPanel />
+{:else if app.license}
+  <ProLock />
+{/if}
 
 <style>
   .plate {

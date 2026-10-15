@@ -8,6 +8,7 @@ pub mod export;
 pub mod fines;
 pub mod fines_defs;
 pub mod history;
+pub mod license;
 pub mod poller;
 pub mod rfzo;
 pub mod settings;
@@ -49,6 +50,8 @@ pub fn run() {
             let run_in_background = settings.run_in_background;
             let secrets_path = history::secrets_path(path.as_deref());
             app.manage(history::HistoryState::new(secrets_path));
+            let license_path = license::license_path(path.as_deref());
+            app.manage(license::LicenseState::new(license_path, mock));
             app.manage(Shared::new(settings, mock, path));
             app.manage(SigningState::default());
             app.manage(SmartboxState::default());
@@ -57,6 +60,7 @@ pub fn run() {
             app.manage(fines_defs::FinesDefinitions::new(fines_cache_dir));
             if !mock {
                 fines_defs::spawn_refresh(handle.clone());
+                license::spawn_revalidate(handle.clone());
             }
 
             if let Err(e) = tray::apply(&handle, run_in_background) {
@@ -109,6 +113,9 @@ pub fn run() {
             commands::history_set_api_key,
             commands::history_remove_api_key,
             commands::history_api_check,
+            commands::license_info,
+            commands::license_activate,
+            commands::license_deactivate,
         ])
         .build(tauri::generate_context!())
         .expect("error while building Chitach")
