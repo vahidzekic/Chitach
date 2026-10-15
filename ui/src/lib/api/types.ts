@@ -27,6 +27,13 @@ export interface Settings {
   pkcs11Paths: Record<CardVendor, string>;
   /** fines check ("Provera kazni") */
   fines: FinesSettings;
+  /** vehicle history ("Istorija vozila"); API keys are not part of the settings */
+  history: HistorySettings;
+}
+
+export interface HistorySettings {
+  /** the user agreed that the VIN is sent to the configured history APIs */
+  consentGiven: boolean;
 }
 
 export interface FinesSettings {
@@ -297,6 +304,87 @@ export interface FinesCheckResult {
   cached: boolean;
 }
 
+export type HistoryCategory = "domestic" | "foreign" | "usa" | "api";
+/** "link": opened in the browser; "api": report through an API with the user's own key */
+export type HistoryProviderKind = "link" | "api";
+
+export interface HistoryProvider {
+  id: string;
+  /** fallback name; UI uses `history.provider.<id>.name` when translated */
+  name: string;
+  category: HistoryCategory;
+  kind: HistoryProviderKind;
+  /** what the provider is searched by (copied when not in the URL) */
+  key: "vin" | "plate";
+  /** indicative price of a report, as published */
+  price: string | null;
+  url: string;
+  /** second page, e.g. the iOS app */
+  altUrl: string | null;
+  keyInUrl: boolean;
+  /** affiliate link (must be disclosed) */
+  partner: boolean;
+  /** api only */
+  operations: string[];
+  apiDomain: string | null;
+  /** api only: a key is stored */
+  configured: boolean;
+}
+
+export type HistoryCheckLevel = "ok" | "warning" | "info" | "unknown";
+
+/** Translated with `history.check.<id>.<variant>` and `args`. */
+export interface HistoryCheck {
+  id: string;
+  level: HistoryCheckLevel;
+  variant: string;
+  args: string[];
+}
+
+export interface VinDecoded {
+  wmi: string;
+  vds: string;
+  vis: string;
+  make: string | null;
+  /** ISO 3166-1 alpha-2 */
+  country: string | null;
+  northAmerica: boolean;
+  modelYear: number | null;
+  /** null outside North America */
+  checkDigitOk: boolean | null;
+}
+
+export interface HistoryInfo {
+  vin: string;
+  normalizedVin: string;
+  vinFormat: "valid" | "invalid" | "empty";
+  plate: string;
+  normalizedPlate: string;
+  make: string;
+  model: string;
+  yearOfProduction: string;
+  dateOfFirstRegistration: string;
+  decoded: VinDecoded | null;
+  checks: HistoryCheck[];
+  providers: HistoryProvider[];
+}
+
+export type HistoryApiStatus = "ok" | "unauthorized" | "error" | "unavailable" | "parseError";
+
+export interface HistoryApiResult {
+  providerId: string;
+  operation: string;
+  status: HistoryApiStatus;
+  /** the provider's own labels and values, in order */
+  fields: [string, string][];
+  /** price of this call as reported by the API */
+  price: string | null;
+  detail: string | null;
+  /** unix time in ms */
+  checkedAt: number;
+  cached: boolean;
+}
+
 export interface NotifyEvent {
   level: "info" | "success" | "error";
   key: string;
@@ -338,6 +426,10 @@ export interface Api {
   smartboxStatus(): Promise<SmartboxStatus>;
   finesProviders(): Promise<FinesInfo>;
   finesCheck(providerId: string, force?: boolean): Promise<FinesCheckResult>;
+  historyInfo(): Promise<HistoryInfo>;
+  historySetApiKey(providerId: string, apiKey: string, secret: string): Promise<void>;
+  historyRemoveApiKey(providerId: string): Promise<void>;
+  historyApiCheck(providerId: string, operation: string, force?: boolean): Promise<HistoryApiResult>;
 
   onAppState(cb: (s: AppState) => void): Promise<Unlisten>;
   onNotify(cb: (n: NotifyEvent) => void): Promise<Unlisten>;

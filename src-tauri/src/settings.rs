@@ -128,6 +128,15 @@ impl FinesSettings {
     }
 }
 
+/// Vehicle history ("Istorija vozila") preferences. API keys are not stored here but in
+/// `secrets.json` (see `history.rs`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct HistorySettings {
+    /// The user agreed that the VIN is sent to the configured history APIs.
+    pub consent_given: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -142,6 +151,7 @@ pub struct Settings {
     pub last_dir: String,
     pub pkcs11_paths: Pkcs11Paths,
     pub fines: FinesSettings,
+    pub history: HistorySettings,
 }
 
 impl Default for Settings {
@@ -158,6 +168,7 @@ impl Default for Settings {
             last_dir: String::new(),
             pkcs11_paths: Pkcs11Paths::default(),
             fines: FinesSettings::default(),
+            history: HistorySettings::default(),
         }
     }
 }
@@ -271,6 +282,7 @@ mod tests {
         assert_eq!(s.pkcs11_paths.halcom, "h");
         assert_eq!(s.pkcs11_paths.mup, "");
         assert_eq!(s.fines, FinesSettings::default());
+        assert!(!s.history.consent_given);
     }
 
     #[test]

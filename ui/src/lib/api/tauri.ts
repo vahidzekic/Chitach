@@ -12,6 +12,8 @@ import type {
   Document,
   FinesCheckResult,
   FinesInfo,
+  HistoryApiResult,
+  HistoryInfo,
   NotifyEvent,
   Settings,
   Slot,
@@ -56,6 +58,11 @@ export const tauriApi: Api = {
   smartboxStatus: () => call<SmartboxStatus>("smartbox_status"),
   finesProviders: () => call<FinesInfo>("fines_providers"),
   finesCheck: (providerId, force) => call<FinesCheckResult>("fines_check", { providerId, force: force ?? false }),
+  historyInfo: () => call<HistoryInfo>("history_info"),
+  historySetApiKey: (providerId, apiKey, secret) => call("history_set_api_key", { providerId, apiKey, secret }),
+  historyRemoveApiKey: (providerId) => call("history_remove_api_key", { providerId }),
+  historyApiCheck: (providerId, operation, force) =>
+    call<HistoryApiResult>("history_api_check", { providerId, operation, force: force ?? false }),
 
   onAppState: (cb) => listen<AppState>("app-state", (e) => cb(e.payload)),
   onNotify: (cb) => listen<NotifyEvent>("notify", (e) => cb(e.payload)),

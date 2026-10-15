@@ -7,6 +7,7 @@ pub mod events;
 pub mod export;
 pub mod fines;
 pub mod fines_defs;
+pub mod history;
 pub mod poller;
 pub mod rfzo;
 pub mod settings;
@@ -46,6 +47,8 @@ pub fn run() {
             }
             let mode = settings.mode;
             let run_in_background = settings.run_in_background;
+            let secrets_path = history::secrets_path(path.as_deref());
+            app.manage(history::HistoryState::new(secrets_path));
             app.manage(Shared::new(settings, mock, path));
             app.manage(SigningState::default());
             app.manage(SmartboxState::default());
@@ -102,6 +105,10 @@ pub fn run() {
             commands::smartbox_status,
             commands::fines_providers,
             commands::fines_check,
+            commands::history_info,
+            commands::history_set_api_key,
+            commands::history_remove_api_key,
+            commands::history_api_check,
         ])
         .build(tauri::generate_context!())
         .expect("error while building Chitach")

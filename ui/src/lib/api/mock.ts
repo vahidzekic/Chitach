@@ -6,6 +6,8 @@
 //   &mode=reader|xmlSign|smartbox  &theme=light|dark|system  &lang=sr-Latn|sr-Cyrl|en|ru
 //   &page=document|certificates|xmlSign|smartbox|settings|about
 //   &fines=found|clean|manual|unavailable|parseError  (forced automatic fines check result)
+//   &history=ok|unauthorized|error|unavailable|parseError  (forced vehicle history API result)
+//   &historyKey=1  (a vehicle history API key is already stored)
 // A small control object is exposed as `window.__chitachMock` (insert/remove cards).
 import type {
   Api,
@@ -19,6 +21,7 @@ import type {
   SmartboxStatus,
 } from "./types";
 import { mockFinesCheck, mockFinesInfo } from "./mockFines";
+import { mockHistoryApiCheck, mockHistoryInfo, mockHistoryRemoveKey, mockHistorySetKey } from "./mockHistory";
 import { sampleCerts, sampleId, sampleMedical, sampleTokenCerts, sampleVehicle } from "./mockData";
 
 const SETTINGS_KEY = "chitach.mock.settings";
@@ -35,6 +38,7 @@ export const defaultSettings: Settings = {
   lastDir: "",
   pkcs11Paths: { mup: "", pks: "", posta: "", halcom: "", esmart: "" },
   fines: { autoCheck: false, consentGiven: false, remoteDefinitions: true },
+  history: { consentGiven: false },
 };
 
 interface MockReader {
@@ -84,6 +88,7 @@ export function createMockApi(): Api {
   if (theme === "light" || theme === "dark" || theme === "system") settings.theme = theme;
   const lang = params.get("lang");
   if (lang === "sr-Latn" || lang === "sr-Cyrl" || lang === "en" || lang === "ru") settings.language = lang;
+  if (params.get("historyKey") === "1") void mockHistorySetKey("vincario", "demo-key", "demo-secret");
 
   const readers: MockReader[] = [
     { name: "ACS ACR39U ICC Reader 00 00", card: null },
@@ -343,6 +348,19 @@ export function createMockApi(): Api {
     async finesCheck(providerId, force = false) {
       if (state.document?.kind !== "vehicle") throw "error.notVehicleCard";
       return mockFinesCheck(state.document.data.RegistrationNumberOfVehicle, providerId, force, settings);
+    },
+    async historyInfo() {
+      return mockHistoryInfo(state.document?.kind === "vehicle" ? state.document.data : null);
+    },
+    async historySetApiKey(providerId, apiKey, secret) {
+      await mockHistorySetKey(providerId, apiKey, secret);
+    },
+    async historyRemoveApiKey(providerId) {
+      await mockHistoryRemoveKey(providerId);
+    },
+    async historyApiCheck(providerId, operation, force = false) {
+      if (state.document?.kind !== "vehicle") throw "error.notVehicleCard";
+      return mockHistoryApiCheck(state.document.data, providerId, operation, force, settings);
     },
 
     async onAppState(cb) {
