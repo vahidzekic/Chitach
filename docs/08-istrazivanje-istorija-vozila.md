@@ -365,7 +365,7 @@ Nacrti su spremni za slanje sa adrese vlasnika projekta; Chitach ih ne šalje.
 > 3. da li je dozvoljeno da Chitach otvara vašu aplikaciju/stranicu sa unapred popunjenom tablicom ili brojem šasije.
 >
 > Unapred hvala,
-> [ime i prezime], Chitach
+> Vahid Zekic, Chitach
 
 ### 14.2 Agencija za bezbednost saobraćaja — kilometraža u CISTEP-u
 
@@ -386,7 +386,7 @@ Nacrti su spremni za slanje sa adrese vlasnika projekta; Chitach ih ne šalje.
 > 3. ako da — od kada i pod kojim uslovima bi aplikacije poput Chitach-a mogle da prikažu te podatke.
 >
 > Unapred hvala,
-> [ime i prezime], Chitach
+> Vahid Zekic, Chitach
 
 ### 14.3 carVertical — API i partnerski program
 
@@ -406,4 +406,4 @@ Nacrti su spremni za slanje sa adrese vlasnika projekta; Chitach ih ne šalje.
 > 3. affiliate program terms for an open-source app (the link would be clearly marked as a partner link).
 >
 > Thank you,
-> [ime i prezime], Chitach
+> Vahid Zekic, Chitach
