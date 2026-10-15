@@ -148,7 +148,7 @@
   "fines.provider.zlatibor-parking.name": "Златибор / Чајетина – КЈП „Златибор“ (еДПК)",
   "fines.provider.zlatibor-parking.note": "Провера еДПК по таблици.",
   "fines.provider.zr-parking.name": "Зрењанин – ЈКП „Пијаце и паркинзи“ (еППК)",
-  "fines.provider.zr-parking.note": "Провера електронских паркинг карата по таблици.",
+  "fines.provider.zr-parking.note": "Провера електронских паркинг карата по таблици. Подржава аутоматску проверу.",
   "fines.status.checking": "Проверавам…",
   "fines.status.clean": "Нема казни",
   "fines.status.found": "Пронађено казни: %s",
