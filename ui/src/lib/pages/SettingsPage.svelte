@@ -88,7 +88,7 @@
   let autoProviders = $state<FinesProvider[]>([]);
   onMount(async () => {
     try {
-      autoProviders = (await api.finesProviders()).providers.filter((p) => p.kind === "json_get");
+      autoProviders = (await api.finesProviders()).providers.filter((p) => p.auto);
     } catch {
       autoProviders = [];
     }
@@ -287,6 +287,15 @@
         {:else}
           <span class="badge">{t("settings.finesConsentNotGiven")}</span>
         {/if}
+      </div>
+    </div>
+    <div class="row">
+      <div class="desc">
+        <label for="set-fines-remote">{t("settings.finesRemote")}</label>
+        <small>{t("settings.finesRemoteDesc")}</small>
+      </div>
+      <div class="ctl end">
+        <Switch id="set-fines-remote" bind:checked={draft.fines.remoteDefinitions} label={t("settings.finesRemote")} />
       </div>
     </div>
     {#each autoProviders as p (p.id)}

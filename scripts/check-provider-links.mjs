@@ -1,14 +1,15 @@
 #!/usr/bin/env node
-// Weekly check that the pages in the embedded provider definitions still answer
-// (src-tauri/providers/fines.json, history.json). Only the user-facing pages are requested,
-// with sample values for the placeholders; automatic-check endpoints are never called.
+// Weekly check that the pages of the vehicle history services still answer
+// (src-tauri/providers/history.json; the fines portals have scripts/fines-portals.mjs).
+// Only the user-facing pages are requested, with sample values for the placeholders;
+// API endpoints are never called.
 //
 // Exit code 1 when a page is gone (404/410, unknown domain, other errors). 401/403/429/503
 // and timeouts count as warnings: many portals block or slow down automated clients
 // (Cloudflare, captchas, geo-blocking).
 import { readFileSync, appendFileSync } from "node:fs";
 
-const FILES = ["src-tauri/providers/fines.json", "src-tauri/providers/history.json"];
+const FILES = ["src-tauri/providers/history.json"];
 const SAMPLE = { plate: "BG123AB", vin: "TMBJJ7NE0L0123456" };
 const WARN = new Set([401, 403, 405, 406, 429, 503]);
 const WARN_ERRORS = new Set(["TimeoutError", "UND_ERR_CONNECT_TIMEOUT", "ECONNRESET", "ETIMEDOUT"]);

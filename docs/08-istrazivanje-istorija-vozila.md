@@ -328,7 +328,7 @@ Treće strane:
 | Čuvanje ključa | `secrets.json` pored `settings.json` | **odstupanje od §9**: umesto sistemskog keychain-a (crate `keyring` zahteva D-Bus/secret-service na Linuksu, dodatne sistemske zavisnosti) ključ je u posebnom fajlu sa dozvolama 0600 na Unix-u; UI nikad ne dobija ključ, samo `configured: true`. |
 | Saglasnost i podešavanja | `settings.rs` (`history: { consentGiven }`), `SettingsPage.svelte` | dijalog pre prvog upita sa domenom; backend odbija upit bez saglasnosti ili ključa; opoziv i unos/uklanjanje ključa u podešavanjima |
 | Mock | `ui/src/lib/api/mockHistory.ts`, `CHITACH_MOCK=1` | iste definicije; `?historyKey=1`, `?history=…` |
-| Nedeljna provera linkova (faza 3) | `scripts/check-provider-links.mjs`, `.github/workflows/provider-links.yml` | ponedeljkom proverava stranice iz `fines.json` i `history.json` (nikad API/`check` adrese); 404/nepostojeći domen = crveni build, 401/403/429/503/timeout = upozorenje (zaštita od botova) |
+| Nedeljna provera linkova (faza 3) | `scripts/check-provider-links.mjs`, `.github/workflows/provider-links.yml` | ponedeljkom proverava stranice iz `history.json` (nikad API adrese; portale za kazne proverava `fines-portals.yml`); 404/nepostojeći domen = crveni build, 401/403/429/503/timeout = upozorenje (zaštita od botova) |
 
 Nije urađeno (zahteva odluku ili dogovor): carVertical/autoDNA API (nema javne dokumentacije —
 v. §11.3), partnerski (affiliate) linkovi (potrebna registracija vlasnika projekta u programu),

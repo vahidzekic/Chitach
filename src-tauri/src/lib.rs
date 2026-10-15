@@ -6,6 +6,7 @@ pub mod error;
 pub mod events;
 pub mod export;
 pub mod fines;
+pub mod fines_defs;
 pub mod history;
 pub mod poller;
 pub mod rfzo;
@@ -52,6 +53,11 @@ pub fn run() {
             app.manage(SigningState::default());
             app.manage(SmartboxState::default());
             app.manage(fines::FinesCache::default());
+            let fines_cache_dir = handle.path().app_cache_dir().ok().map(|d| d.join("fines"));
+            app.manage(fines_defs::FinesDefinitions::new(fines_cache_dir));
+            if !mock {
+                fines_defs::spawn_refresh(handle.clone());
+            }
 
             if let Err(e) = tray::apply(&handle, run_in_background) {
                 log::warn!("tray: {e}");

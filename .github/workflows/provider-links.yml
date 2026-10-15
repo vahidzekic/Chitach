@@ -1,10 +1,11 @@
 name: Provider links
 
-# Weekly check that the portals and history services listed in
-# src-tauri/providers/*.json still answer. A failed run means a definition needs updating.
+# Weekly check that the vehicle history services in src-tauri/providers/history.json
+# still answer (the fines portals are checked by fines-portals.yml). A failed run means
+# a definition needs updating.
 on:
   schedule:
-    - cron: "17 6 * * 1"
+    - cron: "47 6 * * 1"
   workflow_dispatch:
 
 permissions:

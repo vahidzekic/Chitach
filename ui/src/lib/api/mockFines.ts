@@ -49,20 +49,27 @@ export function mockFinesInfo(plate: string): FinesInfo {
   const normalized = normalizePlate(plate);
   const city = cityCode(normalized);
   const providers: FinesProvider[] = (definitions.providers as Definition[])
-    .filter((d) => d.kind === "link" || d.kind === "json_get")
+    .filter((d) => d.kind === "link" || d.kind === "json_get" || d.kind === "html_form")
     .map((d) => ({
       id: d.id,
       name: d.name,
       category: d.category as FinesProvider["category"],
       cities: d.cities ?? [],
       kind: d.kind as FinesProviderKind,
+      auto: d.kind !== "link" && !!d.check,
       url: expand(d, d.url).replace("{plate}", encodeURIComponent(normalized)),
       plateInUrl: d.url.includes("{plate}"),
-      checkDomain: d.kind === "json_get" && d.check ? host(expand(d, d.check.url)) : null,
+      checkDomain: d.kind !== "link" && d.check ? host(expand(d, d.check.url)) : null,
       matchesCity: !!city && (d.cities ?? []).includes(city),
     }));
   providers.sort((a, b) => Number(b.matchesCity) - Number(a.matchesCity));
-  return { plate, normalizedPlate: normalized, cityCode: city, providers };
+  return {
+    plate,
+    normalizedPlate: normalized,
+    cityCode: city,
+    providers,
+    definitions: { source: "embedded", updated: definitions.updated },
+  };
 }
 
 const SAMPLE_ITEMS: FineItem[] = [
@@ -93,7 +100,7 @@ export async function mockFinesCheck(
   const info = mockFinesInfo(plate);
   const p = info.providers.find((x) => x.id === providerId);
   if (!p) throw `error.finesUnknownProvider|${providerId}`;
-  if (p.kind !== "json_get") throw "error.finesNotAutomatic";
+  if (!p.auto) throw "error.finesNotAutomatic";
   if (!settings.fines.consentGiven) throw "error.finesConsent";
   if (settings.fines.enabledProviders && !settings.fines.enabledProviders.includes(providerId))
     throw "error.finesProviderDisabled";

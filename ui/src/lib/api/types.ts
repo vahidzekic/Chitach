@@ -43,6 +43,8 @@ export interface FinesSettings {
   consentGiven: boolean;
   /** automatic-check providers that may be used; missing = all */
   enabledProviders?: string[];
+  /** download newer signed provider definitions from GitHub (at most daily) */
+  remoteDefinitions: boolean;
 }
 
 export interface ReaderStatus {
@@ -250,8 +252,8 @@ export interface UpdateInfo {
 }
 
 export type FinesCategory = "parking" | "person" | "toll";
-/** "link": opened in the browser; "json_get": optional automatic check */
-export type FinesProviderKind = "link" | "json_get";
+/** "link": opened in the browser; "json_get" / "html_form": optional automatic check */
+export type FinesProviderKind = "link" | "json_get" | "html_form";
 
 export interface FinesProvider {
   id: string;
@@ -261,10 +263,12 @@ export interface FinesProvider {
   /** plate city codes served, e.g. ["BG"] */
   cities: string[];
   kind: FinesProviderKind;
+  /** has an automatic check */
+  auto: boolean;
   /** page to open (plate filled in where supported) */
   url: string;
   plateInUrl: boolean;
-  /** host the plate is sent to by the automatic check (json_get only) */
+  /** host the plate is sent to by the automatic check */
   checkDomain: string | null;
   /** serves the city of the plate */
   matchesCity: boolean;
@@ -275,6 +279,8 @@ export interface FinesInfo {
   normalizedPlate: string;
   cityCode: string | null;
   providers: FinesProvider[];
+  /** provider definitions in use: built in, or a newer signed download */
+  definitions?: { source: "embedded" | "remote"; updated: string };
 }
 
 export type FinesStatus = "clean" | "found" | "manual" | "unavailable" | "parseError";

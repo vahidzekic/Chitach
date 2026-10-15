@@ -95,7 +95,7 @@ impl Pkcs11Paths {
 }
 
 /// Fines check ("Provera kazni") preferences.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct FinesSettings {
     /// Run the automatic check when a vehicle card is read.
@@ -105,6 +105,19 @@ pub struct FinesSettings {
     /// Automatic-check providers that may be used; `None` = all.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enabled_providers: Option<Vec<String>>,
+    /// Download newer signed provider definitions from GitHub (at most daily).
+    pub remote_definitions: bool,
+}
+
+impl Default for FinesSettings {
+    fn default() -> Self {
+        FinesSettings {
+            auto_check: false,
+            consent_given: false,
+            enabled_providers: None,
+            remote_definitions: true,
+        }
+    }
 }
 
 impl FinesSettings {
@@ -282,11 +295,13 @@ mod tests {
         assert_eq!(v["fines"]["autoCheck"], false);
         assert_eq!(v["fines"]["consentGiven"], false);
         assert!(v["fines"].get("enabledProviders").is_none());
+        assert_eq!(v["fines"]["remoteDefinitions"], true);
         let s: Settings =
             serde_json::from_str(r#"{"fines":{"autoCheck":true,"enabledProviders":["a"]}}"#)
                 .unwrap();
         assert!(s.fines.auto_check);
         assert!(!s.fines.consent_given);
+        assert!(s.fines.remote_definitions, "missing = on");
         assert!(s.fines.provider_enabled("a"));
         assert!(!s.fines.provider_enabled("parkingns"));
     }

@@ -894,6 +894,18 @@ pub fn parse_vincario(op: &str, body: &str) -> ApiParsed {
     }
 }
 
+/// One GET of an API URL (blocking), with the HTTP client of the fines check.
+pub fn fetch(url: &str) -> Fetched {
+    fines::fetch(&fines::Request {
+        method: fines::Method::Get,
+        url: url.to_string(),
+        form: Vec::new(),
+        parser: fines::Parser::JsonArray,
+        found: Vec::new(),
+        clean: Vec::new(),
+    })
+}
+
 pub fn interpret(def: &ApiDef, op: &str, fetched: Fetched) -> ApiParsed {
     match fetched {
         Fetched::Status(code @ (401 | 403)) => {

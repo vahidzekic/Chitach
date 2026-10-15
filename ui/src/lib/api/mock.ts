@@ -37,7 +37,7 @@ export const defaultSettings: Settings = {
   checkUpdates: true,
   lastDir: "",
   pkcs11Paths: { mup: "", pks: "", posta: "", halcom: "", esmart: "" },
-  fines: { autoCheck: false, consentGiven: false },
+  fines: { autoCheck: false, consentGiven: false, remoteDefinitions: true },
   history: { consentGiven: false },
 };
 

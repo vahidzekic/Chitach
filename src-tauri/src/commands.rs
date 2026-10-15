@@ -12,6 +12,7 @@ use crate::{
     events::emit_state,
     export::{self, Format},
     fines::{self, FinesCache},
+    fines_defs::FinesDefinitions,
     history::{self, HistoryState},
     settings::Settings,
     signing::{SigningState, SlotInfo, TokenCert},
@@ -207,11 +208,16 @@ pub fn smartbox_status(state: State<'_, SmartboxState>) -> SmartboxStatus {
 }
 
 #[tauri::command]
-pub fn fines_providers(state: State<'_, Shared>) -> fines::FinesInfo {
+pub fn fines_providers(
+    state: State<'_, Shared>,
+    defs: State<'_, FinesDefinitions>,
+) -> fines::FinesInfo {
     // Without a vehicle card (e.g. on the settings page) all providers are listed for an
     // empty plate.
     let plate = fines::document_plate(state.current_document().as_ref()).unwrap_or_default();
-    fines::providers_for(&plate, &fines::providers())
+    let mut info = fines::providers_for(&plate, &defs.providers());
+    info.definitions = Some(defs.info());
+    info
 }
 
 #[tauri::command]
@@ -223,7 +229,9 @@ pub async fn fines_check(
     blocking(move || {
         let shared = app.state::<Shared>();
         let plate = fines::document_plate(shared.current_document().as_ref())?;
-        let provider = fines::providers()
+        let provider = app
+            .state::<FinesDefinitions>()
+            .providers()
             .into_iter()
             .find(|p| p.id == provider_id)
             .ok_or_else(|| format!("error.finesUnknownProvider|{provider_id}"))?;
@@ -236,18 +244,12 @@ pub async fn fines_check(
             &plate,
             force.unwrap_or(false),
             std::time::Instant::now(),
-            |url| {
+            |req| {
                 if mock {
                     std::thread::sleep(std::time::Duration::from_millis(700));
                     fines::mock_parsed(&plate)
                 } else {
-                    fines::interpret(
-                        provider
-                            .check
-                            .as_ref()
-                            .map_or(fines::Parser::Unknown, |c| c.parser),
-                        fines::fetch(url),
-                    )
+                    fines::interpret(req, fines::fetch(req))
                 }
             },
         ))
@@ -336,7 +338,7 @@ pub async fn history_api_check(
                     std::thread::sleep(std::time::Duration::from_millis(700));
                     history::mock_parsed(&operation, &vin)
                 } else {
-                    history::interpret(def, &operation, fines::fetch(url))
+                    history::interpret(def, &operation, history::fetch(url))
                 }
             },
         ))

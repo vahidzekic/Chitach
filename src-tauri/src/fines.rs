@@ -1,13 +1,19 @@
 //! Vehicle fines check ("Provera kazni"), see docs/07-istrazivanje-provera-kazni.md.
 //!
 //! Provider definitions are declarative JSON (`providers/fines.json`, embedded in the
-//! binary). Two kinds exist:
+//! binary; newer signed copies are downloaded by [`crate::fines_defs`]). Three kinds exist:
 //! - `link`: the UI opens the official portal in the system browser (optionally with the
 //!   plate in the URL); nothing is sent by the app.
 //! - `json_get`: an opt-in automatic check. Only the plate is sent, with a single GET to
 //!   the URL in `check.url`; the response is interpreted by the parser named in
 //!   `check.parser`. Turning a `link` provider into an automatic one only needs a JSON
 //!   edit (and, for a new response format, a new parser here).
+//! - `html_form`: an opt-in automatic check of a portal that answers a plain HTML form:
+//!   one GET or POST (`check.method`, form fields in `check.form`), the answer page is
+//!   classified by text markers (`check.found` / `check.clean`, parser `htmlMarkers`).
+//!
+//! A provider whose `kind` or `check` this version does not understand is still shown,
+//! as a `link` to its page.
 //!
 //! Multi-city portals (e.g. ParkingNS, which serves Novi Sad, Novi Pazar, …) are modelled
 //! as one provider per city sharing a `portal` id; the city-specific page/operator code is
@@ -56,6 +62,7 @@ pub enum Category {
 pub enum Kind {
     Link,
     JsonGet,
+    HtmlForm,
     /// Kinds added by newer definitions are ignored.
     #[serde(other)]
     Unknown,
@@ -67,16 +74,56 @@ pub enum Kind {
 pub enum Parser {
     /// JSON array of tickets; empty array = no tickets.
     JsonArray,
+    /// HTML answer page classified by `found` / `clean` text markers.
+    HtmlMarkers,
     #[serde(other)]
     Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Method {
+    #[default]
+    Get,
+    /// `application/x-www-form-urlencoded` body from `form`.
+    Post,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CheckDef {
-    /// GET URL template with a `{plate}` placeholder.
+    /// URL template; `{plate}` here or in a `form` value.
     pub url: String,
     pub parser: Parser,
+    #[serde(default)]
+    pub method: Method,
+    /// Form fields (name -> value template), sent as the query of a GET or the body of a POST.
+    #[serde(default)]
+    pub form: BTreeMap<String, String>,
+    /// `htmlMarkers`: text that appears on the answer page only when tickets were found.
+    #[serde(default)]
+    pub found: Vec<String>,
+    /// `htmlMarkers`: text that appears on the answer page only when nothing was found.
+    #[serde(default)]
+    pub clean: Vec<String>,
+}
+
+impl CheckDef {
+    fn has_plate(&self) -> bool {
+        self.url.contains("{plate}") || self.form.values().any(|v| v.contains("{plate}"))
+    }
+}
+
+/// One automatic-check request, resolved for a plate.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Request {
+    pub method: Method,
+    pub url: String,
+    /// Form fields (query of a GET, body of a POST), values not encoded.
+    pub form: Vec<(String, String)>,
+    pub parser: Parser,
+    pub found: Vec<String>,
+    pub clean: Vec<String>,
 }
 
 /// One provider from `fines.json`. The UI translates the name and the note with the keys
@@ -108,6 +155,8 @@ pub struct Provider {
 struct ProvidersFile {
     #[serde(default)]
     schema: u32,
+    #[serde(default)]
+    updated: String,
     providers: Vec<Provider>,
 }
 
@@ -142,61 +191,123 @@ impl Provider {
         resolve_url(&self.expand(&self.url), plate)
     }
 
-    /// Automatic check URL, for a normalised plate.
+    /// Automatic check URL (without form fields), for a normalised plate.
     pub fn check_url(&self, plate: &str) -> Option<String> {
         self.check
             .as_ref()
             .map(|c| resolve_url(&self.expand(&c.url), plate))
     }
 
-    /// Definitions that are complete and safe to use.
-    fn is_valid(&self) -> bool {
-        let uses_route = self.url.contains("{route}")
-            || self
-                .check
-                .as_ref()
-                .is_some_and(|c| c.url.contains("{route}"));
-        if self.id.is_empty()
-            || url_host(&self.expand(&self.url)).is_none()
-            || (uses_route && self.route.as_deref().unwrap_or("").is_empty())
-        {
+    /// Automatic check request, for a normalised plate.
+    pub fn check_request(&self, plate: &str) -> Option<Request> {
+        let c = self.check.as_ref()?;
+        Some(Request {
+            method: c.method,
+            url: resolve_url(&self.expand(&c.url), plate),
+            form: c
+                .form
+                .iter()
+                .map(|(k, v)| (k.clone(), self.expand(v).replace("{plate}", plate)))
+                .collect(),
+            parser: c.parser,
+            found: c.found.clone(),
+            clean: c.clean.clone(),
+        })
+    }
+
+    fn uses_route(&self) -> bool {
+        self.url.contains("{route}")
+            || self.check.as_ref().is_some_and(|c| {
+                c.url.contains("{route}") || c.form.values().any(|v| v.contains("{route}"))
+            })
+    }
+
+    /// Is the user page usable (a `link` can be shown)?
+    fn page_is_valid(&self) -> bool {
+        !self.id.is_empty()
+            && url_host(&self.expand(&self.url)).is_some()
+            && !(self.uses_route() && self.route.as_deref().unwrap_or("").is_empty())
+    }
+
+    /// Is the automatic check complete and safe to use?
+    fn check_is_valid(&self) -> bool {
+        // Automatic checks only over https, and only with the plate in the request.
+        let Some(c) = self.check.as_ref() else {
             return false;
-        }
-        match self.kind {
-            Kind::Link => true,
-            // Automatic checks only over https, and only with the plate in the URL.
-            Kind::JsonGet => self.check.as_ref().is_some_and(|c| {
-                c.url.starts_with("https://")
-                    && url_host(&c.url).is_some()
-                    && c.url.contains("{plate}")
-                    && c.parser != Parser::Unknown
-            }),
-            Kind::Unknown => false,
+        };
+        let base = c.url.starts_with("https://") && url_host(&c.url).is_some() && c.has_plate();
+        base && match self.kind {
+            Kind::JsonGet => c.parser == Parser::JsonArray && c.method == Method::Get,
+            // Both marker lists are required: a page that matches neither is never "clean".
+            Kind::HtmlForm => {
+                c.parser == Parser::HtmlMarkers
+                    && !c.found.iter().all(|m| m.trim().is_empty())
+                    && !c.clean.iter().all(|m| m.trim().is_empty())
+            }
+            Kind::Link | Kind::Unknown => false,
         }
     }
 
     pub fn is_auto(&self) -> bool {
-        self.kind == Kind::JsonGet
+        matches!(self.kind, Kind::JsonGet | Kind::HtmlForm)
+    }
+
+    /// Validate; an automatic check this version cannot run degrades to a `link`.
+    fn sanitized(mut self) -> Option<Provider> {
+        if !self.page_is_valid() {
+            return None;
+        }
+        if self.kind != Kind::Link && !self.check_is_valid() {
+            log::warn!("fines: provider {:?} shown as a link only", self.id);
+            self.kind = Kind::Link;
+        }
+        if self.kind == Kind::Link {
+            self.check = None;
+        }
+        Some(self)
     }
 }
 
-/// Parse a definitions file, skipping unknown/invalid providers.
+/// Parse a definitions file, skipping invalid providers.
 pub fn parse_providers(json: &str) -> Result<Vec<Provider>, serde_json::Error> {
+    parse_definitions(json).map(|d| d.providers)
+}
+
+/// A parsed definitions file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Definitions {
+    pub schema: u32,
+    /// `updated` of the file (ISO date), used to pick the newest definitions.
+    pub updated: String,
+    pub providers: Vec<Provider>,
+}
+
+/// Highest definitions schema this version understands fully.
+pub const SCHEMA: u32 = 1;
+
+/// Parse a definitions file, skipping invalid providers.
+pub fn parse_definitions(json: &str) -> Result<Definitions, serde_json::Error> {
     let file: ProvidersFile = serde_json::from_str(json)?;
-    if file.schema > 1 {
+    if file.schema > SCHEMA {
         log::warn!("fines.json schema {} is newer than supported", file.schema);
     }
-    Ok(file
+    let providers = file
         .providers
         .into_iter()
-        .filter(|p| {
-            let ok = p.is_valid();
-            if !ok {
-                log::warn!("fines: ignoring provider {:?}", p.id);
+        .filter_map(|p| {
+            let id = p.id.clone();
+            let p = p.sanitized();
+            if p.is_none() {
+                log::warn!("fines: ignoring provider {id:?}");
             }
-            ok
+            p
         })
-        .collect())
+        .collect();
+    Ok(Definitions {
+        schema: file.schema,
+        updated: file.updated,
+        providers,
+    })
 }
 
 /// Embedded providers.
@@ -311,11 +422,13 @@ pub struct ProviderView {
     pub category: Category,
     pub cities: Vec<String>,
     pub kind: Kind,
+    /// Has an automatic check (`json_get`, `html_form`).
+    pub auto: bool,
     /// Page to open (plate filled in where supported).
     pub url: String,
     /// The plate is part of `url`.
     pub plate_in_url: bool,
-    /// Host the plate is sent to by an automatic check (`json_get` only).
+    /// Host the plate is sent to by an automatic check.
     pub check_domain: Option<String>,
     /// Serves the city of the plate.
     pub matches_city: bool,
@@ -329,6 +442,9 @@ pub struct FinesInfo {
     pub normalized_plate: String,
     pub city_code: Option<String>,
     pub providers: Vec<ProviderView>,
+    /// Which provider definitions are in use (set by the command).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub definitions: Option<crate::fines_defs::DefinitionsInfo>,
 }
 
 /// Providers for a plate; those serving the plate's city come first (stable order otherwise).
@@ -343,6 +459,7 @@ pub fn providers_for(plate: &str, providers: &[Provider]) -> FinesInfo {
             category: p.category,
             cities: p.cities.clone(),
             kind: p.kind,
+            auto: p.is_auto(),
             url: p.page_url(&normalized),
             plate_in_url: p.url.contains("{plate}"),
             check_domain: p
@@ -361,6 +478,7 @@ pub fn providers_for(plate: &str, providers: &[Provider]) -> FinesInfo {
         normalized_plate: normalized,
         city_code: city,
         providers: views,
+        definitions: None,
     }
 }
 
@@ -558,6 +676,216 @@ pub fn parse_json_array(content_type: Option<&str>, body: &str) -> Parsed {
     }
 }
 
+// ---------- htmlMarkers parser ----------
+
+/// Text for marker matching: Cyrillic transliterated to Latin, lowercase, whitespace
+/// collapsed, so `Nema izdatih karata` also matches `Нема издатих карата`.
+pub fn normalize_text(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut space = true;
+    for c in s.chars().flat_map(char::to_uppercase) {
+        if c.is_whitespace() {
+            if !space {
+                out.push(' ');
+                space = true;
+            }
+            continue;
+        }
+        space = false;
+        match cyrillic_to_latin(c) {
+            Some(l) => out.push_str(l),
+            None => out.push(c),
+        }
+    }
+    out.trim_end().to_lowercase()
+}
+
+fn decode_entities(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(i) = rest.find('&') {
+        out.push_str(&rest[..i]);
+        rest = &rest[i..];
+        let end = rest.find(';').filter(|&e| e <= 10);
+        let decoded = end.and_then(|e| {
+            let name = &rest[1..e];
+            let c = match name {
+                "amp" => '&',
+                "lt" => '<',
+                "gt" => '>',
+                "quot" => '"',
+                "apos" => '\'',
+                "nbsp" => ' ',
+                _ => {
+                    let n = name.strip_prefix('#')?;
+                    let code = match n.strip_prefix(['x', 'X']) {
+                        Some(hex) => u32::from_str_radix(hex, 16).ok()?,
+                        None => n.parse().ok()?,
+                    };
+                    char::from_u32(code)?
+                }
+            };
+            Some((c, e))
+        });
+        match decoded {
+            Some((c, e)) => {
+                out.push(c);
+                rest = &rest[e + 1..];
+            }
+            None => {
+                out.push('&');
+                rest = &rest[1..];
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+/// Drop `<script>`/`<style>` blocks and comments, replace tags by spaces, decode entities.
+pub fn html_text(html: &str) -> String {
+    let lower = html.to_ascii_lowercase();
+    let mut out = String::with_capacity(html.len());
+    let mut i = 0;
+    while i < html.len() {
+        let Some(off) = lower[i..].find('<') else {
+            out.push_str(&html[i..]);
+            break;
+        };
+        out.push_str(&html[i..i + off]);
+        let start = i + off;
+        let skip_to = if lower[start..].starts_with("<!--") {
+            lower[start..].find("-->").map(|e| start + e + 3)
+        } else if lower[start..].starts_with("<script") || lower[start..].starts_with("<style") {
+            let close = if lower[start..].starts_with("<script") {
+                "</script"
+            } else {
+                "</style"
+            };
+            lower[start..]
+                .find(close)
+                .and_then(|e| lower[start + e..].find('>').map(|g| start + e + g + 1))
+        } else {
+            lower[start..].find('>').map(|e| start + e + 1)
+        };
+        out.push(' ');
+        i = skip_to.unwrap_or(html.len());
+    }
+    decode_entities(&out)
+}
+
+/// Inner HTML of every `<tag ...>…</tag>` in `html` (not nested-aware, fine for cells/rows).
+fn elements<'a>(html: &'a str, lower: &str, tag: &str) -> Vec<&'a str> {
+    let open = format!("<{tag}");
+    let close = format!("</{tag}");
+    let mut out = Vec::new();
+    let mut i = 0;
+    while let Some(off) = lower[i..].find(&open) {
+        let start = i + off;
+        // `<td` must not match `<tdx`.
+        let after = lower[start + open.len()..].chars().next();
+        if !matches!(after, Some('>' | ' ' | '\t' | '\n' | '\r' | '/')) {
+            i = start + open.len();
+            continue;
+        }
+        let Some(gt) = lower[start..].find('>') else {
+            break;
+        };
+        let body = start + gt + 1;
+        let end = lower[body..].find(&close).map_or(lower.len(), |e| body + e);
+        out.push(&html[body..end]);
+        i = end.max(body);
+    }
+    out
+}
+
+fn cell_text(html: &str) -> String {
+    html_text(html)
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// Rows of the HTML tables as JSON objects (header cells as keys, else `col1`, `col2`, …).
+fn table_items(html: &str) -> Vec<FineItem> {
+    let lower = html.to_ascii_lowercase();
+    let mut items = Vec::new();
+    for table in elements(html, &lower, "table") {
+        let tl = table.to_ascii_lowercase();
+        let mut header: Vec<String> = Vec::new();
+        for row in elements(table, &tl, "tr") {
+            let rl = row.to_ascii_lowercase();
+            let th: Vec<String> = elements(row, &rl, "th")
+                .into_iter()
+                .map(cell_text)
+                .collect();
+            if !th.is_empty() {
+                header = th;
+                continue;
+            }
+            let td: Vec<String> = elements(row, &rl, "td")
+                .into_iter()
+                .map(cell_text)
+                .collect();
+            if td.iter().all(String::is_empty) {
+                continue;
+            }
+            let mut obj = serde_json::Map::new();
+            for (n, v) in td.into_iter().enumerate() {
+                let key = header
+                    .get(n)
+                    .filter(|h| !h.is_empty())
+                    .cloned()
+                    .unwrap_or_else(|| format!("col{}", n + 1));
+                obj.insert(key, Value::String(v));
+            }
+            items.push(item_from(&Value::Object(obj)));
+        }
+    }
+    items
+}
+
+/// Bot protection widgets: the user has to check by hand.
+const CAPTCHA_MARKERS: [&str; 5] = [
+    "g-recaptcha",
+    "cf-turnstile",
+    "h-captcha",
+    "challenge-platform",
+    "captcha",
+];
+
+/// `htmlMarkers` parser. Order matters: a captcha means manual; a `found` marker wins
+/// over a `clean` one (a false "no fines" is worse than a false alarm); a page with
+/// neither marker is a parse error, never "clean".
+pub fn parse_html_markers(body: &str, found: &[String], clean: &[String]) -> Parsed {
+    let lower = body.to_ascii_lowercase();
+    if CAPTCHA_MARKERS.iter().any(|m| lower.contains(m)) {
+        return Parsed::new(CheckStatus::Manual, Some("captcha".into()));
+    }
+    let text = normalize_text(&html_text(body));
+    let has = |markers: &[String]| {
+        markers
+            .iter()
+            .map(|m| normalize_text(m))
+            .any(|m| !m.is_empty() && text.contains(&m))
+    };
+    if has(found) {
+        let mut items = table_items(body);
+        if items.is_empty() {
+            items.push(FineItem::default());
+        }
+        return Parsed {
+            status: CheckStatus::Found,
+            items,
+            detail: None,
+        };
+    }
+    if has(clean) {
+        return Parsed::new(CheckStatus::Clean, None);
+    }
+    Parsed::new(CheckStatus::ParseError, Some("no known marker".into()))
+}
+
 /// Result of one HTTP request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Fetched {
@@ -571,8 +899,8 @@ pub enum Fetched {
     Network(String),
 }
 
-/// Interpret a fetched response with the provider's parser.
-pub fn interpret(parser: Parser, fetched: Fetched) -> Parsed {
+/// Interpret a fetched response with the request's parser.
+pub fn interpret(req: &Request, fetched: Fetched) -> Parsed {
     match fetched {
         Fetched::Status(code @ (401 | 403 | 429)) => {
             Parsed::new(CheckStatus::Manual, Some(format!("HTTP {code}")))
@@ -581,26 +909,60 @@ pub fn interpret(parser: Parser, fetched: Fetched) -> Parsed {
             Parsed::new(CheckStatus::Unavailable, Some(format!("HTTP {code}")))
         }
         Fetched::Network(e) => Parsed::new(CheckStatus::Unavailable, Some(e)),
-        Fetched::Body { content_type, body } => match parser {
+        Fetched::Body { content_type, body } => match req.parser {
             Parser::JsonArray => parse_json_array(content_type.as_deref(), &body),
+            Parser::HtmlMarkers => parse_html_markers(&body, &req.found, &req.clean),
             Parser::Unknown => Parsed::new(CheckStatus::Manual, None),
         },
     }
 }
 
-/// One GET request (blocking). Sends nothing but the URL (which carries the plate).
-pub fn fetch(url: &str) -> Fetched {
+impl Request {
+    /// URL with the form fields as query (GET) or as is (POST).
+    pub fn full_url(&self) -> String {
+        if self.method == Method::Post || self.form.is_empty() {
+            return self.url.clone();
+        }
+        let sep = if self.url.contains('?') { '&' } else { '?' };
+        format!("{}{sep}{}", self.url, self.encoded_form())
+    }
+
+    /// `application/x-www-form-urlencoded` form fields.
+    pub fn encoded_form(&self) -> String {
+        self.form
+            .iter()
+            .map(|(k, v)| format!("{}={}", encode_component(k), encode_component(v)))
+            .collect::<Vec<_>>()
+            .join("&")
+    }
+}
+
+/// One request (blocking). Sends nothing but the request itself (which carries the plate).
+pub fn fetch(req: &Request) -> Fetched {
     let agent: ureq::Agent = ureq::Agent::config_builder()
         .timeout_global(Some(TIMEOUT))
         .max_redirects(3)
         .build()
         .into();
-    match agent
-        .get(url)
-        .header("User-Agent", USER_AGENT)
-        .header("Accept", "application/json")
-        .call()
-    {
+    let accept = match req.parser {
+        Parser::HtmlMarkers => "text/html",
+        _ => "application/json",
+    };
+    let url = req.full_url();
+    let response = match req.method {
+        Method::Get => agent
+            .get(&url)
+            .header("User-Agent", USER_AGENT)
+            .header("Accept", accept)
+            .call(),
+        Method::Post => agent
+            .post(&url)
+            .header("User-Agent", USER_AGENT)
+            .header("Accept", accept)
+            .content_type("application/x-www-form-urlencoded")
+            .send(req.encoded_form()),
+    };
+    match response {
         Ok(mut rsp) => {
             let content_type = rsp
                 .headers()
@@ -696,21 +1058,21 @@ pub fn check_allowed(settings: &FinesSettings, provider: &Provider) -> CmdResult
     Ok(())
 }
 
-/// Run (or reuse) a check. `run` performs the request for the resolved URL.
+/// Run (or reuse) a check. `run` performs the resolved request.
 pub fn check_with(
     cache: &FinesCache,
     provider: &Provider,
     plate: &str,
     force: bool,
     now: Instant,
-    run: impl FnOnce(&str) -> Parsed,
+    run: impl FnOnce(&Request) -> Parsed,
 ) -> CheckResult {
     let normalized = normalize_plate(plate);
     if let Some(r) = cache.get(&provider.id, &normalized, now, force) {
         return r;
     }
-    let parsed = match provider.check_url(&normalized) {
-        Some(url) if !normalized.is_empty() => run(&url),
+    let parsed = match provider.check_request(&normalized) {
+        Some(req) if !normalized.is_empty() => run(&req),
         _ => Parsed::new(CheckStatus::Manual, None),
     };
     log::info!(
@@ -760,7 +1122,7 @@ mod tests {
     }
 
     #[test]
-    fn invalid_and_unknown_providers_are_skipped() {
+    fn invalid_providers_are_skipped_and_unknown_checks_become_links() {
         let json = r#"{"schema":1,"providers":[
           {"id":"a","category":"parking","name":"A","kind":"link","url":"https://a.rs/"},
           {"id":"b","category":"parking","name":"B","kind":"html_form","url":"https://b.rs/"},
@@ -773,7 +1135,53 @@ mod tests {
           {"id":"f","category":"toll","name":"F","kind":"link","url":"ftp://f.rs/"}
         ]}"#;
         let ps = parse_providers(json).unwrap();
-        assert_eq!(ps.iter().map(|p| p.id.as_str()).collect::<Vec<_>>(), ["a"]);
+        // `f` has no usable page; the others keep their page as a plain link.
+        assert_eq!(
+            ps.iter().map(|p| p.id.as_str()).collect::<Vec<_>>(),
+            ["a", "b", "c", "d", "e"]
+        );
+        assert!(ps.iter().all(|p| p.kind == Kind::Link && p.check.is_none()));
+    }
+
+    #[test]
+    fn html_form_definitions() {
+        let json = r#"{"schema":1,"providers":[
+          {"id":"ok","category":"parking","name":"A","cities":["NI"],"kind":"html_form","url":"https://a.rs/",
+           "check":{"url":"https://a.rs/provera","method":"post","form":{"tablica":"{plate}","grad":"{city}"},
+                    "parser":"htmlMarkers","found":["Broj naloga"],"clean":["Nema izdatih"]}},
+          {"id":"noclean","category":"parking","name":"B","kind":"html_form","url":"https://b.rs/",
+           "check":{"url":"https://b.rs/x?t={plate}","parser":"htmlMarkers","found":["x"]}},
+          {"id":"noplate","category":"parking","name":"C","kind":"html_form","url":"https://c.rs/",
+           "check":{"url":"https://c.rs/x","method":"post","form":{"t":"BG1"},
+                    "parser":"htmlMarkers","found":["x"],"clean":["y"]}},
+          {"id":"jsonpost","category":"parking","name":"D","kind":"json_get","url":"https://d.rs/",
+           "check":{"url":"https://d.rs/x?p={plate}","method":"post","parser":"jsonArray"}}
+        ]}"#;
+        let ps = parse_providers(json).unwrap();
+        let auto: Vec<_> = ps
+            .iter()
+            .filter(|p| p.is_auto())
+            .map(|p| p.id.as_str())
+            .collect();
+        assert_eq!(auto, ["ok"]);
+        assert_eq!(ps.len(), 4);
+        let req = ps[0].check_request("NIČ12AB").unwrap();
+        assert_eq!(req.method, Method::Post);
+        assert_eq!(req.full_url(), "https://a.rs/provera");
+        assert_eq!(req.encoded_form(), "grad=NI&tablica=NI%C4%8C12AB");
+        let info = providers_for("NI 1-AB", &ps);
+        assert!(info.providers[0].auto);
+        assert_eq!(info.providers[0].check_domain.as_deref(), Some("a.rs"));
+        // GET with form fields: fields go to the query.
+        let get = Request {
+            method: Method::Get,
+            url: "https://x.rs/p?a=1".into(),
+            form: vec![("t".into(), "BG 1".into())],
+            parser: Parser::HtmlMarkers,
+            found: vec![],
+            clean: vec![],
+        };
+        assert_eq!(get.full_url(), "https://x.rs/p?a=1&t=BG%201");
     }
 
     #[test]
@@ -953,7 +1361,8 @@ mod tests {
             CheckStatus::ParseError
         );
         assert_eq!(parse_json_array(None, "42").status, CheckStatus::ParseError);
-        let s = |f| interpret(Parser::JsonArray, f).status;
+        let req = ns().check_request("NS1AB").unwrap();
+        let s = |f| interpret(&req, f).status;
         assert_eq!(s(Fetched::Status(403)), CheckStatus::Manual);
         assert_eq!(s(Fetched::Status(429)), CheckStatus::Manual);
         assert_eq!(s(Fetched::Status(503)), CheckStatus::Unavailable);
@@ -983,10 +1392,10 @@ mod tests {
         let p = ns();
         let t0 = Instant::now();
         let calls = std::cell::Cell::new(0);
-        let run = |url: &str| {
+        let run = |req: &Request| {
             calls.set(calls.get() + 1);
             assert_eq!(
-                url,
+                req.full_url(),
                 "https://portal.parkingns.rs/portal/auth/checkPPK?platePr=NS123AB"
             );
             parse_json_array(None, FOUND)
@@ -1043,7 +1452,7 @@ mod tests {
         let cache = FinesCache::default();
         let p = ns();
         let t0 = Instant::now();
-        let down = |_: &str| interpret(Parser::JsonArray, Fetched::Network("dns".into()));
+        let down = |r: &Request| interpret(r, Fetched::Network("dns".into()));
         let r = check_with(&cache, &p, "NS1AA", false, t0, down);
         assert_eq!(r.status, CheckStatus::Unavailable);
         assert!(cache
@@ -1076,6 +1485,112 @@ mod tests {
             check_allowed(&s, &link).unwrap_err(),
             "error.finesNotAutomatic"
         );
+    }
+
+    // Synthetic answer pages in the shape of typical municipal eDPK forms (no real portal
+    // page could be recorded from the development environment; see docs/07 §12).
+    const HTML_FOUND: &str = r#"<html><head><style>td{color:red}</style>
+      <script>var msg = "Nema izdatih karata";</script></head><body>
+      <h2>Rezultat pretrage za NI123AB</h2>
+      <table class="t"><thead><tr><th>Broj naloga</th><th>Datum</th><th>Iznos</th><th>Lokacija</th></tr></thead>
+      <tbody><tr><td>EDPK-2026-0042</td><td>12.10.2026. 09:14</td><td>1.800,00&nbsp;RSD</td><td>Obrenovićeva &amp; Vožda Karađorđa</td></tr>
+      <tr><td>EDPK-2026-0051</td><td>13.10.2026.</td><td>900,00 RSD</td><td>Zona 2</td></tr></tbody></table>
+      </body></html>"#;
+    const HTML_CLEAN_CYR: &str = r#"<html><body><div class="alert">Нема издатих карата за возило НИ123АБ.</div>
+      <!-- Broj naloga --></body></html>"#;
+
+    fn html_req() -> Request {
+        Request {
+            method: Method::Post,
+            url: "https://a.rs/".into(),
+            form: vec![],
+            parser: Parser::HtmlMarkers,
+            found: vec!["Broj naloga".into()],
+            clean: vec!["Nema izdatih karata".into()],
+        }
+    }
+
+    #[test]
+    fn html_markers_found_with_table() {
+        let r = html_req();
+        let p = parse_html_markers(HTML_FOUND, &r.found, &r.clean);
+        assert_eq!(p.status, CheckStatus::Found, "scripts/styles are not text");
+        assert_eq!(p.items.len(), 2);
+        let a = &p.items[0];
+        assert_eq!(a.date.as_deref(), Some("12.10.2026. 09:14"));
+        assert_eq!(a.amount.as_deref(), Some("1.800,00 RSD"));
+        assert_eq!(
+            a.location.as_deref(),
+            Some("Obrenovićeva & Vožda Karađorđa")
+        );
+        assert_eq!(
+            a.fields.get("Broj naloga").map(String::as_str),
+            Some("EDPK-2026-0042")
+        );
+    }
+
+    #[test]
+    fn html_markers_clean_in_cyrillic_and_comments_ignored() {
+        let r = html_req();
+        let p = parse_html_markers(HTML_CLEAN_CYR, &r.found, &r.clean);
+        assert_eq!(p.status, CheckStatus::Clean);
+        assert_eq!(
+            normalize_text(" Нема  ИЗДАТИХ\n карата "),
+            "nema izdatih karata"
+        );
+    }
+
+    #[test]
+    fn html_markers_never_guess_clean() {
+        let r = html_req();
+        // Neither marker (e.g. the form was shown again): not "clean".
+        let p = parse_html_markers("<form><input name=tablica></form>", &r.found, &r.clean);
+        assert_eq!(p.status, CheckStatus::ParseError);
+        // Captcha widget: manual.
+        let p = parse_html_markers(
+            r#"<div class="cf-turnstile" data-sitekey="x"></div>Nema izdatih karata"#,
+            &r.found,
+            &r.clean,
+        );
+        assert_eq!(p.status, CheckStatus::Manual);
+        // Found marker without a table: one item, still "found".
+        let p = parse_html_markers("<p>Broj naloga: 77</p>", &r.found, &r.clean);
+        assert_eq!(p.status, CheckStatus::Found);
+        assert_eq!(p.items.len(), 1);
+        // Both markers: found wins.
+        let p = parse_html_markers(
+            "<p>Nema izdatih karata starijih od 60 dana.</p><table><tr><td>Broj naloga 1</td></tr></table>",
+            &r.found,
+            &r.clean,
+        );
+        assert_eq!(p.status, CheckStatus::Found);
+        // Through `interpret`, HTTP errors behave as for JSON.
+        assert_eq!(
+            interpret(&r, Fetched::Status(429)).status,
+            CheckStatus::Manual
+        );
+        assert_eq!(
+            interpret(
+                &r,
+                Fetched::Body {
+                    content_type: Some("text/html".into()),
+                    body: HTML_FOUND.into()
+                }
+            )
+            .status,
+            CheckStatus::Found
+        );
+    }
+
+    #[test]
+    fn html_text_helpers() {
+        assert_eq!(
+            html_text("a<b>b</b>&#268;&#x0160;&amp;&unknown;&")
+                .split_whitespace()
+                .collect::<Vec<_>>(),
+            ["a", "b", "ČŠ&&unknown;&"]
+        );
+        assert_eq!(html_text("x<script>if(a<b){}</script>y").trim(), "x y");
     }
 
     #[test]
