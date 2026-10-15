@@ -152,7 +152,7 @@
   "fines.provider.rnk.name": "Register of unpaid fines",
   "fines.provider.rnk.note": "Final unpaid fines. Requires name, surname and personal number — Chitach never sends them automatically.",
   "fines.provider.zlatibor-parking.name": "Zlatibor / Čajetina – KJP “Zlatibor” (eDPK)",
-  "fines.provider.zlatibor-parking.note": "eDPK check by plate.",
+  "fines.provider.zlatibor-parking.note": "eDPK check by plate. Supports the automatic check.",
   "fines.provider.zr-parking.name": "Zrenjanin – JKP “Pijace i parkinzi” (ePPK)",
   "fines.provider.zr-parking.note": "Check of electronic parking tickets by plate. Supports the automatic check.",
   "fines.status.checking": "Checking…",

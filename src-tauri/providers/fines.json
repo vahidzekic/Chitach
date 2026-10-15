@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-16",
+  "updated": "2026-10-17",
   "providers": [
     {
       "id": "bg-parking",
@@ -66,8 +66,12 @@
       "category": "parking",
       "name": "Zlatibor / Čajetina – KJP „Zlatibor“ (eDPK)",
       "cities": ["UE"],
-      "kind": "link",
-      "url": "https://edpk.kjpzlatibor.rs/"
+      "kind": "json_get",
+      "url": "https://edpk.kjpzlatibor.rs/",
+      "check": {
+        "url": "https://prod.zlatibor.scancar.parking-servis.co.rs/api/fine/unpaid/{plate}",
+        "parser": "jsonArray"
+      }
     },
     {
       "id": "pk-parking",

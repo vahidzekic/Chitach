@@ -152,7 +152,7 @@
   "fines.provider.rnk.name": "Registar neplaćenih novčanih kazni",
   "fines.provider.rnk.note": "Pravnosnažne neplaćene kazne. Traži ime, prezime i JMBG — Chitach ih nikada ne šalje automatski.",
   "fines.provider.zlatibor-parking.name": "Zlatibor / Čajetina – KJP „Zlatibor“ (eDPK)",
-  "fines.provider.zlatibor-parking.note": "Provera eDPK po tablici.",
+  "fines.provider.zlatibor-parking.note": "Provera eDPK po tablici. Podržava automatsku proveru.",
   "fines.provider.zr-parking.name": "Zrenjanin – JKP „Pijace i parkinzi“ (ePPK)",
   "fines.provider.zr-parking.note": "Provera elektronskih parking karata po tablici. Podržava automatsku proveru.",
   "fines.status.checking": "Proveravam…",

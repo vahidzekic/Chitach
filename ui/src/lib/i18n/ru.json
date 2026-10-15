@@ -152,7 +152,7 @@
   "fines.provider.rnk.name": "Реестр неоплаченных штрафов",
   "fines.provider.rnk.note": "Вступившие в силу неоплаченные штрафы. Нужны имя, фамилия и ЕМБГ — Chitach никогда не отправляет их автоматически.",
   "fines.provider.zlatibor-parking.name": "Златибор / Чаетина – KJP «Zlatibor» (eDPK)",
-  "fines.provider.zlatibor-parking.note": "Проверка eDPK по номеру.",
+  "fines.provider.zlatibor-parking.note": "Проверка eDPK по номеру. Поддерживает автопроверку.",
   "fines.provider.zr-parking.name": "Зренянин – JKP «Pijace i parkinzi» (ePPK)",
   "fines.provider.zr-parking.note": "Проверка электронных парковочных квитанций по номеру. Поддерживает автопроверку.",
   "fines.status.checking": "Проверка…",
