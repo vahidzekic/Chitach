@@ -283,58 +283,60 @@
     </div>
   </section>
 
-  <section class="card group">
-    <h2><Icon name="sparkle" size={16} />{t("pro.title")}</h2>
-    <p class="group-desc">{t("pro.settingsDesc")}</p>
-    <div class="row">
-      <div class="desc">
-        <label for="set-pro-key">{t("pro.key")}</label>
-        <small>
-          {#if app.license?.active}
-            {t("pro.activeDesc", app.license.email ?? app.license.keyHint ?? "")}
-          {:else if app.license?.stored}
-            {t("pro.expired")}
-          {:else}
-            {t("pro.inactiveDesc")}
-          {/if}
-        </small>
-      </div>
-      <div class="ctl">
-        {#if app.license?.stored}
-          <div class="path-row">
-            {#if app.license.active}
-              <span class="badge badge-success"><Icon name="check" size={13} stroke={2.2} />{t("pro.active")} {app.license.keyHint}</span>
+  {#if app.license?.enabled}
+    <section class="card group">
+      <h2><Icon name="sparkle" size={16} />{t("pro.title")}</h2>
+      <p class="group-desc">{t("pro.settingsDesc")}</p>
+      <div class="row">
+        <div class="desc">
+          <label for="set-pro-key">{t("pro.key")}</label>
+          <small>
+            {#if app.license?.active}
+              {t("pro.activeDesc", app.license.email ?? app.license.keyHint ?? "")}
+            {:else if app.license?.stored}
+              {t("pro.expired")}
             {:else}
-              <span class="badge badge-warning"><Icon name="alert" size={13} stroke={2.2} />{t("pro.notValidated")}</span>
+              {t("pro.inactiveDesc")}
             {/if}
-            <button class="btn btn-sm btn-danger" type="button" onclick={deactivatePro} disabled={proBusy}>
-              {t("pro.deactivate")}
-            </button>
-          </div>
-        {:else}
-          <div class="path-row">
-            <input
-              id="set-pro-key"
-              class="input mono"
-              type="text"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder={t("pro.keyPlaceholder")}
-              bind:value={proKey}
-            />
-            <button class="btn" type="button" onclick={activatePro} disabled={proBusy || !proKey.trim()}>
-              <Icon name="key" size={16} />{t("pro.activate")}
-            </button>
-            {#if app.license?.buyUrl}
-              <button class="btn btn-primary" type="button" onclick={() => void api.openUrl(app.license!.buyUrl!)}>
-                <Icon name="sparkle" size={16} />{t("pro.buy")}
+          </small>
+        </div>
+        <div class="ctl">
+          {#if app.license?.stored}
+            <div class="path-row">
+              {#if app.license.active}
+                <span class="badge badge-success"><Icon name="check" size={13} stroke={2.2} />{t("pro.active")} {app.license.keyHint}</span>
+              {:else}
+                <span class="badge badge-warning"><Icon name="alert" size={13} stroke={2.2} />{t("pro.notValidated")}</span>
+              {/if}
+              <button class="btn btn-sm btn-danger" type="button" onclick={deactivatePro} disabled={proBusy}>
+                {t("pro.deactivate")}
               </button>
-            {/if}
-          </div>
-        {/if}
+            </div>
+          {:else}
+            <div class="path-row">
+              <input
+                id="set-pro-key"
+                class="input mono"
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder={t("pro.keyPlaceholder")}
+                bind:value={proKey}
+              />
+              <button class="btn" type="button" onclick={activatePro} disabled={proBusy || !proKey.trim()}>
+                <Icon name="key" size={16} />{t("pro.activate")}
+              </button>
+              {#if app.license?.buyUrl}
+                <button class="btn btn-primary" type="button" onclick={() => void api.openUrl(app.license!.buyUrl!)}>
+                  <Icon name="sparkle" size={16} />{t("pro.buy")}
+                </button>
+              {/if}
+            </div>
+          {/if}
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+  {/if}
 
   <section class="card group">
     <h2><Icon name="receipt" size={16} />{t("settings.fines")}</h2>

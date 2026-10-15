@@ -140,6 +140,7 @@ export interface HistoryApiResult {
 }
 // Chitach Pro (jednokratni Lemon Squeezy ključ; otključava proveru kazni i istoriju vozila)
 export interface LicenseInfo {
+  enabled: boolean;                 // zaključavanje uključeno (license::STORE_ID != 0 ili mock); inače je sve besplatno
   active: boolean;                  // Pro je uključen
   stored: boolean;                  // ključ je sačuvan (može biti neaktivan: nije proveren > 30 dana)
   keyHint: string | null;           // poslednja 4 znaka ključa, npr. "…A1B2"
@@ -182,6 +183,9 @@ export interface LicenseInfo {
 | `license_info` | – | `LicenseInfo` | |
 | `license_activate` | `{ key }` | `LicenseInfo` | Lemon Squeezy `licenses/activate` (šalje ključ i ime instance, npr. `Chitach (windows x86_64)`); prihvata samo ključeve prodavnice `license::STORE_ID`; čuva u `license.json` (Unix: 0600). Greške: `error.licenseInvalid`, `error.licenseLimit`, `error.licenseWrongProduct`, `error.licenseNetwork`. Mock: ključ `CHITACH-PRO-DEMO` |
 | `license_deactivate` | – | `LicenseInfo` | `licenses/deactivate` (oslobađa mesto), lokalni ključ se briše i bez interneta |
+
+Dok je `license::STORE_ID = 0`, zaključavanje je isključeno: provera kazni i istorija vozila su
+besplatne, a UI ne prikazuje ništa o Pro-u.
 
 Ključ se pri startu ponovo proverava (`licenses/validate`) ako je od poslednje provere prošlo
 više od 7 dana; bez interneta Pro radi još 30 dana od poslednje uspešne provere. Refundiran ili

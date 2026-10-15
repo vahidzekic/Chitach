@@ -143,7 +143,7 @@
 
 <DocSections {sections} />
 
-{#if app.license?.active}
+{#if app.license && (!app.license.enabled || app.license.active)}
   <FinesPanel />
 
   <HistoryPanel />

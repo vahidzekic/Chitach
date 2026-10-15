@@ -30,8 +30,6 @@ Republic of Serbia on smart cards, with a new, modern interface. It is written i
 * **Health insurance card** (zdravstvena knjižica) — insured person and insurance data;
   the **"valid until"** date is fetched from the RFZO web service with one click
 * **Vehicle registration card** (saobraćajna dozvola) — vehicle, owner and user data
-* **Chitach Pro** (one-time purchase) — **fines check** and **vehicle history** for the
-  vehicle card that was read
 * Export to **PDF** (same layout as the official form, Latin or Cyrillic labels),
   **JSON** and **XLSX**
 * Automatic reader and card detection, optional **auto-save** of a PDF on every read
@@ -120,8 +118,7 @@ with a certificate by [SignPath Foundation](https://signpath.org/).
 Only files built by GitHub Actions from this repository for a published tag are signed.
 
 **Privacy:** card data never leaves the computer unless specifically requested by the user
-(the RFZO query, the fines check after explicit consent, the Chitach Pro key check with
-the seller, Lemon Squeezy). On start-up the program checks GitHub
+(the RFZO query, the fines check after explicit consent). On start-up the program checks GitHub
 for a new version; this can be turned off in the settings.
 
 ## License

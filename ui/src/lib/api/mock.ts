@@ -8,7 +8,7 @@
 //   &fines=found|clean|manual|unavailable|parseError  (forced automatic fines check result)
 //   &history=ok|unauthorized|error|unavailable|parseError  (forced vehicle history API result)
 //   &historyKey=1  (a vehicle history API key is already stored)
-//   &pro=0  (Chitach Pro is not activated; activate with the key CHITACH-PRO-DEMO)
+//   &pro=0|1  (Chitach Pro gating on: 0 = locked, activate with CHITACH-PRO-DEMO; 1 = activated)
 // A small control object is exposed as `window.__chitachMock` (insert/remove cards).
 import type {
   Api,
@@ -92,7 +92,8 @@ export function createMockApi(): Api {
   if (theme === "light" || theme === "dark" || theme === "system") settings.theme = theme;
   const lang = params.get("lang");
   if (lang === "sr-Latn" || lang === "sr-Cyrl" || lang === "en" || lang === "ru") settings.language = lang;
-  // Pro is on by default so screenshots show the panels; `?pro=0` shows the lock.
+  // Pro gating is off unless `?pro=` is given (as in a build without a configured store).
+  const proEnabled = params.has("pro");
   let pro = params.get("pro") !== "0";
   try {
     const raw = localStorage.getItem(LICENSE_KEY);
@@ -102,8 +103,8 @@ export function createMockApi(): Api {
   }
   const licenseInfo = (): LicenseInfo =>
     pro
-      ? { active: true, stored: true, keyHint: "…DEMO", email: "kupac@example.com", validatedAt: Date.now(), buyUrl: null }
-      : { active: false, stored: false, keyHint: null, email: null, validatedAt: null, buyUrl: "https://example.com/chitach-pro" };
+      ? { enabled: proEnabled, active: true, stored: true, keyHint: "…DEMO", email: "kupac@example.com", validatedAt: Date.now(), buyUrl: null }
+      : { enabled: proEnabled, active: false, stored: false, keyHint: null, email: null, validatedAt: null, buyUrl: "https://example.com/chitach-pro" };
   const setPro = (on: boolean) => {
     pro = on;
     try {
@@ -370,7 +371,7 @@ export function createMockApi(): Api {
       return mockFinesInfo(state.document?.kind === "vehicle" ? state.document.data.RegistrationNumberOfVehicle : "");
     },
     async finesCheck(providerId, force = false) {
-      if (!pro) throw "error.proRequired";
+      if (proEnabled && !pro) throw "error.proRequired";
       if (state.document?.kind !== "vehicle") throw "error.notVehicleCard";
       return mockFinesCheck(state.document.data.RegistrationNumberOfVehicle, providerId, force, settings);
     },
@@ -384,7 +385,7 @@ export function createMockApi(): Api {
       await mockHistoryRemoveKey(providerId);
     },
     async historyApiCheck(providerId, operation, force = false) {
-      if (!pro) throw "error.proRequired";
+      if (proEnabled && !pro) throw "error.proRequired";
       if (state.document?.kind !== "vehicle") throw "error.notVehicleCard";
       return mockHistoryApiCheck(state.document.data, providerId, operation, force, settings);
     },

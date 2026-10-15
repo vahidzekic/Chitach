@@ -1,8 +1,9 @@
 # Chitach Pro: plaćena provera kazni i istorija vozila
 
-> Status: oktobar 2026. **Kod je gotov i testiran, ali nije pušten.** Odloženo za neko od
-> sledećih izdanja; radi na grani `claude/project-thread-xrhw46` (draft PR #13). Pre izdanja
-> treba upisati podatke iz Lemon Squeezy naloga (v. §4).
+> Status: oktobar 2026. **Kod je spojen u `main` (PR #13), ali je zaključavanje isključeno**:
+> dok je `STORE_ID = 0`, provera kazni i istorija vozila su besplatne, a UI ne prikazuje ništa
+> o Pro-u. Naplata je odložena za neko od sledećih izdanja; uključuje se upisom podataka iz
+> Lemon Squeezy naloga (v. §4).
 
 ## 1. Odluka
 
@@ -46,13 +47,13 @@ Razmatrane opcije i obrazloženje: thread „Plaćene funkcije" u projektu.
 - U Podešavanjima je nova sekcija „Chitach Pro": unos ključa, status i deaktivacija na ovom
   računaru.
 - Prevodi za sva 4 jezika (`pro.*`, `error.license*`, `error.proRequired`).
-- Mock režim: u browseru `?pro=0` prikazuje zaključano stanje (podrazumevano je otključano zbog
-  screenshot-ova); u Rust-u `CHITACH_MOCK=1`. U oba radi probni ključ `CHITACH-PRO-DEMO`.
+- Mock režim: u browseru je zaključavanje isključeno kao u pravom build-u; `?pro=0` ga uključuje
+  i prikazuje zaključano stanje, `?pro=1` aktiviran Pro. U Rust-u (`CHITACH_MOCK=1`) je
+  zaključavanje uključeno. U oba radi probni ključ `CHITACH-PRO-DEMO`.
 
 ### Dokumentacija i slike
 
 - [04-api-ugovor.md](04-api-ugovor.md): tip `LicenseInfo` i tri nove komande.
-- README (sr i en): stavka „Chitach Pro" i dopuna o privatnosti (provera ključa kod prodavca).
 - Slike: `screenshots/25-pro-locked.png`, `screenshots/26-pro-settings.png`.
 
 ### Provereno
@@ -63,14 +64,15 @@ CI zelen na Linux-u, macOS-u i Windows-u. **Nije probano sa pravim Lemon Squeezy
 
 ## 3. Šta fali
 
-1. **Podaci iz Lemon Squeezy naloga** u `src-tauri/src/license.rs` (v. §4). Dok je
-   `STORE_ID = 0`, aplikacija odbija svaki pravi ključ, pa grana **ne sme u `main` pre toga**.
+1. **Podaci iz Lemon Squeezy naloga** u `src-tauri/src/license.rs` (v. §4). Upisom `STORE_ID`
+   zaključavanje se uključuje u sledećem build-u.
 2. **Proizvod u Lemon Squeezy:** uključiti „License keys", trajanje bez isteka, ograničenje
    aktivacija (predlog: 3 računara), cena (predlog: 5 do 10 €).
 3. **Test sa pravim ključem:** kupiti proizvod u test režimu Lemon Squeezy-ja, aktivirati,
    deaktivirati, pa probati refund (ključ treba da nestane pri sledećoj proveri).
 4. **Proveriti isplatu** na srpski PayPal ili račun u podešavanjima Lemon Squeezy naloga.
-5. **Spojiti `main` u granu** pre spajanja PR-a (grana je pravljena od `main` 15. 10. 2026).
+5. **README (sr i en):** dodati stavku „Chitach Pro" i u deo o privatnosti navesti proveru ključa
+   kod prodavca (Lemon Squeezy).
 6. **Korisničko uputstvo** ([05-korisnicko-uputstvo.md](05-korisnicko-uputstvo.md)): dodati deo o
    kupovini, aktivaciji i prenosu ključa na drugi računar.
 7. **Uslovi prodaje i refundacije:** kratka stranica (može na sajtu projekta) na koju vodi

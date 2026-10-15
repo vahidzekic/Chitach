@@ -387,6 +387,8 @@ export interface HistoryApiResult {
 
 /** Chitach Pro licence (unlocks the fines check and the vehicle history). */
 export interface LicenseInfo {
+  /** Pro gating is on in this build; when false the features are free and Pro UI is hidden */
+  enabled: boolean;
   active: boolean;
   /** a key is stored (it may be inactive when it could not be validated for too long) */
   stored: boolean;

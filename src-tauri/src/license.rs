@@ -8,6 +8,8 @@
 //! background every [`REVALIDATE_AFTER`] and Pro stays on for [`OFFLINE_GRACE`] after the
 //! last successful validation.
 //!
+//! While [`STORE_ID`] is 0 (not configured) the gate is off and both features stay free.
+//!
 //! The key is stored in `license.json` next to the settings (owner-only permissions on
 //! Unix) and is never sent to the UI.
 
@@ -64,6 +66,9 @@ impl Stored {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LicenseInfo {
+    /// Pro is switched on in this build ([`STORE_ID`] is set, or mock mode). When off, the
+    /// fines check and the vehicle history are free and the UI hides everything about Pro.
+    pub enabled: bool,
     pub active: bool,
     /// A key is stored (it may be inactive when it could not be validated for too long).
     pub stored: bool,
@@ -317,9 +322,15 @@ impl LicenseState {
         Ok(())
     }
 
+    /// Pro gating is on: the store is configured, or mock mode tests the flow.
+    pub fn enabled(&self) -> bool {
+        STORE_ID != 0 || self.mock
+    }
+
     pub fn info(&self) -> LicenseInfo {
         let stored = self.lock().clone();
         LicenseInfo {
+            enabled: self.enabled(),
             active: stored.as_ref().is_some_and(|s| s.active(now_ms())),
             stored: stored.is_some(),
             key_hint: stored.as_ref().map(|s| key_hint(&s.key)),
@@ -430,6 +441,9 @@ impl LicenseState {
 
     /// Gate for the Pro commands (blocking: may re-validate an expired grace period).
     pub fn require(&self) -> CmdResult<()> {
+        if !self.enabled() {
+            return Ok(());
+        }
         let stored = self.lock().clone();
         match stored {
             None => Err(PRO_REQUIRED.into()),
@@ -559,6 +573,14 @@ mod tests {
         save(&path, None).unwrap();
         assert_eq!(load(Some(&path)), None);
         let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn free_until_the_store_is_configured() {
+        // STORE_ID is 0 in the repository: no gate outside mock mode.
+        let st = LicenseState::new(None, false);
+        assert!(!st.info().enabled);
+        assert!(st.require().is_ok());
     }
 
     #[test]

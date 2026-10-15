@@ -29,8 +29,6 @@ pametnih kartica, sa novim, modernim interfejsom. Napisan je u Rust-u (Tauri v2)
 * **Zdravstvena knjižica** — podaci o osiguraniku i osiguranju, **"overena do"** preuzima
   se sa RFZO servisa jednim klikom
 * **Saobraćajna dozvola** — podaci o vozilu, vlasniku i korisniku
-* **Chitach Pro** (jednokratna kupovina) — **provera kazni** i **istorija vozila** za
-  pročitanu saobraćajnu dozvolu
 * Izvoz u **PDF** (izgled kao zvanični obrazac, latinične ili ćirilične labele),
   **JSON** i **XLSX**
 * Automatsko prepoznavanje kartice i čitača, **automatsko čuvanje** PDF-a pri čitanju
@@ -117,8 +115,7 @@ Windows izdanja potpisuje besplatna usluga [SignPath.io](https://about.signpath.
 Potpisuju se samo fajlovi koje GitHub Actions izgradi iz ovog repozitorijuma za objavljen tag.
 
 **Privatnost:** podaci sa kartica ne napuštaju računar osim kada to korisnik sam zatraži
-(upit RFZO-u, provera kazni uz izričitu saglasnost, provera Chitach Pro ključa kod
-prodavca Lemon Squeezy). Pri pokretanju program proverava da li
+(upit RFZO-u, provera kazni uz izričitu saglasnost). Pri pokretanju program proverava da li
 postoji nova verzija na GitHub-u; to se isključuje u podešavanjima.
 
 ## Licenca
