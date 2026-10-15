@@ -1,0 +1,22 @@
+name: Provider links
+
+# Weekly check that the portals and history services listed in
+# src-tauri/providers/*.json still answer. A failed run means a definition needs updating.
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check provider pages
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/check-provider-links.mjs

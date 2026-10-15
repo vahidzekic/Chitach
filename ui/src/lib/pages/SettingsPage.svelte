@@ -10,12 +10,13 @@
     LANGUAGES,
     type AutoSave,
     type FinesProvider,
+    type HistoryProvider,
     type Mode,
     type Settings,
     type Theme,
   } from "../api/types";
   import { hasKey, languageNames, t } from "../i18n/index.svelte";
-  import { app, previewSettings, saveSettings } from "../stores/app.svelte";
+  import { app, previewSettings, saveSettings, showError } from "../stores/app.svelte";
   import { toast } from "../stores/toasts.svelte";
 
   const clone = (s: Settings): Settings => structuredClone($state.snapshot(s) as Settings);
@@ -102,6 +103,50 @@
   function setProviderEnabled(id: string, on: boolean) {
     const ids = draft.fines.enabledProviders ?? autoProviders.map((p) => p.id);
     draft.fines.enabledProviders = on ? [...new Set([...ids, id])] : ids.filter((x) => x !== id);
+  }
+
+  // Vehicle history: API providers with the user's own key (stored by the backend, not in
+  // the settings, so saved immediately).
+  let historyApis = $state<HistoryProvider[]>([]);
+  let keyInput = $state<Record<string, { apiKey: string; secret: string }>>({});
+  let keyBusy = $state<Record<string, boolean>>({});
+  async function loadHistoryApis() {
+    try {
+      historyApis = (await api.historyInfo()).providers.filter((p) => p.kind === "api");
+      for (const p of historyApis) keyInput[p.id] ??= { apiKey: "", secret: "" };
+    } catch {
+      historyApis = [];
+    }
+  }
+  onMount(loadHistoryApis);
+  function historyName(p: HistoryProvider): string {
+    const key = `history.provider.${p.id}.name`;
+    return hasKey(key) ? t(key) : p.name;
+  }
+  async function saveKey(p: HistoryProvider) {
+    keyBusy[p.id] = true;
+    try {
+      await api.historySetApiKey(p.id, keyInput[p.id].apiKey, keyInput[p.id].secret);
+      keyInput[p.id] = { apiKey: "", secret: "" };
+      toast("success", t("settings.historyKeySaved", historyName(p)));
+      await loadHistoryApis();
+    } catch (e) {
+      showError(e, "error.settings");
+    } finally {
+      keyBusy[p.id] = false;
+    }
+  }
+  async function removeKey(p: HistoryProvider) {
+    keyBusy[p.id] = true;
+    try {
+      await api.historyRemoveApiKey(p.id);
+      toast("success", t("settings.historyKeyRemoved", historyName(p)));
+      await loadHistoryApis();
+    } catch (e) {
+      showError(e, "error.settings");
+    } finally {
+      keyBusy[p.id] = false;
+    }
   }
 
   let pdfScript = $derived<"latin" | "cyrillic">(draft.pdfCyrillicLabels ? "cyrillic" : "latin");
@@ -256,6 +301,72 @@
             bind:checked={() => providerEnabled(p.id), (v) => setProviderEnabled(p.id, v)}
             label={providerName(p)}
           />
+        </div>
+      </div>
+    {/each}
+  </section>
+
+  <section class="card group">
+    <h2><Icon name="history" size={16} />{t("settings.history")}</h2>
+    <p class="group-desc">{t("settings.historyDesc")}</p>
+    <div class="row">
+      <div class="desc">
+        <span>{t("settings.historyConsent")}</span>
+        <small>{draft.history.consentGiven ? t("settings.historyConsentGivenDesc") : t("settings.historyConsentNotGivenDesc")}</small>
+      </div>
+      <div class="ctl end consent">
+        {#if draft.history.consentGiven}
+          <span class="badge badge-success"><Icon name="check" size={13} stroke={2.2} />{t("settings.finesConsentGiven")}</span>
+          <button class="btn btn-sm btn-danger" type="button" onclick={() => (draft.history.consentGiven = false)}>
+            {t("settings.finesRevoke")}
+          </button>
+        {:else}
+          <span class="badge">{t("settings.finesConsentNotGiven")}</span>
+        {/if}
+      </div>
+    </div>
+    {#each historyApis as p (p.id)}
+      <div class="row">
+        <div class="desc">
+          <label for="set-hkey-{p.id}">{historyName(p)}</label>
+          <small>{t("settings.historyKeyDesc", p.apiDomain ?? "")}</small>
+        </div>
+        <div class="ctl">
+          {#if p.configured}
+            <div class="path-row">
+              <span class="badge badge-success"><Icon name="key" size={13} stroke={2.2} />{t("settings.historyKeyStored")}</span>
+              <button class="btn btn-sm btn-danger" type="button" onclick={() => removeKey(p)} disabled={keyBusy[p.id]}>
+                {t("settings.historyKeyRemove")}
+              </button>
+            </div>
+          {:else if keyInput[p.id]}
+            <div class="path-row">
+              <input
+                id="set-hkey-{p.id}"
+                class="input mono"
+                type="password"
+                autocomplete="off"
+                placeholder={t("settings.historyApiKey")}
+                bind:value={keyInput[p.id].apiKey}
+              />
+              <input
+                class="input mono"
+                type="password"
+                autocomplete="off"
+                placeholder={t("settings.historySecret")}
+                aria-label={t("settings.historySecret")}
+                bind:value={keyInput[p.id].secret}
+              />
+              <button
+                class="btn"
+                type="button"
+                onclick={() => saveKey(p)}
+                disabled={keyBusy[p.id] || !keyInput[p.id].apiKey.trim()}
+              >
+                <Icon name="key" size={16} />{t("settings.historyKeySave")}
+              </button>
+            </div>
+          {/if}
         </div>
       </div>
     {/each}

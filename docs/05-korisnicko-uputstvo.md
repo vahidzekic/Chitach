@@ -144,6 +144,43 @@ Privatnost:
 
 ![Provera kazni](screenshots/19-fines-vehicle.png)
 
+### Istorija vozila (saobraćajna dozvola)
+
+Ispod provere kazni nalazi se panel **Istorija vozila**:
+
+* **Sa kartice** — godina proizvodnje, datum prve registracije, proizvođač i zemlja po VIN-u i
+  godina modela po VIN-u (samo kod proizvođača koji je upisuju, npr. grupa VW, Volvo,
+  Hyundai/Kia, vozila iz Severne Amerike).
+* **Provera VIN-a** — radi na računaru, ništa se ne šalje: ispravnost oblika VIN-a, da li
+  proizvođač iz VIN-a odgovara marki na kartici, da li godina modela odgovara godini
+  proizvodnje, kontrolna cifra (vozila iz Severne Amerike) i razmak između proizvodnje i prve
+  registracije (2+ godine → verovatno uvezeno polovno). Ovo nije garancija ispravnosti vozila —
+  samo pokazuje da li su podaci usklađeni.
+* **Istorija u Srbiji** — aplikacija **UOS CarCheck** Udruženja osiguravača (Android / iPhone):
+  besplatno prva registracija u Srbiji i status registracije; za 890 RSD (SMS) broj šteta iz
+  osiguranja, broj vlasnika, promena boje, taksi/lizing. Chitach kopira tablicu da biste je
+  uneli u aplikaciju.
+* **Istorija u inostranstvu** — plaćeni izveštaji (carVertical, autoDNA, CARFAX Europe, Cebia)
+  sa štetama i kilometražom iz drugih zemalja. **Otvori** otvara sajt i kopira VIN.
+* **Vozila iz Severne Amerike** — NHTSA opozivi (VIN se upisuje u adresu) i VinAudit;
+  prikazuje se automatski kad VIN pripada SAD/Kanadi/Meksiku, inače na klik.
+* **Izveštaj u aplikaciji (vaš API ključ)** — za firme sa sopstvenim ugovorom (trenutno
+  **Vincario**): u **Podešavanja → Istorija vozila** unesite API ključ i tajni ključ; zatim su
+  u panelu dostupni **Dekodiraj VIN**, **Provera krađe** i **Tržišna vrednost**. Pre prvog upita
+  prikazuje se dijalog saglasnosti sa domenom kome se šalje VIN. Svaki upit naplaćuje servis po
+  vašem ugovoru (cena upita se prikazuje uz rezultat); rezultat se čuva u memoriji 30 minuta.
+
+Kilometraža se u Srbiji ne vodi u javnom registru — vide je samo komercijalni izveštaji i
+strani registri.
+
+Privatnost: ključ se čuva samo na vašem računaru u `secrets.json` (pored `settings.json`,
+na Linuksu/macOS-u čitljiv samo vlasniku naloga), nikad u podešavanjima i nikad se ne šalje
+nikome osim servisu; servisu se šalje **samo VIN**, nikad podaci o vlasniku.
+
+![Istorija vozila](screenshots/21-history-vehicle.png)
+
+![Izveštaj preko API-ja](screenshots/22-history-api-report.png)
+
 ## 3. Podešavanja
 
 Otvaraju se ikonicom zupčanika.
@@ -159,6 +196,7 @@ Otvaraju se ikonicom zupčanika.
 | **Proveri nove verzije** | Pri pokretanju proverava GitHub da li postoji novija verzija |
 | **Mod rada** | **Čitač** (podrazumevano), **Smartbox** (prijava na ePorezi) ili **Potpisivanje XML-a** |
 | **Provera kazni** | Automatska provera pri čitanju saobraćajne dozvole, saglasnost za slanje tablice (opoziv) i izbor portala za automatsku proveru |
+| **Istorija vozila** | Saglasnost za slanje VIN-a API servisu (opoziv) i API ključ za izveštaj u aplikaciji (čuva se odvojeno, u `secrets.json`) |
 | **PKCS#11 moduli** | Putanje do PKCS#11 biblioteka izdavalaca (MUP, PKS, Pošta, Halcom, E-Smart); prazno = podrazumevana lokacija |
 
 Promena moda rada važi posle ponovnog pokretanja aplikacije. Podešavanja se čuvaju u

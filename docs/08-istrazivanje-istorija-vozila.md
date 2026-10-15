@@ -1,6 +1,7 @@
 # Istraživanje: istorija vozila (prva registracija, udesi, kilometraža)
 
-> Status: istraživanje / predlog, oktobar 2026. **Ništa nije implementirano.**
+> Status: oktobar 2026. **Faze 1 i 2 su implementirane, faza 3 je pripremljena** (v. §13 „Šta je
+> implementirano" i §14 „Dopisi"); slanje dopisa i dogovori sa UOS-om/ABS-om/servisima nisu urađeni.
 > Cilj: kada se ubaci kartica saobraćajne dozvole, Chitach pomaže korisniku da sazna istoriju
 > vozila po uzoru na carVertical: datum prve registracije, udese i štete, originalnu (stvarnu)
 > kilometražu, broj vlasnika, krađu, uvoz — što potpuniju istoriju.
@@ -313,3 +314,96 @@ Treće strane:
 - https://rankomat.pl/samochod/jak-sprawdzic-historie-pojazdu
 - https://paperjam.lu/article/bientot-fini-le-bricolage-du-kilometrage-des-voitures-doccasion
 - https://www.eccnet.eu/publication/mileage-verification-car-pass-ensuring-accuracy-vehicles-abroad
+
+## 13. Šta je implementirano
+
+| Stavka | Gde | Napomena |
+|---|---|---|
+| Tabela WMI regiona (ISO 3780) i ~100 proizvođača čestih u Srbiji | `src-tauri/providers/wmi.json` | zemlja kao ISO 3166-1 alpha-2 (UI je prevodi preko `Intl.DisplayNames`); `modelYear: true` samo za proizvođače koji upisuju godinu u 10. znak (grupa VW, Volvo, Hyundai/Kia, Tesla, Severna Amerika); `country` za fabrike van WMI regiona (Tesla Berlin `XP7`) |
+| Lokalna provera VIN-a | `src-tauri/src/history.rs` (`normalize_vin`, `vin_format`, `decode`, `check_digit`, `model_year`, `checks`) | oblik VIN-a, proizvođač i zemlja, godina modela (30-godišnji ciklus, najbliži tekućoj godini), kontrolna cifra samo za Severnu Ameriku, provere usklađenosti: marka (`names` u `wmi.json`, poređenje bez dijakritika i ćirilice), godina modela ±1, prva registracija pre proizvodnje / 2+ godine posle, starost. Ništa se ne šalje. |
+| Definicije servisa | `src-tauri/providers/history.json` | UOS CarCheck (Android + iOS, ključ tablica), carVertical, autoDNA, CARFAX Europe, Cebia, NHTSA opozivi (`{vin}` u URL-u), VinAudit, Vincario (`kind: "api"`). Samo `https`; nevažeći ili nepoznati unosi se ignorišu. `partner: true` → UI prikazuje „partnerski link" (trenutno nijedan). |
+| Komande | `src-tauri/src/commands.rs` | `history_info`, `history_set_api_key`, `history_remove_api_key`, `history_api_check` (v. `docs/04-api-ugovor.md`) |
+| Panel „Istorija vozila" | `ui/src/lib/pages/document/HistoryPanel.svelte` | ispod „Provera kazni"; podaci sa kartice, provere, grupe servisa, „Kopiraj VIN", servisi za SAD se otvaraju sami za VIN iz Severne Amerike |
+| Izveštaj preko API-ja sa ključem korisnika (faza 2) | `history.rs` (`api_url`, `vincario_control_sum`, `parse_vincario`, `report_with`, `HistoryCache`, `Secrets`) | Vincario v3.2: `{base}/{apiKey}/{controlSum}/{op}/{VIN}.json`, kontrolna suma = prvih 10 hex znakova SHA-1 od `VIN\|op\|apiKey\|secret` **[P — po dokumentaciji vindecoder.eu; potvrditi sa pravim ključem]**; operacije `decode`, `stolen-check`, `vehicle-market-value`. `decode` se čita kao lista `{label, value}`, ostale operacije se prikazuju „ravno" (`a.b`, `a[0].b`) bez tumačenja; `price`/`price_currency` se prikazuju kao naplaćeno. 401/403 ili greška o ključu → „ključ odbijen". Keš u memoriji 30 min (svaki upit se plaća), ponovni upit tek posle 60 s. URL sadrži ključ i nikad se ne loguje; u logu je samo WMI. |
+| Čuvanje ključa | `secrets.json` pored `settings.json` | **odstupanje od §9**: umesto sistemskog keychain-a (crate `keyring` zahteva D-Bus/secret-service na Linuksu, dodatne sistemske zavisnosti) ključ je u posebnom fajlu sa dozvolama 0600 na Unix-u; UI nikad ne dobija ključ, samo `configured: true`. |
+| Saglasnost i podešavanja | `settings.rs` (`history: { consentGiven }`), `SettingsPage.svelte` | dijalog pre prvog upita sa domenom; backend odbija upit bez saglasnosti ili ključa; opoziv i unos/uklanjanje ključa u podešavanjima |
+| Mock | `ui/src/lib/api/mockHistory.ts`, `CHITACH_MOCK=1` | iste definicije; `?historyKey=1`, `?history=…` |
+| Nedeljna provera linkova (faza 3) | `scripts/check-provider-links.mjs`, `.github/workflows/provider-links.yml` | ponedeljkom proverava stranice iz `fines.json` i `history.json` (nikad API/`check` adrese); 404/nepostojeći domen = crveni build, 401/403/429/503/timeout = upozorenje (zaštita od botova) |
+
+Nije urađeno (zahteva odluku ili dogovor): carVertical/autoDNA API (nema javne dokumentacije —
+v. §11.3), partnerski (affiliate) linkovi (potrebna registracija vlasnika projekta u programu),
+podaci UOS CarCheck-a u aplikaciji (v. §14.1), kilometraža iz CISTEP-a (v. §14.2).
+
+Dodavanje novog API servisa: novi unos u `history.json` sa `kind: "api"` i `api.service`, nova
+vrednost `Service` i grana u `api_url`/`interpret` u `history.rs` (format zahteva i odgovora je
+specifičan za servis).
+
+## 14. Dopisi (faza 3) — nacrti za slanje
+
+Nacrti su spremni za slanje sa adrese vlasnika projekta; Chitach ih ne šalje.
+
+### 14.1 Udruženje osiguravača Srbije — pristup podacima CarCheck
+
+> **Predmet:** Zahtev za partnerski pristup podacima aplikacije „Proveri vozilo – CarCheck"
+>
+> Poštovani,
+>
+> razvijam **Chitach**, besplatnu aplikaciju otvorenog koda za računare (Windows, macOS, Linux)
+> koja čita srpske elektronske dokumente, među njima i saobraćajnu dozvolu
+> (https://github.com/vahidzekic/Chitach). Kada korisnik ubaci saobraćajnu dozvolu, aplikacija
+> mu pomaže da proveri vozilo — trenutno ga upućuje na vašu aplikaciju CarCheck.
+>
+> Želeli bismo da korisnicima omogućimo pristup istim podacima direktno iz Chitach-a
+> (broj šteta iz autoodgovornosti, broj vlasnika, promena boje, taksi/lizing), uz iste uslove
+> kao u aplikaciji: naplata po upitu, ograničenje broja upita po korisniku i bez čuvanja podataka
+> na našoj strani. Chitach nema sopstveni server — upit bi išao direktno sa računara korisnika
+> na vaš servis, uz izričitu saglasnost korisnika.
+>
+> Molim vas za informaciju:
+> 1. da li postoji ili se planira API (ili web verzija) za CarCheck podatke;
+> 2. pod kojim uslovima (ugovor, cena, tehnička dokumentacija, zaštita podataka) bi pristup bio moguć;
+> 3. da li je dozvoljeno da Chitach otvara vašu aplikaciju/stranicu sa unapred popunjenom tablicom ili brojem šasije.
+>
+> Unapred hvala,
+> [ime i prezime], Chitach
+
+### 14.2 Agencija za bezbednost saobraćaja — kilometraža u CISTEP-u
+
+> **Predmet:** Upit o podacima o stanju putomera u sistemu CISTEP
+>
+> Poštovani,
+>
+> razvijam **Chitach**, besplatnu aplikaciju otvorenog koda za čitanje srpskih elektronskih
+> dokumenata, uključujući saobraćajnu dozvolu (https://github.com/vahidzekic/Chitach).
+> Kupci polovnih vozila nemaju javan način da provere kilometražu vozila u Srbiji, a vraćena
+> kilometraža je čest problem.
+>
+> U vezi sa centralnim informacionim sistemom tehničkih pregleda (CISTEP), molim vas za informaciju:
+> 1. da li se pri tehničkom pregledu u CISTEP beleži stanje putomera;
+> 2. da li se planira da istorija stanja putomera (ili ocena njene logičnosti, kao holandski
+>    RDW ili poljski CEPiK) bude dostupna vlasniku ili kupcu vozila, npr. preko eUprave ili kao
+>    otvoreni podaci;
+> 3. ako da — od kada i pod kojim uslovima bi aplikacije poput Chitach-a mogle da prikažu te podatke.
+>
+> Unapred hvala,
+> [ime i prezime], Chitach
+
+### 14.3 carVertical — API i partnerski program
+
+> **Subject:** API documentation and affiliate terms for an open-source desktop app
+>
+> Hello,
+>
+> I maintain **Chitach**, a free, open-source desktop app (Windows, macOS, Linux) that reads Serbian
+> electronic documents, including the vehicle registration card
+> (https://github.com/vahidzekic/Chitach). When a card is read, the app links to vehicle
+> history services, including carVertical (Serbian version).
+>
+> Could you share:
+> 1. the B2B API documentation and pricing (the app would call the API directly from the user's
+>    computer with the business customer's own key; we run no server);
+> 2. whether a link can open carVertical with the VIN pre-filled;
+> 3. affiliate program terms for an open-source app (the link would be clearly marked as a partner link).
+>
+> Thank you,
+> [ime i prezime], Chitach

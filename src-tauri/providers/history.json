@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "updated": "2026-10-15",
+  "providers": [
+    {
+      "id": "uos-carcheck",
+      "category": "domestic",
+      "name": "UOS CarCheck – Udruženje osiguravača Srbije",
+      "kind": "link",
+      "key": "plate",
+      "price": "890 RSD",
+      "url": "https://play.google.com/store/apps/details?id=net.normasoft.uos.carcheck",
+      "altUrl": "https://apps.apple.com/us/app/proveri-vozilo-carcheck/id6466516824"
+    },
+    {
+      "id": "carvertical",
+      "category": "foreign",
+      "name": "carVertical",
+      "kind": "link",
+      "key": "vin",
+      "price": "30 €",
+      "url": "https://www.carvertical.com/rs"
+    },
+    {
+      "id": "autodna",
+      "category": "foreign",
+      "name": "autoDNA",
+      "kind": "link",
+      "key": "vin",
+      "price": "25 €",
+      "url": "https://www.autodna.com/"
+    },
+    {
+      "id": "carfax-eu",
+      "category": "foreign",
+      "name": "CARFAX Europe",
+      "kind": "link",
+      "key": "vin",
+      "url": "https://www.carfax.eu/"
+    },
+    {
+      "id": "cebia",
+      "category": "foreign",
+      "name": "Cebia AUTOTRACER",
+      "kind": "link",
+      "key": "vin",
+      "url": "https://www.cebia.com/"
+    },
+    {
+      "id": "nhtsa-recalls",
+      "category": "usa",
+      "name": "NHTSA – opozivi (recalls)",
+      "kind": "link",
+      "key": "vin",
+      "price": "0",
+      "url": "https://www.nhtsa.gov/recalls?vin={vin}"
+    },
+    {
+      "id": "vinaudit",
+      "category": "usa",
+      "name": "VinAudit",
+      "kind": "link",
+      "key": "vin",
+      "price": "10 $",
+      "url": "https://www.vinaudit.com/"
+    },
+    {
+      "id": "vincario",
+      "category": "api",
+      "name": "Vincario (VIN decoder API)",
+      "kind": "api",
+      "key": "vin",
+      "url": "https://vincario.com/",
+      "api": {
+        "service": "vincario",
+        "base": "https://api.vincario.com/3.2",
+        "operations": ["decode", "stolen-check", "vehicle-market-value"]
+      }
+    }
+  ]
+}

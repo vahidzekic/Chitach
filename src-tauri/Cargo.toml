@@ -26,5 +26,6 @@ tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 semver = "1"
+sha1 = "0.11"
 sys-locale = "0.3"
 ureq = "3"
