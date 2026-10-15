@@ -1,6 +1,7 @@
 # Istraživanje: provera neplaćenih kazni za vozilo (saobraćajna dozvola)
 
-> Status: istraživanje / predlog, oktobar 2026. Ništa iz ovog dokumenta još nije implementirano.
+> Status: istraživanje / predlog, oktobar 2026. **Faze 1 i 2 su implementirane** (v. §11 „Šta je
+> implementirano"); faza 3 (preuzimanje potpisanih definicija, dodatni gradovi, zvanični API) nije.
 > Cilj: kada se ubaci kartica saobraćajne dozvole, Chitach pomaže korisniku da proveri da li vozilo
 > (tablica) ili vlasnik ima neplaćene parking kazne, saobraćajne kazne, putarinu i druga dugovanja.
 
@@ -18,7 +19,8 @@
   - **[Z]** – potvrđeno sažetkom/isečkom **zvanične** stranice iz pretrage (stranica nije učitana uživo);
   - **[K]** – potvrđeno u **javnom kodu** na GitHub-u (tačan URL/parametar, ali ne nužno aktuelan);
   - **[T]** – navodi **trećih strana** (mediji, agregatori, blogovi);
-  - **[P]** – pretpostavka / zaključak autora, **mora se proveriti** pre implementacije.
+  - **[P]** – pretpostavka / zaključak autora, **mora se proveriti** pre implementacije;
+  - **[U]** – podatak koji je prijavio korisnik/saradnik, **nije provereno** iz ovog okruženja.
 - Pre implementacije svakog izvora obavezno: otvoriti stranicu u pregledaču, DevTools → Network,
   zabeležiti tačan zahtev/odgovor, CAPTCHA, kolačiće, `robots.txt` i uslove korišćenja.
 
@@ -88,7 +90,8 @@ kazne u registru vezuju se za osobu (JMBG)**, ne za vozilo. Javne provere „po 
 | Zrenjanin | JKP „Pijace i parkinzi", `zrenjanin.park4all.rs/surcharge` (ranije mojekazne.com) | Da (ePPK) | nepoznat | [T] |
 | Zlatibor / Čajetina | KJP „Zlatibor", `edpk.kjpzlatibor.rs` | Da (eDPK) | nepoznat | [T] |
 | Prokuplje | `prokuplje.mojekazne.com` (koncesionar) | Da | nepoznat | [T] |
-| Novi Pazar i ~28 drugih | navodno ParkingNS portal | Da | `checkPPK` | [T] |
+| Novi Pazar | Parking servis Novi Pazar; `https://parkingservisnp.rs/info/` samo uključuje (iframe) **ParkingNS** stranicu `https://portal.parkingns.rs/ppkNP` | Da — polje „Registarska oznaka" (format `NPXXXXX`), dugme „Provera"; uputstvo za plaćanje samo za karte iz poslednjih godinu dana; podaci informativni | tačan API zahtev nije utvrđen (verovatno isti `checkPPK`, možda sa parametrom grada/operatera) | **[U]** prijavio saradnik, nije provereno iz ovog okruženja |
+| ~28 drugih | navodno ParkingNS portal | Da | `checkPPK` | [T] |
 | Subotica | JKP „Parking" Subotica | **Nije pronađena** online provera | SMS/kiosci | [T] |
 | Pančevo | `pancevo.co.rs/parking` | **Nije pronađena** | SMS | [T] |
 | Šabac, Kraljevo, Smederevo, Valjevo, Sombor | — | **Nema podataka** u pretrazi | — | — |
@@ -382,3 +385,54 @@ Treće strane:
 - https://dozvola.rs/alati/provera-kaznenih-poena , https://akta.rs/alati/provera-kazni , https://600.rs/registar-neplacenih-kazni/
 - https://forbes.n1info.rs/vesti/od-1-jula-kazne-za-teretna-vozila-koja-ne-koriste-tag-uredjaje-za-placanje-putarine/
 - https://www.021.rs/story/Novi-Sad/Vesti/362525/Novosadjani-da-znate-Od-15-januara-elektronska-naplata-parkiranja-evo-sta-to-znaci.html
+
+## 11. Šta je implementirano (faze 1 i 2)
+
+| Stavka | Gde | Napomena |
+|---|---|---|
+| Deklarativne definicije provajdera, ugrađene `include_str!` | `src-tauri/providers/fines.json` | 12 izvora: Beograd, ParkingNS (Novi Sad, automatski), Novi Pazar na ParkingNS portalu (`ppkNP`, link) [U], Niš, Kragujevac, Zrenjanin, Zlatibor (`UE`), Prokuplje (`PK`), Čačak (samo link, po broju karte), RNK (samo link, JMBG se nikad ne šalje), eUprava (link), ENP/Toll4All (link). URL-ovi samo iz ovog dokumenta; kod nepoznatog parametra za tablicu — obična adresa + tablica u clipboard. |
+| Normalizacija tablice i oznaka grada | `src-tauri/src/fines.rs` (`normalize_plate`, `city_code`) | velika slova, bez razmaka/crtica/tačaka, ćirilica → latinica (Ч→Č, Ђ→Đ, Љ→LJ, Џ→DŽ…); Č/Ć/Š/Ž/Đ se čuvaju; u URL-u se procentno kodira. Provajderi grada iz tablice su prvi. |
+| Komande `fines_providers`, `fines_check` | `src-tauri/src/commands.rs` | v. `docs/04-api-ugovor.md`. |
+| Panel „Provera kazni" | `ui/src/lib/pages/document/FinesPanel.svelte` | grupe parking / osoba / putarina, „Grad tablice", „Ostali gradovi", „Otvori na portalu", „Kopiraj tablicu", statusi i tabela kazni. |
+| Automatska provera (opt-in) | `fines.rs` (`fetch`, `parse_json_array`, `FinesCache`) | samo `json_get` (ParkingNS `checkPPK`), `ureq` u `spawn_blocking`, timeout 12 s, `User-Agent: Chitach/<verzija> (+repo)`, jedan GET po proveri, bez ponavljanja; 403/429/HTML → „Proveri ručno", mrežna greška/5xx → „Nedostupno", neočekivan JSON → „Neočekivan odgovor". Keš u memoriji 30 min po (provajder, tablica); „Proveri ponovo" zaobilazi keš tek posle 60 s; tablica se u logu maskira. |
+| Saglasnost i podešavanja | `settings.rs` (`fines: { autoCheck, consentGiven, enabledProviders? }`), `SettingsPage.svelte` | dijalog pre prve provere sa imenom domena; backend odbija proveru bez saglasnosti; opoziv u podešavanjima. |
+| Mock | `CHITACH_MOCK=1`, `ui/src/lib/api/mockFines.ts` | bez mreže; isti `fines.json`. |
+
+Format definicije (razlikuje se od skice u §8 — imena i napomene se prevode ključevima
+`fines.provider.<id>.name/.note` u `ui/src/lib/i18n/*.json`, a `name` je rezervni naziv):
+
+```json
+{ "id": "np-parking", "category": "parking", "name": "Novi Pazar – Parking servis (ParkingNS portal)",
+  "portal": "parkingns", "route": "ppkNP", "cities": ["NP"],
+  "kind": "link", "url": "https://portal.parkingns.rs/{route}" }
+```
+
+Višegradski portali (ParkingNS) modeluju se kao po jedan provajder za grad sa zajedničkim
+`portal` i gradskim kodom `route`; `{route}` (i `{city}` = prva oznaka grada iz `cities`) se
+zamenjuju i u `url` i u `check.url`. Kad se potvrdi tačan zahtev za `ppkNP`, Novi Pazar postaje
+automatski samo izmenom JSON-a, npr. (oblik parametra je **pretpostavka [P]**):
+
+```json
+{ "id": "np-parking", "portal": "parkingns", "route": "ppkNP", "cities": ["NP"], "kind": "json_get",
+  "url": "https://portal.parkingns.rs/{route}",
+  "check": { "url": "https://portal.parkingns.rs/portal/auth/checkPPK?platePr={plate}&<param>={route}", "parser": "jsonArray" } }
+```
+
+Prelazak nekog izvora na automatsku proveru je izmena JSON-a — `kind: "json_get"` i blok
+`check` (`url` sa `{plate}`, samo `https`, i `parser`); `url` ostaje stranica za korisnika:
+
+```json
+{ "id": "parkingns", "kind": "json_get", "url": "https://portal.parkingns.rs/",
+  "check": { "url": "https://portal.parkingns.rs/portal/auth/checkPPK?platePr={plate}", "parser": "jsonArray" } }
+```
+
+Parser `jsonArray` (prazan niz = čisto, stavke = kazne; prihvata i objekat sa jednim nizom,
+polja datuma/iznosa/lokacije/opisa se prepoznaju heuristički, a sva skalarna polja se čuvaju
+sirova) pokriva svaki izvor koji vraća JSON niz. Za drugačiji odgovor (npr. HTML forma za
+HTML forma) dodaje se nova vrednost `parser` i mala funkcija u `fines.rs`. Nepoznat `kind` ili
+`parser`, `json_get` bez `https`/`{plate}`, `{route}` bez `route` i neispravni URL-ovi se
+ignorišu pri učitavanju.
+
+Odstupanja od predloga: oznaka grada za Zlatibor/Čajetinu je `UE` (Užice); Novi Pazar je
+poseban provajder (`NP`, link na `ppkNP`) dok se ne potvrdi API zahtev za taj grad; podešavanja nemaju
+`enabled`/`consentVersion`/`remoteProviders` (panel je uvek prikazan, nema preuzimanja definicija).

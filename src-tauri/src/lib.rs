@@ -5,6 +5,7 @@ pub mod crypto;
 pub mod error;
 pub mod events;
 pub mod export;
+pub mod fines;
 pub mod poller;
 pub mod rfzo;
 pub mod settings;
@@ -47,6 +48,7 @@ pub fn run() {
             app.manage(Shared::new(settings, mock, path));
             app.manage(SigningState::default());
             app.manage(SmartboxState::default());
+            app.manage(fines::FinesCache::default());
 
             if let Err(e) = tray::apply(&handle, run_in_background) {
                 log::warn!("tray: {e}");
@@ -92,6 +94,8 @@ pub fn run() {
             commands::sign_xml_file,
             commands::sign_logout,
             commands::smartbox_status,
+            commands::fines_providers,
+            commands::fines_check,
         ])
         .build(tauri::generate_context!())
         .expect("error while building Chitach")

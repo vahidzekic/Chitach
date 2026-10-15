@@ -11,6 +11,7 @@ use crate::{
     error::{with_detail, CmdResult},
     events::emit_state,
     export::{self, Format},
+    fines::{self, FinesCache},
     settings::Settings,
     signing::{SigningState, SlotInfo, TokenCert},
     smartbox::{SmartboxState, SmartboxStatus},
@@ -202,4 +203,53 @@ pub async fn sign_logout(app: AppHandle) -> CmdResult<()> {
 #[tauri::command]
 pub fn smartbox_status(state: State<'_, SmartboxState>) -> SmartboxStatus {
     state.status()
+}
+
+#[tauri::command]
+pub fn fines_providers(state: State<'_, Shared>) -> fines::FinesInfo {
+    // Without a vehicle card (e.g. on the settings page) all providers are listed for an
+    // empty plate.
+    let plate = fines::document_plate(state.current_document().as_ref()).unwrap_or_default();
+    fines::providers_for(&plate, &fines::providers())
+}
+
+#[tauri::command]
+pub async fn fines_check(
+    app: AppHandle,
+    provider_id: String,
+    force: Option<bool>,
+) -> CmdResult<fines::CheckResult> {
+    blocking(move || {
+        let shared = app.state::<Shared>();
+        let plate = fines::document_plate(shared.current_document().as_ref())?;
+        let provider = fines::providers()
+            .into_iter()
+            .find(|p| p.id == provider_id)
+            .ok_or_else(|| format!("error.finesUnknownProvider|{provider_id}"))?;
+        fines::check_allowed(&shared.settings().fines, &provider)?;
+        let mock = shared.mock;
+        let cache = app.state::<FinesCache>();
+        Ok(fines::check_with(
+            &cache,
+            &provider,
+            &plate,
+            force.unwrap_or(false),
+            std::time::Instant::now(),
+            |url| {
+                if mock {
+                    std::thread::sleep(std::time::Duration::from_millis(700));
+                    fines::mock_parsed(&plate)
+                } else {
+                    fines::interpret(
+                        provider
+                            .check
+                            .as_ref()
+                            .map_or(fines::Parser::Unknown, |c| c.parser),
+                        fines::fetch(url),
+                    )
+                }
+            },
+        ))
+    })
+    .await
 }

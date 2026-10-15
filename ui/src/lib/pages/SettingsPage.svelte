@@ -1,12 +1,20 @@
 <script lang="ts">
-  import { onDestroy } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import { fly } from "svelte/transition";
   import Icon from "../components/Icon.svelte";
   import Segmented from "../components/Segmented.svelte";
   import Switch from "../components/Switch.svelte";
   import { api } from "../api";
-  import { CARD_VENDORS, LANGUAGES, type AutoSave, type Mode, type Settings, type Theme } from "../api/types";
-  import { languageNames, t } from "../i18n/index.svelte";
+  import {
+    CARD_VENDORS,
+    LANGUAGES,
+    type AutoSave,
+    type FinesProvider,
+    type Mode,
+    type Settings,
+    type Theme,
+  } from "../api/types";
+  import { hasKey, languageNames, t } from "../i18n/index.svelte";
   import { app, previewSettings, saveSettings } from "../stores/app.svelte";
   import { toast } from "../stores/toasts.svelte";
 
@@ -74,6 +82,27 @@
     { value: "xmlSign", label: t("preference.mode.xmlSigning") },
     { value: "smartbox", label: t("preference.mode.smartbox") },
   ]);
+
+  // Fines check: providers with an automatic check.
+  let autoProviders = $state<FinesProvider[]>([]);
+  onMount(async () => {
+    try {
+      autoProviders = (await api.finesProviders()).providers.filter((p) => p.kind === "json_get");
+    } catch {
+      autoProviders = [];
+    }
+  });
+  function providerName(p: FinesProvider): string {
+    const key = `fines.provider.${p.id}.name`;
+    return hasKey(key) ? t(key) : p.name;
+  }
+  function providerEnabled(id: string): boolean {
+    return !draft.fines.enabledProviders || draft.fines.enabledProviders.includes(id);
+  }
+  function setProviderEnabled(id: string, on: boolean) {
+    const ids = draft.fines.enabledProviders ?? autoProviders.map((p) => p.id);
+    draft.fines.enabledProviders = on ? [...new Set([...ids, id])] : ids.filter((x) => x !== id);
+  }
 
   let pdfScript = $derived<"latin" | "cyrillic">(draft.pdfCyrillicLabels ? "cyrillic" : "latin");
   $effect(() => {
@@ -188,6 +217,51 @@
   </section>
 
   <section class="card group">
+    <h2><Icon name="receipt" size={16} />{t("settings.fines")}</h2>
+    <p class="group-desc">{t("settings.finesDesc")}</p>
+    <div class="row">
+      <div class="desc">
+        <label for="set-fines-auto">{t("settings.finesAutoCheck")}</label>
+        <small>{t("settings.finesAutoCheckDesc")}</small>
+      </div>
+      <div class="ctl end">
+        <Switch id="set-fines-auto" bind:checked={draft.fines.autoCheck} label={t("settings.finesAutoCheck")} />
+      </div>
+    </div>
+    <div class="row">
+      <div class="desc">
+        <span>{t("settings.finesConsent")}</span>
+        <small>{draft.fines.consentGiven ? t("settings.finesConsentGivenDesc") : t("settings.finesConsentNotGivenDesc")}</small>
+      </div>
+      <div class="ctl end consent">
+        {#if draft.fines.consentGiven}
+          <span class="badge badge-success"><Icon name="check" size={13} stroke={2.2} />{t("settings.finesConsentGiven")}</span>
+          <button class="btn btn-sm btn-danger" type="button" onclick={() => (draft.fines.consentGiven = false)}>
+            {t("settings.finesRevoke")}
+          </button>
+        {:else}
+          <span class="badge">{t("settings.finesConsentNotGiven")}</span>
+        {/if}
+      </div>
+    </div>
+    {#each autoProviders as p (p.id)}
+      <div class="row">
+        <div class="desc">
+          <label for="set-fines-{p.id}">{providerName(p)}</label>
+          <small>{t("settings.finesProviderDesc", p.checkDomain ?? "")}</small>
+        </div>
+        <div class="ctl end">
+          <Switch
+            id="set-fines-{p.id}"
+            bind:checked={() => providerEnabled(p.id), (v) => setProviderEnabled(p.id, v)}
+            label={providerName(p)}
+          />
+        </div>
+      </div>
+    {/each}
+  </section>
+
+  <section class="card group">
     <h2><Icon name="chip" size={16} />{t("settings.pkcs11")}</h2>
     <p class="group-desc">{t("settings.pkcs11Desc")}</p>
     {#each CARD_VENDORS as v (v)}
@@ -288,6 +362,10 @@
   .ctl.end {
     display: flex;
     justify-content: flex-end;
+  }
+  .ctl.consent {
+    align-items: center;
+    gap: 8px;
   }
   .ctl :global(.seg) {
     flex-wrap: nowrap;

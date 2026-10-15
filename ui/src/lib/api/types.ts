@@ -25,6 +25,17 @@ export interface Settings {
   lastDir: string;
   /** "" = default module path */
   pkcs11Paths: Record<CardVendor, string>;
+  /** fines check ("Provera kazni") */
+  fines: FinesSettings;
+}
+
+export interface FinesSettings {
+  /** run the automatic check when a vehicle card is read */
+  autoCheck: boolean;
+  /** the user agreed that the plate is sent to the automatic-check portals */
+  consentGiven: boolean;
+  /** automatic-check providers that may be used; missing = all */
+  enabledProviders?: string[];
 }
 
 export interface ReaderStatus {
@@ -231,6 +242,55 @@ export interface UpdateInfo {
   url: string;
 }
 
+export type FinesCategory = "parking" | "person" | "toll";
+/** "link": opened in the browser; "json_get": optional automatic check */
+export type FinesProviderKind = "link" | "json_get";
+
+export interface FinesProvider {
+  id: string;
+  /** fallback name; UI uses `fines.provider.<id>.name` when translated */
+  name: string;
+  category: FinesCategory;
+  /** plate city codes served, e.g. ["BG"] */
+  cities: string[];
+  kind: FinesProviderKind;
+  /** page to open (plate filled in where supported) */
+  url: string;
+  plateInUrl: boolean;
+  /** host the plate is sent to by the automatic check (json_get only) */
+  checkDomain: string | null;
+  /** serves the city of the plate */
+  matchesCity: boolean;
+}
+
+export interface FinesInfo {
+  plate: string;
+  normalizedPlate: string;
+  cityCode: string | null;
+  providers: FinesProvider[];
+}
+
+export type FinesStatus = "clean" | "found" | "manual" | "unavailable" | "parseError";
+
+export interface FineItem {
+  date: string | null;
+  amount: string | null;
+  location: string | null;
+  description: string | null;
+  /** all scalar fields of the response item */
+  fields: Record<string, string>;
+}
+
+export interface FinesCheckResult {
+  providerId: string;
+  status: FinesStatus;
+  items: FineItem[];
+  detail: string | null;
+  /** unix time in ms */
+  checkedAt: number;
+  cached: boolean;
+}
+
 export interface NotifyEvent {
   level: "info" | "success" | "error";
   key: string;
@@ -270,6 +330,8 @@ export interface Api {
   signXmlFile(certId: string, inputPath: string, outputPath: string): Promise<void>;
   signLogout(): Promise<void>;
   smartboxStatus(): Promise<SmartboxStatus>;
+  finesProviders(): Promise<FinesInfo>;
+  finesCheck(providerId: string, force?: boolean): Promise<FinesCheckResult>;
 
   onAppState(cb: (s: AppState) => void): Promise<Unlisten>;
   onNotify(cb: (n: NotifyEvent) => void): Promise<Unlisten>;

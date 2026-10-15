@@ -23,6 +23,13 @@ export interface Settings {
   checkUpdates: boolean;
   lastDir: string;
   pkcs11Paths: Record<CardVendor, string>;   // "" = podrazumevano
+  fines: FinesSettings;                      // nedostaje u starom fajlu → podrazumevano
+}
+
+export interface FinesSettings {
+  autoCheck: boolean;          // automatska provera pri čitanju saobraćajne (podr. false)
+  consentGiven: boolean;       // saglasnost za slanje tablice portalima (podr. false)
+  enabledProviders?: string[]; // portali za automatsku proveru; nedostaje = svi
 }
 
 export interface ReaderStatus { name: string; cardPresent: boolean; atr: string | null; }
@@ -61,6 +68,30 @@ export interface TokenCert { id: string /* hex */; label: string; subject: strin
 export interface SmartboxStatus { running: boolean; address: string | null; vendors: CardVendor[]; error: string | null; }
 export interface AppInfo { version: string; os: "linux" | "macos" | "windows"; arch: string; }
 export interface UpdateInfo { current: string; latest: string; newer: boolean; url: string; }
+
+// Provera kazni (src-tauri/src/fines.rs, definicije u src-tauri/providers/fines.json)
+export type FinesCategory = "parking" | "person" | "toll";
+export interface FinesProvider {
+  id: string; name: string; category: FinesCategory;
+  cities: string[];                 // oznake grada iz tablice, npr. ["BG"]
+  kind: "link" | "json_get";
+  url: string;                      // stranica za korisnika ({plate} već zamenjen)
+  plateInUrl: boolean;
+  checkDomain: string | null;       // domen kome automatska provera šalje tablicu
+  matchesCity: boolean;             // portal grada iz tablice (sortirani prvi)
+}
+export interface FinesInfo { plate: string; normalizedPlate: string; cityCode: string | null; providers: FinesProvider[]; }
+export type FinesStatus = "clean" | "found" | "manual" | "unavailable" | "parseError";
+export interface FineItem {
+  date: string | null; amount: string | null; location: string | null; description: string | null;
+  fields: Record<string, string>;   // sva skalarna polja iz odgovora (sirovo)
+}
+export interface FinesCheckResult {
+  providerId: string; status: FinesStatus; items: FineItem[];
+  detail: string | null;            // tehnički detalj (HTTP status, greška)
+  checkedAt: number;                // unix ms
+  cached: boolean;
+}
 ```
 
 ## Komande
@@ -88,6 +119,8 @@ export interface UpdateInfo { current: string; latest: string; newer: boolean; u
 | `sign_xml_file` | `{ certId, inputPath, outputPath }` | `void` | |
 | `sign_logout` | – | `void` | |
 | `smartbox_status` | – | `SmartboxStatus` | |
+| `fines_providers` | – | `FinesInfo` | portali za tablicu trenutne saobraćajne (bez nje: svi, prazna tablica) |
+| `fines_check` | `{ providerId, force?: boolean }` | `FinesCheckResult` | samo `json_get`; zahteva `fines.consentGiven` (`error.finesConsent`) i uključen portal (`error.finesProviderDisabled`); keš 30 min, `force` posle ≥ 60 s |
 
 ## Događaji (backend → UI, `listen(...)`)
 
@@ -102,3 +135,5 @@ export interface UpdateInfo { current: string; latest: string; newer: boolean; u
 Ako se UI pokrene van Tauri-ja (`npm run dev` u browseru), `ui/src/lib/api` koristi mock
 implementaciju sa primer dokumentima — za razvoj i screenshot-ove.
 Backend: `CHITACH_MOCK=1` emituje primer dokumenta bez čitača.
+Provera kazni u mock režimu ne šalje zahteve: rezultat zavisi od tablice (paran zbir cifara =
+2 primer kazne, inače „čisto"); u UI mock-u se može zadati sa `?fines=found|clean|manual|unavailable|parseError`.

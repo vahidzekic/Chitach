@@ -94,6 +94,27 @@ impl Pkcs11Paths {
     }
 }
 
+/// Fines check ("Provera kazni") preferences.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct FinesSettings {
+    /// Run the automatic check when a vehicle card is read.
+    pub auto_check: bool,
+    /// The user agreed that the plate is sent to the automatic-check portals.
+    pub consent_given: bool,
+    /// Automatic-check providers that may be used; `None` = all.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled_providers: Option<Vec<String>>,
+}
+
+impl FinesSettings {
+    pub fn provider_enabled(&self, id: &str) -> bool {
+        self.enabled_providers
+            .as_ref()
+            .is_none_or(|ids| ids.iter().any(|x| x == id))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -107,6 +128,7 @@ pub struct Settings {
     pub check_updates: bool,
     pub last_dir: String,
     pub pkcs11_paths: Pkcs11Paths,
+    pub fines: FinesSettings,
 }
 
 impl Default for Settings {
@@ -122,6 +144,7 @@ impl Default for Settings {
             check_updates: true,
             last_dir: String::new(),
             pkcs11_paths: Pkcs11Paths::default(),
+            fines: FinesSettings::default(),
         }
     }
 }
@@ -234,6 +257,26 @@ mod tests {
         assert!(s.check_updates);
         assert_eq!(s.pkcs11_paths.halcom, "h");
         assert_eq!(s.pkcs11_paths.mup, "");
+        assert_eq!(s.fines, FinesSettings::default());
+    }
+
+    #[test]
+    fn fines_settings() {
+        let s = Settings::default();
+        assert!(!s.fines.auto_check);
+        assert!(!s.fines.consent_given);
+        assert!(s.fines.provider_enabled("parkingns"));
+        let v = serde_json::to_value(&s).unwrap();
+        assert_eq!(v["fines"]["autoCheck"], false);
+        assert_eq!(v["fines"]["consentGiven"], false);
+        assert!(v["fines"].get("enabledProviders").is_none());
+        let s: Settings =
+            serde_json::from_str(r#"{"fines":{"autoCheck":true,"enabledProviders":["a"]}}"#)
+                .unwrap();
+        assert!(s.fines.auto_check);
+        assert!(!s.fines.consent_given);
+        assert!(s.fines.provider_enabled("a"));
+        assert!(!s.fines.provider_enabled("parkingns"));
     }
 
     #[test]

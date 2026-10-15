@@ -1,6 +1,7 @@
 <script lang="ts">
   import DocHero from "./DocHero.svelte";
   import DocSections from "./DocSections.svelte";
+  import FinesPanel from "./FinesPanel.svelte";
   import type { VehicleDocument } from "../../api/types";
   import { t } from "../../i18n/index.svelte";
   import { isPast } from "../../util/format";
@@ -138,6 +139,8 @@
 </DocHero>
 
 <DocSections {sections} />
+
+<FinesPanel />
 
 <style>
   .plate {
