@@ -12,6 +12,7 @@
     FinesCheckResult,
     FinesInfo,
     FinesProvider,
+    FinesSettings,
     FinesStatus,
     Settings,
   } from "../../api/types";
@@ -30,10 +31,12 @@
 
   const CATEGORIES: FinesCategory[] = ["parking", "person", "toll"];
 
-  const fines = $derived(app.settings?.fines ?? { autoCheck: false, consentGiven: false });
+  const fines = $derived<FinesSettings>(
+    app.settings?.fines ?? { autoCheck: false, consentGiven: false, remoteDefinitions: true },
+  );
   const autoProviders = $derived(
     (info?.providers ?? []).filter(
-      (p) => p.kind === "json_get" && (!fines.enabledProviders || fines.enabledProviders.includes(p.id)),
+      (p) => p.auto && (!fines.enabledProviders || fines.enabledProviders.includes(p.id)),
     ),
   );
   const anyChecking = $derived(Object.values(checking).some(Boolean));
@@ -51,11 +54,11 @@
   /** Main list per category; parking portals of other cities are folded away. */
   function rows(cat: FinesCategory, all: boolean): FinesProvider[] {
     return (info?.providers ?? []).filter(
-      (p) => p.category === cat && (cat !== "parking" || all || p.matchesCity || p.kind === "json_get"),
+      (p) => p.category === cat && (cat !== "parking" || all || p.matchesCity || p.auto),
     );
   }
   const others = $derived(
-    (info?.providers ?? []).filter((p) => p.category === "parking" && !p.matchesCity && p.kind !== "json_get"),
+    (info?.providers ?? []).filter((p) => p.category === "parking" && !p.matchesCity && !p.auto),
   );
 
   onMount(async () => {
@@ -211,14 +214,14 @@
                       {#if p.matchesCity}
                         <span class="badge badge-accent tiny"><Icon name="car" size={12} stroke={2.2} />{t("fines.yourCity")}</span>
                       {/if}
-                      {#if p.kind === "json_get"}
+                      {#if p.auto}
                         <span class="badge tiny"><Icon name="sparkle" size={12} stroke={2.2} />{t("fines.auto")}</span>
                       {/if}
                     </div>
                     {#if note}<p class="note">{note}</p>{/if}
                   </div>
                   <div class="side">
-                    {#if p.kind === "json_get"}
+                    {#if p.auto}
                       {#if checking[p.id]}
                         <span class="badge"><Icon name="refresh" size={13} class="spin" />{t("fines.status.checking")}</span>
                       {:else if r}
@@ -299,7 +302,10 @@
 
     <footer>
       <Icon name="lock" size={14} />
-      <span>{t("fines.privacy")} {t("fines.tip")}</span>
+      <span>
+        {t("fines.privacy")} {t("fines.tip")}
+        {#if info.definitions?.source === "remote"}{t("fines.definitionsRemote", info.definitions.updated)}{/if}
+      </span>
     </footer>
   </section>
 

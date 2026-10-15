@@ -1,7 +1,10 @@
 # Istraživanje: provera neplaćenih kazni za vozilo (saobraćajna dozvola)
 
 > Status: istraživanje / predlog, oktobar 2026. **Faze 1 i 2 su implementirane** (v. §11 „Šta je
-> implementirano"); faza 3 (preuzimanje potpisanih definicija, dodatni gradovi, zvanični API) nije.
+> implementirano"); od faze 3 implementirani su potpisane definicije koje se preuzimaju bez nove
+> verzije, tip `html_form` za gradove sa običnom formom i nedeljna CI provera portala (v. §12).
+> Automatska provera za Niš, Kragujevac, Zrenjanin i Zlatibor još nije uključena — čeka snimak
+> njihovih formi (§12.4). Zvanični API nije.
 > Cilj: kada se ubaci kartica saobraćajne dozvole, Chitach pomaže korisniku da proveri da li vozilo
 > (tablica) ili vlasnik ima neplaćene parking kazne, saobraćajne kazne, putarinu i druga dugovanja.
 
@@ -436,3 +439,83 @@ ignorišu pri učitavanju.
 Odstupanja od predloga: oznaka grada za Zlatibor/Čajetinu je `UE` (Užice); Novi Pazar je
 poseban provajder (`NP`, link na `ppkNP`) dok se ne potvrdi API zahtev za taj grad; podešavanja nemaju
 `enabled`/`consentVersion`/`remoteProviders` (panel je uvek prikazan, nema preuzimanja definicija).
+
+## 12. Faza 3: ažurne definicije, forme gradova, nedeljna provera
+
+### 12.1 Potpisane definicije bez nove verzije
+
+| Stavka | Gde | Napomena |
+|---|---|---|
+| Preuzimanje i provera potpisa | `src-tauri/src/fines_defs.rs` | `fines.json` + `fines.json.sig` sa `raw.githubusercontent.com/vahidzekic/Chitach/main/src-tauri/providers/`, najviše jednom dnevno (pozadinska nit, provera na sat), timeout 15 s, najviše 256 KiB. Šalje se samo GET ka GitHub-u, bez ličnih podataka. |
+| Potpis | Ed25519 (`ring`, već u stablu zavisnosti) | odvojen potpis tačnih bajtova `fines.json`, base64; javni ključ u `src-tauri/providers/fines.pub`, ugrađen u binarku. **Dok je `fines.pub` prazan, preuzimanje je isključeno** i koristi se ugrađena verzija. |
+| Zaštita od vraćanja | `updated` | preuzeta verzija se koristi samo ako je `updated` (ISO datum) **noviji** od verzije u upotrebi; stariji potpisani fajl se odbija. Pri izmeni JSON-a obavezno povećati `updated`. |
+| Allowlist domena | `fines_defs::ALLOWED_DOMAINS` | kompajlirana; provajder čija stranica ili provera vodi van liste se odbacuje, čak i u potpisanom fajlu. Novi domen = nova verzija aplikacije. |
+| Keš | `<app cache dir>/fines/` | preuzeti par se čuva i pri svakom pokretanju ponovo proverava potpisom. |
+| Unazadna kompatibilnost | `fines.rs` (`sanitized`) | provajder sa nepoznatim `kind`/`parser` ili nepotpunom proverom prikazuje se kao obična veza, umesto da nestane. |
+| Podešavanje | `fines.remoteDefinitions` (podr. uključeno) | „Ažuriraj spisak portala" u podešavanjima; u panelu piše „Spisak portala ažuriran …" kada se koristi preuzeta verzija. U mock režimu se ništa ne preuzima. |
+
+Jednokratno podešavanje (vlasnik repozitorijuma):
+
+1. `node scripts/fines-sign.mjs keygen` — pravi `fines-signing-key.pem` (privatni, **ne commit-ovati**)
+   i upisuje javni ključ u `src-tauri/providers/fines.pub`.
+2. Sadržaj `.pem` fajla dodati kao GitHub secret `FINES_SIGNING_KEY`.
+3. Commit-ovati `fines.pub`. Ključ ulazi u aplikaciju od sledeće verzije (v0.2.0), pa tek ta i
+   novije verzije preuzimaju definicije.
+
+Posle toga: svaka izmena `fines.json` na `main` pokreće `.github/workflows/fines-sign.yml`, koji
+potpisuje fajl i commit-uje `fines.json.sig` (ako secret nije postavljen, workflow samo ostavlja
+napomenu). Ručno: `node scripts/fines-sign.mjs sign <key.pem>`, provera: `node scripts/fines-sign.mjs verify`.
+
+### 12.2 Tip `html_form` (gradovi sa običnom formom)
+
+Za portale koji umesto JSON-a vraćaju HTML stranicu sa rezultatom. Jedan GET ili POST, polja forme
+u `check.form` (vrednosti mogu imati `{plate}`, `{route}`, `{city}`), odgovor se klasifikuje
+tekstualnim markerima (parser `htmlMarkers`):
+
+```json
+{ "id": "nis-parking", "category": "parking", "name": "Niš – Parking servis (eDPK)", "cities": ["NI"],
+  "kind": "html_form", "url": "https://www.nisparking.rs/sr/",
+  "check": { "url": "https://<tačan action forme>", "method": "post",
+             "form": { "<ime polja>": "{plate}" }, "parser": "htmlMarkers",
+             "found": ["<tekst koji postoji samo kad ima karata, npr. zaglavlje tabele>"],
+             "clean": ["<tekst poruke kad nema karata>"] } }
+```
+
+Pravila parsera (`fines.rs`, `parse_html_markers`): captcha widget (reCAPTCHA, Turnstile,
+hCaptcha) → „Proveri ručno"; `found` marker → „Pronađeno", stavke iz redova HTML tabela (zaglavlja
+`<th>` kao imena polja); inače `clean` marker → „Nema kazni"; ni jedan → „Neočekivan odgovor"
+(**nikad „čisto" naslepo**). Tekst se poredi bez razlike ćirilica/latinica i velika/mala slova;
+`<script>`, `<style>` i komentari se ne računaju. Obe liste markera su obavezne, `https` je
+obavezan, a domen mora biti na allowlist-i. Ograničenje: forma koja traži CSRF token iz sesije
+(skriveno polje + kolačić) ne može se ovako proveriti — takav grad ostaje veza.
+
+Testovi su napisani nad **sintetičkim** stranicama (oblik tipične eDPK forme), jer iz razvojnog
+okruženja nijedan portal nije bio dostupan.
+
+### 12.3 Nedeljna provera portala
+
+`.github/workflows/fines-portals.yml` (ponedeljkom, i ručno) pokreće `scripts/fines-portals.mjs`:
+
+- svaka stranica mora da odgovori (2xx/3xx); 401/403/429 = „zaštićeno" (upozorenje, ne greška);
+- svaka automatska provera se šalje jednom sa test tablicom `<GRAD>999ZZ` i mora vratiti oblik koji
+  parser očekuje (JSON sa nizom, odnosno stranica sa `found`/`clean` markerom);
+- za svaku stranicu u izveštaj ide naslov, forme (`method`, `action`, imena polja), `iframe`-ovi
+  i captcha markeri, a tela odgovora se čuvaju kao artifact (30 dana) — **to su snimci na osnovu
+  kojih se pravi `html_form` definicija**. Napomena: neke stranice (npr. Novi Pazar) sadržaj
+  prikazuju samo u `iframe`-u, pa se analizira unutrašnja stranica;
+- kada nešto ne prolazi, otvara se (ili dopunjava) issue sa oznakom `fines-portals`.
+
+Lokalno: `node scripts/fines-portals.mjs [--only nis-parking,kg-sumadija] [--out dir]`.
+
+### 12.4 Šta nije provereno
+
+- **Nijedan portal nije bio dostupan iz razvojnog okruženja** (mrežna politika odbija domene
+  portala). Endpoint-i za Niš, Kragujevac, Zrenjanin i Zlatibor zato **nisu izmišljani**: ti gradovi
+  su i dalje `link`. Sledeći korak: pokrenuti „Fines portals" workflow ručno, iz izveštaja/artifact-a
+  pročitati formu svakog grada i dodati `html_form` (ili `json_get`) definiciju — posle potpisa stiže
+  u aplikaciju bez nove verzije.
+- Uslovi korišćenja i `robots.txt` tih portala i dalje nisu pročitani (§3, §9); automatsku proveru
+  uključivati tek posle toga.
+- Novi Pazar (`np-parking`) se radi u posebnoj grani/niti; ova faza ga ne menja.
+- GitHub runner-i su van Srbije; ako neki portal blokira strane IP adrese, nedeljna provera će to
+  prijaviti kao grešku iako portal radi za korisnike u Srbiji.

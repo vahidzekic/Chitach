@@ -30,6 +30,7 @@ export interface FinesSettings {
   autoCheck: boolean;          // automatska provera pri čitanju saobraćajne (podr. false)
   consentGiven: boolean;       // saglasnost za slanje tablice portalima (podr. false)
   enabledProviders?: string[]; // portali za automatsku proveru; nedostaje = svi
+  remoteDefinitions: boolean;  // jednom dnevno preuzmi potpisane definicije sa GitHub-a (podr. true)
 }
 
 export interface ReaderStatus { name: string; cardPresent: boolean; atr: string | null; }
@@ -74,13 +75,17 @@ export type FinesCategory = "parking" | "person" | "toll";
 export interface FinesProvider {
   id: string; name: string; category: FinesCategory;
   cities: string[];                 // oznake grada iz tablice, npr. ["BG"]
-  kind: "link" | "json_get";
+  kind: "link" | "json_get" | "html_form";
+  auto: boolean;                    // ima automatsku proveru (json_get, html_form)
   url: string;                      // stranica za korisnika ({plate} već zamenjen)
   plateInUrl: boolean;
   checkDomain: string | null;       // domen kome automatska provera šalje tablicu
   matchesCity: boolean;             // portal grada iz tablice (sortirani prvi)
 }
-export interface FinesInfo { plate: string; normalizedPlate: string; cityCode: string | null; providers: FinesProvider[]; }
+export interface FinesInfo {
+  plate: string; normalizedPlate: string; cityCode: string | null; providers: FinesProvider[];
+  definitions?: { source: "embedded" | "remote"; updated: string };  // ugrađene ili potpisane preuzete
+}
 export type FinesStatus = "clean" | "found" | "manual" | "unavailable" | "parseError";
 export interface FineItem {
   date: string | null; amount: string | null; location: string | null; description: string | null;
@@ -120,7 +125,7 @@ export interface FinesCheckResult {
 | `sign_logout` | – | `void` | |
 | `smartbox_status` | – | `SmartboxStatus` | |
 | `fines_providers` | – | `FinesInfo` | portali za tablicu trenutne saobraćajne (bez nje: svi, prazna tablica) |
-| `fines_check` | `{ providerId, force?: boolean }` | `FinesCheckResult` | samo `json_get`; zahteva `fines.consentGiven` (`error.finesConsent`) i uključen portal (`error.finesProviderDisabled`); keš 30 min, `force` posle ≥ 60 s |
+| `fines_check` | `{ providerId, force?: boolean }` | `FinesCheckResult` | samo `auto` (`json_get`, `html_form`); zahteva `fines.consentGiven` (`error.finesConsent`) i uključen portal (`error.finesProviderDisabled`); keš 30 min, `force` posle ≥ 60 s |
 
 ## Događaji (backend → UI, `listen(...)`)
 

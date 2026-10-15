@@ -1,0 +1,51 @@
+name: Fines portals
+
+# Weekly check that the fines portals in src-tauri/providers/fines.json still answer and
+# that automatic checks still return the expected format (scripts/fines-portals.mjs).
+# Opens (or comments on) an issue labelled "fines-portals" when something changed; the
+# page bodies are kept as an artifact, as samples for new parsers.
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check portals
+        id: check
+        continue-on-error: true
+        run: node scripts/fines-portals.mjs --out fines-portals
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fines-portals-${{ github.run_id }}
+          path: fines-portals/
+          retention-days: 30
+      - name: Report problems in an issue
+        if: steps.check.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          { cat fines-portals/report.md; echo; echo "Run: $RUN_URL"; } > body.md
+          gh label create fines-portals --color D93F0B --description "Weekly fines portal check" --force
+          issue=$(gh issue list --label fines-portals --state open --json number --jq '.[0].number')
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --body-file body.md
+          else
+            gh issue create --title "Provera kazni: portal ne odgovara ili je promenio format" \
+              --label fines-portals --body-file body.md
+          fi
+      - name: Fail the run
+        if: steps.check.outcome == 'failure'
+        run: exit 1

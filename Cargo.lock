@@ -658,11 +658,13 @@ dependencies = [
 name = "chitach"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "celik-core",
  "celik-export",
  "celik-sign",
  "chrono",
  "log",
+ "ring",
  "semver",
  "serde",
  "serde_json",
