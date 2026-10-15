@@ -177,9 +177,9 @@ Privatnost: ključ se čuva samo na vašem računaru u `secrets.json` (pored `se
 na Linuksu/macOS-u čitljiv samo vlasniku naloga), nikad u podešavanjima i nikad se ne šalje
 nikome osim servisu; servisu se šalje **samo VIN**, nikad podaci o vlasniku.
 
-![Istorija vozila](screenshots/21-history-vehicle.png)
+![Istorija vozila](screenshots/22-history-vehicle.png)
 
-![Izveštaj preko API-ja](screenshots/22-history-api-report.png)
+![Izveštaj preko API-ja](screenshots/23-history-api-report.png)
 
 ## 3. Podešavanja
 
