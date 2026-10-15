@@ -106,6 +106,44 @@ Proverite da sistem vidi čitač: `pcsc_scan` (paket `pcsc-tools`).
    prvi čitač u kome je kartica.
 6. Kada izvadite karticu, prikaz se vraća na početni ekran.
 
+### Provera kazni (saobraćajna dozvola)
+
+Ispod podataka saobraćajne dozvole nalazi se panel **Provera kazni** sa zvaničnim portalima
+na kojima se proveravaju neplaćene kazne:
+
+* **Parking** (vezano za tablicu) — parking servisi Beograda, Novog Sada, Novog Pazara, Niša,
+  Kragujevca, Zrenjanina, Zlatibora, Prokuplja i Čačka. Portal grada iz tablice (npr. `BG`)
+  je na vrhu i označen sa **Grad tablice**; ostali gradovi su pod **Ostali gradovi**.
+* **Saobraćajni prekršaji i sudske kazne** (vezano za osobu, ne vozilo) — Registar
+  neplaćenih novčanih kazni i eUprava „Pregled saobraćajnih prekršaja" (prijava ConsentID-om
+  ili sertifikatom sa lične karte).
+* **Putarina** — ENP / Toll4All nalog (javna provera po tablici ne postoji).
+
+**Otvori na portalu** otvara stranicu u pregledaču; ako portal ne prima tablicu u adresi,
+Chitach je istovremeno kopira u clipboard da biste je nalepili u polje. **Kopiraj tablicu**
+kopira tablicu u obliku koji portali očekuju (velika slova, bez razmaka i crtica, ćirilica
+prevedena u latinicu, npr. `BG 123-AB` → `BG123AB`).
+
+**Automatska provera** (opciono) postoji samo za portale koji to tehnički dozvoljavaju —
+trenutno **ParkingNS** (Novi Sad). Klikom na **Proveri automatski** prvi put se prikazuje
+dijalog saglasnosti sa nazivom domena kome se šalje tablica (**Dozvoli** / **Otkaži**).
+Rezultat se prikazuje uz portal: **Nema kazni**, **Pronađeno kazni: N** (klik prikazuje
+datum, lokaciju, opis i iznos), **Proveri ručno** (portal je odbio automatski upit ili
+traži proveru „da li ste čovek"), **Nedostupno** ili **Neočekivan odgovor**. Kazne se
+plaćaju i osporavaju na portalu izdavaoca.
+
+Privatnost:
+
+* šalje se **samo registarska oznaka**, direktno zvaničnom portalu (bez posrednika), jednim
+  zahtevom po proveri; rezultat se čuva samo u memoriji 30 minuta i nikad se ne upisuje na disk;
+* ime, prezime i JMBG vlasnika se **nikada** ne šalju automatski;
+* saglasnost se može opozvati u **Podešavanja → Provera kazni**; tu se uključuje i
+  **Automatski proveri pri čitanju** i biraju portali za automatsku proveru;
+* ako aplikaciju koristite u poslovne svrhe (npr. agencija za registraciju), vi ste rukovalac
+  podacima u smislu Zakona o zaštiti podataka o ličnosti.
+
+![Provera kazni](screenshots/19-fines-vehicle.png)
+
 ## 3. Podešavanja
 
 Otvaraju se ikonicom zupčanika.
@@ -120,6 +158,7 @@ Otvaraju se ikonicom zupčanika.
 | **Radi u pozadini** | Zatvaranje prozora sakriva aplikaciju u sistemsku traku (tray) umesto izlaska |
 | **Proveri nove verzije** | Pri pokretanju proverava GitHub da li postoji novija verzija |
 | **Mod rada** | **Čitač** (podrazumevano), **Smartbox** (prijava na ePorezi) ili **Potpisivanje XML-a** |
+| **Provera kazni** | Automatska provera pri čitanju saobraćajne dozvole, saglasnost za slanje tablice (opoziv) i izbor portala za automatsku proveru |
 | **PKCS#11 moduli** | Putanje do PKCS#11 biblioteka izdavalaca (MUP, PKS, Pošta, Halcom, E-Smart); prazno = podrazumevana lokacija |
 
 Promena moda rada važi posle ponovnog pokretanja aplikacije. Podešavanja se čuvaju u

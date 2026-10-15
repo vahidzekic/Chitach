@@ -5,6 +5,7 @@
 //   ?mock=demo|waiting|id|medical|vehicle|reading|noReader|unknown|error
 //   &mode=reader|xmlSign|smartbox  &theme=light|dark|system  &lang=sr-Latn|sr-Cyrl|en|ru
 //   &page=document|certificates|xmlSign|smartbox|settings|about
+//   &fines=found|clean|manual|unavailable|parseError  (forced automatic fines check result)
 // A small control object is exposed as `window.__chitachMock` (insert/remove cards).
 import type {
   Api,
@@ -17,6 +18,7 @@ import type {
   Settings,
   SmartboxStatus,
 } from "./types";
+import { mockFinesCheck, mockFinesInfo } from "./mockFines";
 import { sampleCerts, sampleId, sampleMedical, sampleTokenCerts, sampleVehicle } from "./mockData";
 
 const SETTINGS_KEY = "chitach.mock.settings";
@@ -32,6 +34,7 @@ export const defaultSettings: Settings = {
   checkUpdates: true,
   lastDir: "",
   pkcs11Paths: { mup: "", pks: "", posta: "", halcom: "", esmart: "" },
+  fines: { autoCheck: false, consentGiven: false },
 };
 
 interface MockReader {
@@ -68,7 +71,7 @@ export function createMockApi(): Api {
   const params = new URLSearchParams(location.search);
   const scenario = params.get("mock") ?? "demo";
 
-  let settings: Settings = { ...defaultSettings, pkcs11Paths: { ...defaultSettings.pkcs11Paths } };
+  let settings: Settings = clone(defaultSettings);
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (raw) settings = { ...settings, ...(JSON.parse(raw) as Partial<Settings>) };
@@ -333,6 +336,13 @@ export function createMockApi(): Api {
     },
     async smartboxStatus() {
       return clone(smartbox);
+    },
+    async finesProviders() {
+      return mockFinesInfo(state.document?.kind === "vehicle" ? state.document.data.RegistrationNumberOfVehicle : "");
+    },
+    async finesCheck(providerId, force = false) {
+      if (state.document?.kind !== "vehicle") throw "error.notVehicleCard";
+      return mockFinesCheck(state.document.data.RegistrationNumberOfVehicle, providerId, force, settings);
     },
 
     async onAppState(cb) {

@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "updated": "2026-10-15",
+  "providers": [
+    {
+      "id": "bg-parking",
+      "category": "parking",
+      "name": "Beograd – Parking servis (eDPK)",
+      "cities": ["BG"],
+      "kind": "link",
+      "url": "https://www.parking-servis.co.rs/lat/edpk"
+    },
+    {
+      "id": "parkingns",
+      "category": "parking",
+      "name": "Novi Sad – ParkingNS portal (ePPK)",
+      "portal": "parkingns",
+      "cities": ["NS"],
+      "kind": "json_get",
+      "url": "https://portal.parkingns.rs/",
+      "check": {
+        "url": "https://portal.parkingns.rs/portal/auth/checkPPK?platePr={plate}",
+        "parser": "jsonArray"
+      }
+    },
+    {
+      "id": "np-parking",
+      "category": "parking",
+      "name": "Novi Pazar – Parking servis (ParkingNS portal)",
+      "portal": "parkingns",
+      "route": "ppkNP",
+      "cities": ["NP"],
+      "kind": "link",
+      "url": "https://portal.parkingns.rs/{route}"
+    },
+    {
+      "id": "nis-parking",
+      "category": "parking",
+      "name": "Niš – Parking servis (eDPK)",
+      "cities": ["NI"],
+      "kind": "link",
+      "url": "https://www.nisparking.rs/sr/"
+    },
+    {
+      "id": "kg-sumadija",
+      "category": "parking",
+      "name": "Kragujevac – JKP „Šumadija“",
+      "cities": ["KG"],
+      "kind": "link",
+      "url": "https://www.jkpsumadija.rs/sr/info/sektor-parkinga/provera-opstih-dnevnih-parking-karti.html"
+    },
+    {
+      "id": "zr-parking",
+      "category": "parking",
+      "name": "Zrenjanin – JKP „Pijace i parkinzi“ (ePPK)",
+      "cities": ["ZR"],
+      "kind": "link",
+      "url": "https://zrenjanin.park4all.rs/surcharge"
+    },
+    {
+      "id": "zlatibor-parking",
+      "category": "parking",
+      "name": "Zlatibor / Čajetina – KJP „Zlatibor“ (eDPK)",
+      "cities": ["UE"],
+      "kind": "link",
+      "url": "https://edpk.kjpzlatibor.rs/"
+    },
+    {
+      "id": "pk-parking",
+      "category": "parking",
+      "name": "Prokuplje",
+      "cities": ["PK"],
+      "kind": "link",
+      "url": "https://prokuplje.mojekazne.com/"
+    },
+    {
+      "id": "ca-parking",
+      "category": "parking",
+      "name": "Čačak – Parking servis",
+      "cities": ["ČA"],
+      "kind": "link",
+      "url": "http://status.parkingcacak.co.rs/"
+    },
+    {
+      "id": "rnk",
+      "category": "person",
+      "name": "Registar neplaćenih novčanih kazni",
+      "cities": [],
+      "kind": "link",
+      "url": "https://rnk.sipres.sud.rs/"
+    },
+    {
+      "id": "euprava-prekrsaji",
+      "category": "person",
+      "name": "eUprava – Pregled saobraćajnih prekršaja",
+      "cities": [],
+      "kind": "link",
+      "url": "https://euprava.gov.rs/saobra%C4%87ajni-prekr%C5%A1aji"
+    },
+    {
+      "id": "enp",
+      "category": "toll",
+      "name": "Putarina – ENP / Toll4All nalog",
+      "cities": [],
+      "kind": "link",
+      "url": "https://enp.amss.org.rs/"
+    }
+  ]
+}

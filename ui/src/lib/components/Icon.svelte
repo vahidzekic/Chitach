@@ -42,6 +42,7 @@
     fileCode: `<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"/><path d="M14 3v5h5M10 12.5l-2 2 2 2M14 12.5l2 2-2 2"/>`,
     sparkle: `<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3zM19 16l.7 1.8 1.8.7-1.8.7L19 21l-.7-1.8-1.8-.7 1.8-.7L19 16z"/>`,
     chip: `<rect x="5" y="5" width="14" height="14" rx="2.5"/><path d="M9 5v14M15 5v14M5 9.5h4M15 9.5h4M5 14.5h4M15 14.5h4"/>`,
+    receipt: `<path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path d="M9 8h6M9 12h6M9 16h3"/>`,
     hash: `<path d="M5 9h15M4 15h15M10 3L8 21M16 3l-2 18"/>`,
   } as const;
 

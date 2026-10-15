@@ -10,6 +10,8 @@ import type {
   CardVendor,
   CertInfo,
   Document,
+  FinesCheckResult,
+  FinesInfo,
   NotifyEvent,
   Settings,
   Slot,
@@ -52,6 +54,8 @@ export const tauriApi: Api = {
   signXmlFile: (certId, inputPath, outputPath) => call("sign_xml_file", { certId, inputPath, outputPath }),
   signLogout: () => call("sign_logout"),
   smartboxStatus: () => call<SmartboxStatus>("smartbox_status"),
+  finesProviders: () => call<FinesInfo>("fines_providers"),
+  finesCheck: (providerId, force) => call<FinesCheckResult>("fines_check", { providerId, force: force ?? false }),
 
   onAppState: (cb) => listen<AppState>("app-state", (e) => cb(e.payload)),
   onNotify: (cb) => listen<NotifyEvent>("notify", (e) => cb(e.payload)),
