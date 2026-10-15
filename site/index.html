@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="sr">
+<html lang="sr-Latn">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -29,8 +29,6 @@
   header .brand { display: flex; gap: 10px; align-items: center; font-weight: 600; font-size: 18px;
     text-decoration: none; color: var(--text); }
   header nav { display: flex; gap: 16px; align-items: center; font-size: 15px; }
-  .lang { border: 1px solid var(--border); background: var(--surface); color: var(--text);
-    border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit; }
   .hero { text-align: center; padding: 48px 0 32px; }
   .hero img.icon { width: 112px; height: 112px; }
   .hero h1 { font-size: clamp(32px, 6vw, 48px); margin: 12px 0 8px; }
@@ -59,149 +57,108 @@
   .note { color: var(--muted); font-size: 15px; }
   .table-scroll { overflow-x: auto; }
   footer { border-top: 1px solid var(--border); padding: 24px 0 40px; color: var(--muted); font-size: 14px; }
-  [data-lang="en"] .sr, [data-lang="sr"] .en { display: none; }
   @media (max-width: 560px) { header nav a.hide-sm { display: none; } }
 </style>
 </head>
-<body data-lang="sr">
+<body>
 <div class="wrap">
   <header>
     <a class="brand" href="#"><img src="img/app-icon.png" width="32" height="32" alt="">Chitach</a>
     <nav>
-      <a class="hide-sm" href="#preuzimanje"><span class="sr">Preuzimanje</span><span class="en">Download</span></a>
-      <a class="hide-sm" href="#potpisivanje"><span class="sr">Potpisivanje</span><span class="en">Code signing</span></a>
+      <a class="hide-sm" href="#preuzimanje">Preuzimanje</a>
+      <a class="hide-sm" href="#potpisivanje">Potpisivanje</a>
       <a href="https://github.com/vahidzekic/Chitach">GitHub</a>
-      <button class="lang" id="lang" type="button">English</button>
     </nav>
   </header>
 
   <div class="hero">
     <img class="icon" src="img/app-icon.png" alt="Chitach">
     <h1>Chitach</h1>
-    <p class="sr">Besplatan program otvorenog koda za čitanje srpskih elektronskih dokumenata: lične karte,
+    <p>Besplatan program otvorenog koda za čitanje srpskih elektronskih dokumenata: lične karte,
       zdravstvene knjižice i saobraćajne dozvole. Za Windows, macOS i Linux.</p>
-    <p class="en">A free, open-source reader for Serbian smart-card documents: the ID card, the health
-      insurance card and the vehicle registration card. For Windows, macOS and Linux.</p>
-    <a class="btn" href="https://github.com/vahidzekic/Chitach/releases/latest">
-      <span class="sr">Preuzmi najnoviju verziju</span><span class="en">Download the latest version</span></a>
-    <a class="btn secondary" href="https://github.com/vahidzekic/Chitach">
-      <span class="sr">Izvorni kod</span><span class="en">Source code</span></a>
+    <a class="btn" href="https://github.com/vahidzekic/Chitach/releases/latest">Preuzmi najnoviju verziju</a>
+    <a class="btn secondary" href="https://github.com/vahidzekic/Chitach">Izvorni kod</a>
     <div class="version" id="version"></div>
     <img class="shot" src="img/02-id-card.png" alt="Chitach – lična karta">
   </div>
 
   <section id="mogucnosti">
-    <h2><span class="sr">Mogućnosti</span><span class="en">Features</span></h2>
+    <h2>Mogućnosti</h2>
     <div class="grid">
-      <div class="card"><h3><span class="sr">Lična karta</span><span class="en">ID card</span></h3>
-        <p class="sr">Svi modeli sa čipom: lični podaci, prebivalište, fotografija i podaci o dokumentu.</p>
-        <p class="en">All chip models: personal data, address, photo and document details.</p></div>
-      <div class="card"><h3><span class="sr">Zdravstvena knjižica</span><span class="en">Health insurance card</span></h3>
-        <p class="sr">Podaci o osiguraniku i osiguranju, a „overena do“ jednim klikom sa RFZO servisa.</p>
-        <p class="en">Insured person and coverage data, with the validity date fetched from RFZO in one click.</p></div>
-      <div class="card"><h3><span class="sr">Saobraćajna dozvola</span><span class="en">Vehicle registration</span></h3>
-        <p class="sr">Podaci o vozilu, vlasniku i korisniku, uz proveru parking kazni po tablicama.</p>
-        <p class="en">Vehicle, owner and user data, plus a parking fines check by plate number.</p></div>
-      <div class="card"><h3><span class="sr">Izvoz</span><span class="en">Export</span></h3>
-        <p class="sr">PDF kao zvanični obrazac (latinica ili ćirilica), JSON i XLSX, uz automatsko čuvanje.</p>
-        <p class="en">PDF in the official layout (Latin or Cyrillic), JSON and XLSX, with automatic saving.</p></div>
-      <div class="card"><h3><span class="sr">ePorezi i potpis</span><span class="en">ePorezi and signing</span></h3>
-        <p class="sr">Smartbox emulacija za prijavu na ePorezi i potpisivanje XML-a kvalifikovanim sertifikatom.</p>
-        <p class="en">Smartbox emulation for the ePorezi portal and XML signing with qualified certificates.</p></div>
-      <div class="card"><h3><span class="sr">Privatnost</span><span class="en">Privacy</span></h3>
-        <p class="sr">Podaci sa kartice ne napuštaju vaš računar, osim kada to sami zatražite.</p>
-        <p class="en">Card data never leaves your computer unless you ask for it.</p></div>
+      <div class="card"><h3>Lična karta</h3>
+        <p>Svi modeli sa čipom: lični podaci, prebivalište, fotografija i podaci o dokumentu.</p></div>
+      <div class="card"><h3>Zdravstvena knjižica</h3>
+        <p>Podaci o osiguraniku i osiguranju, a „overena do“ jednim klikom sa RFZO servisa.</p></div>
+      <div class="card"><h3>Saobraćajna dozvola</h3>
+        <p>Podaci o vozilu, vlasniku i korisniku, uz proveru parking kazni po tablicama.</p></div>
+      <div class="card"><h3>Izvoz</h3>
+        <p>PDF kao zvanični obrazac (latinica ili ćirilica), JSON i XLSX, uz automatsko čuvanje.</p></div>
+      <div class="card"><h3>ePorezi i potpis</h3>
+        <p>Smartbox emulacija za prijavu na ePorezi i potpisivanje XML-a kvalifikovanim sertifikatom.</p></div>
+      <div class="card"><h3>Privatnost</h3>
+        <p>Podaci sa kartice ne napuštaju vaš računar, osim kada to sami zatražite.</p></div>
     </div>
   </section>
 
   <section id="izgled">
-    <h2><span class="sr">Izgled</span><span class="en">Screenshots</span></h2>
+    <h2>Izgled</h2>
     <div class="gallery">
       <figure><img src="img/03-medical.png" alt="" loading="lazy">
-        <figcaption><span class="sr">Zdravstvena knjižica</span><span class="en">Health insurance card</span></figcaption></figure>
+        <figcaption>Zdravstvena knjižica</figcaption></figure>
       <figure><img src="img/04-vehicle.png" alt="" loading="lazy">
-        <figcaption><span class="sr">Saobraćajna dozvola</span><span class="en">Vehicle registration</span></figcaption></figure>
+        <figcaption>Saobraćajna dozvola</figcaption></figure>
       <figure><img src="img/06-dark-id-card.png" alt="" loading="lazy">
-        <figcaption><span class="sr">Tamna tema</span><span class="en">Dark theme</span></figcaption></figure>
+        <figcaption>Tamna tema</figcaption></figure>
       <figure><img src="img/05-settings.png" alt="" loading="lazy">
-        <figcaption><span class="sr">Podešavanja</span><span class="en">Settings</span></figcaption></figure>
+        <figcaption>Podešavanja</figcaption></figure>
     </div>
-    <p class="note"><span class="sr">Na slikama su izmišljeni primer podaci.</span>
-      <span class="en">Screenshots show made-up sample data.</span></p>
+    <p class="note">Na slikama su izmišljeni podaci, samo kao primer.</p>
   </section>
 
   <section id="preuzimanje">
-    <h2><span class="sr">Preuzimanje</span><span class="en">Download</span></h2>
+    <h2>Preuzimanje</h2>
     <div class="table-scroll">
     <table>
-      <tr><th><span class="sr">Sistem</span><span class="en">System</span></th><th><span class="sr">Fajl</span><span class="en">File</span></th></tr>
-      <tr><td>Windows 10/11 (x64)</td><td><code>Chitach_X.Y.Z_x64-setup.exe</code> <span class="sr">ili</span><span class="en">or</span> <code>.msi</code></td></tr>
+      <tr><th>Sistem</th><th>Datoteka</th></tr>
+      <tr><td>Windows 10/11 (x64)</td><td><code>Chitach_X.Y.Z_x64-setup.exe</code> ili <code>.msi</code></td></tr>
       <tr><td>macOS 10.15+ (Intel, Apple Silicon)</td><td><code>Chitach_X.Y.Z_universal.dmg</code></td></tr>
       <tr><td>Ubuntu / Debian / Mint</td><td><code>Chitach_X.Y.Z_amd64.deb</code> / <code>_arm64.deb</code></td></tr>
       <tr><td>Fedora / RHEL / openSUSE</td><td><code>Chitach-X.Y.Z-1.x86_64.rpm</code> / <code>.aarch64.rpm</code></td></tr>
-      <tr><td><span class="sr">Ostali Linux</span><span class="en">Other Linux</span></td><td><code>Chitach_X.Y.Z_amd64.AppImage</code> / <code>_aarch64.AppImage</code></td></tr>
-      <tr><td><span class="sr">Komandna linija</span><span class="en">Command line</span></td><td><code>chitach-cli-&lt;os&gt;-&lt;arch&gt;</code></td></tr>
+      <tr><td>Ostale Linux distribucije</td><td><code>Chitach_X.Y.Z_amd64.AppImage</code> / <code>_aarch64.AppImage</code></td></tr>
+      <tr><td>Komandna linija</td><td><code>chitach-cli-&lt;os&gt;-&lt;arch&gt;</code></td></tr>
     </table>
     </div>
-    <p class="note">
-      <span class="sr">Na Linuksu je potreban servis <code>pcscd</code> (<code>sudo systemctl enable --now pcscd</code>).
-        Detaljno <a href="https://github.com/vahidzekic/Chitach/blob/main/docs/05-korisnicko-uputstvo.md">korisničko uputstvo</a>.</span>
-      <span class="en">Linux needs the <code>pcscd</code> service (<code>sudo systemctl enable --now pcscd</code>).
-        See the <a href="https://github.com/vahidzekic/Chitach/blob/main/docs/05-korisnicko-uputstvo.md">user guide</a> (Serbian).</span>
-    </p>
+    <p class="note">Na Linuksu je potreban servis <code>pcscd</code> (<code>sudo systemctl enable --now pcscd</code>).
+      Detaljnije u <a href="https://github.com/vahidzekic/Chitach/blob/main/docs/05-korisnicko-uputstvo.md">korisničkom uputstvu</a>.</p>
   </section>
 
   <section id="potpisivanje">
-    <h2><span class="sr">Politika potpisivanja koda</span><span class="en">Code signing policy</span></h2>
-    <p class="sr">Windows izdanja potpisuje besplatna usluga <a href="https://about.signpath.io/">SignPath.io</a>,
+    <h2>Politika potpisivanja koda</h2>
+    <p>Windows izdanja potpisuje besplatna usluga <a href="https://about.signpath.io/">SignPath.io</a>,
       a sertifikat izdaje <a href="https://signpath.org/">SignPath Foundation</a>.</p>
-    <p class="en">Free code signing for Windows releases is provided by <a href="https://about.signpath.io/">SignPath.io</a>,
-      with a certificate by <a href="https://signpath.org/">SignPath Foundation</a>.</p>
     <ul>
-      <li><span class="sr">Autori i recenzenti:</span><span class="en">Committers and reviewers:</span>
-        <a href="https://github.com/vahidzekic">Vahid Zekic</a></li>
-      <li><span class="sr">Odobravanje izdanja:</span><span class="en">Approvers:</span>
-        <a href="https://github.com/vahidzekic">Vahid Zekic</a></li>
+      <li>Autori izmena i recenzenti: <a href="https://github.com/vahidzekic">Vahid Zekic</a></li>
+      <li>Odobravanje izdanja: <a href="https://github.com/vahidzekic">Vahid Zekic</a></li>
     </ul>
-    <p class="sr">Potpisuju se samo fajlovi koje GitHub Actions izgradi iz
+    <p>Potpisuju se isključivo datoteke koje GitHub Actions izgradi iz
       <a href="https://github.com/vahidzekic/Chitach">ovog repozitorijuma</a> za objavljen tag.</p>
-    <p class="en">Only files built by GitHub Actions from
-      <a href="https://github.com/vahidzekic/Chitach">this repository</a> for a published tag are signed.</p>
-    <p class="sr"><b>Privatnost:</b> podaci sa kartica ne napuštaju računar osim kada to korisnik sam zatraži
+    <p><b>Privatnost:</b> podaci sa kartica ne napuštaju računar osim kada to korisnik sam zatraži
       (upit RFZO-u, provera kazni uz izričitu saglasnost). Pri pokretanju program proverava da li postoji nova
       verzija na GitHub-u; to se isključuje u podešavanjima.</p>
-    <p class="en"><b>Privacy:</b> card data never leaves the computer unless specifically requested by the user
-      (the RFZO query, the fines check after explicit consent). On start-up the program checks GitHub for a new
-      version; this can be turned off in the settings.</p>
   </section>
 
   <footer>
-    <p class="sr">Autor: Vahid Zekic · <a href="https://github.com/vahidzekic/Chitach/blob/main/LICENSE">MIT licenca</a> ·
+    <p>Autor: Vahid Zekic · <a href="https://github.com/vahidzekic/Chitach/blob/main/LICENSE">MIT licenca</a> ·
       Chitach nije zvanična aplikacija MUP-a, RFZO-a niti bilo koje državne institucije.</p>
-    <p class="en">Author: Vahid Zekic · <a href="https://github.com/vahidzekic/Chitach/blob/main/LICENSE">MIT license</a> ·
-      Chitach is not an official application of the Ministry of Interior, RFZO or any government institution.</p>
   </footer>
 </div>
 <script>
   (function () {
-    var body = document.body, btn = document.getElementById("lang");
-    function set(lang) {
-      body.dataset.lang = lang;
-      document.documentElement.lang = lang;
-      btn.textContent = lang === "sr" ? "English" : "Srpski";
-      try { localStorage.setItem("chitach-lang", lang); } catch (e) {}
-    }
-    var saved = null;
-    try { saved = localStorage.getItem("chitach-lang"); } catch (e) {}
-    if (location.hash === "#en") saved = "en";
-    set(saved || ((navigator.language || "").slice(0, 2) === "sr" || !navigator.language ? "sr" : "en"));
-    btn.addEventListener("click", function () { set(body.dataset.lang === "sr" ? "en" : "sr"); });
-
     fetch("https://api.github.com/repos/vahidzekic/Chitach/releases/latest")
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (rel) {
         if (!rel || !rel.tag_name) return;
-        var d = new Date(rel.published_at).toLocaleDateString(body.dataset.lang === "sr" ? "sr-Latn" : "en");
+        var d = new Date(rel.published_at).toLocaleDateString("sr-Latn");
         document.getElementById("version").textContent = rel.tag_name + " · " + d;
       })
       .catch(function () {});
