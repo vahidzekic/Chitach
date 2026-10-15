@@ -80,8 +80,8 @@ export type FinesCategory = "parking" | "person" | "toll";
 export interface FinesProvider {
   id: string; name: string; category: FinesCategory;
   cities: string[];                 // oznake grada iz tablice, npr. ["BG"]
-  kind: "link" | "json_get" | "html_form";
-  auto: boolean;                    // ima automatsku proveru (json_get, html_form)
+  kind: "link" | "json_get" | "html_form" | "json_post";
+  auto: boolean;                    // ima automatsku proveru (json_get, html_form, json_post)
   url: string;                      // stranica za korisnika ({plate} već zamenjen)
   plateInUrl: boolean;
   checkDomain: string | null;       // domen kome automatska provera šalje tablicu
@@ -175,11 +175,11 @@ export interface LicenseInfo {
 | `sign_logout` | – | `void` | |
 | `smartbox_status` | – | `SmartboxStatus` | |
 | `fines_providers` | – | `FinesInfo` | portali za tablicu trenutne saobraćajne (bez nje: svi, prazna tablica) |
-| `fines_check` | `{ providerId, force?: boolean }` | `FinesCheckResult` | zahteva Chitach Pro (`error.proRequired`); samo `auto` (`json_get`, `html_form`); zahteva `fines.consentGiven` (`error.finesConsent`) i uključen portal (`error.finesProviderDisabled`); keš 30 min, `force` posle ≥ 60 s |
+| `fines_check` | `{ providerId, force?: boolean }` | `FinesCheckResult` | zahteva Chitach Pro kad je uključen (`error.proRequired`); samo `auto` (`json_get`, `html_form`, `json_post`); zahteva `fines.consentGiven` (`error.finesConsent`) i uključen portal (`error.finesProviderDisabled`); keš 30 min, `force` posle ≥ 60 s |
 | `history_info` | – | `HistoryInfo` | lokalna VIN provera i servisi za trenutnu saobraćajnu (bez nje: samo servisi, bez provera) |
 | `history_set_api_key` | `{ providerId, apiKey, secret }` | `void` | samo `api`; čuva u `secrets.json` (Unix: 0600), briše keš tog servisa |
 | `history_remove_api_key` | `{ providerId }` | `void` | |
-| `history_api_check` | `{ providerId, operation, force?: boolean }` | `HistoryApiResult` | zahteva Chitach Pro (`error.proRequired`), `history.consentGiven` (`error.historyConsent`) i ključ (`error.historyNoKey`); šalje samo VIN; keš 30 min po (servis, operacija, VIN), `force` posle ≥ 60 s |
+| `history_api_check` | `{ providerId, operation, force?: boolean }` | `HistoryApiResult` | zahteva Chitach Pro kad je uključen (`error.proRequired`), `history.consentGiven` (`error.historyConsent`) i ključ (`error.historyNoKey`); šalje samo VIN; keš 30 min po (servis, operacija, VIN), `force` posle ≥ 60 s |
 | `license_info` | – | `LicenseInfo` | |
 | `license_activate` | `{ key }` | `LicenseInfo` | Lemon Squeezy `licenses/activate` (šalje ključ i ime instance, npr. `Chitach (windows x86_64)`); prihvata samo ključeve prodavnice `license::STORE_ID`; čuva u `license.json` (Unix: 0600). Greške: `error.licenseInvalid`, `error.licenseLimit`, `error.licenseWrongProduct`, `error.licenseNetwork`. Mock: ključ `CHITACH-PRO-DEMO` |
 | `license_deactivate` | – | `LicenseInfo` | `licenses/deactivate` (oslobađa mesto), lokalni ključ se briše i bez interneta |

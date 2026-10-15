@@ -901,8 +901,7 @@ pub fn fetch(url: &str) -> Fetched {
         url: url.to_string(),
         form: Vec::new(),
         parser: fines::Parser::JsonArray,
-        found: Vec::new(),
-        clean: Vec::new(),
+        ..Default::default()
     })
 }
 

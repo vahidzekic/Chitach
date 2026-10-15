@@ -49,7 +49,7 @@ export function mockFinesInfo(plate: string): FinesInfo {
   const normalized = normalizePlate(plate);
   const city = cityCode(normalized);
   const providers: FinesProvider[] = (definitions.providers as Definition[])
-    .filter((d) => d.kind === "link" || d.kind === "json_get" || d.kind === "html_form")
+    .filter((d) => ["link", "json_get", "html_form", "json_post"].includes(d.kind))
     .map((d) => ({
       id: d.id,
       name: d.name,
