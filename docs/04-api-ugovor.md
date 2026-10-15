@@ -80,8 +80,8 @@ export type FinesCategory = "parking" | "person" | "toll";
 export interface FinesProvider {
   id: string; name: string; category: FinesCategory;
   cities: string[];                 // oznake grada iz tablice, npr. ["BG"]
-  kind: "link" | "json_get" | "html_form";
-  auto: boolean;                    // ima automatsku proveru (json_get, html_form)
+  kind: "link" | "json_get" | "html_form" | "json_post";
+  auto: boolean;                    // ima automatsku proveru (json_get, html_form, json_post)
   url: string;                      // stranica za korisnika ({plate} već zamenjen)
   plateInUrl: boolean;
   checkDomain: string | null;       // domen kome automatska provera šalje tablicu
@@ -166,7 +166,7 @@ export interface HistoryApiResult {
 | `sign_logout` | – | `void` | |
 | `smartbox_status` | – | `SmartboxStatus` | |
 | `fines_providers` | – | `FinesInfo` | portali za tablicu trenutne saobraćajne (bez nje: svi, prazna tablica) |
-| `fines_check` | `{ providerId, force?: boolean }` | `FinesCheckResult` | samo `auto` (`json_get`, `html_form`); zahteva `fines.consentGiven` (`error.finesConsent`) i uključen portal (`error.finesProviderDisabled`); keš 30 min, `force` posle ≥ 60 s |
+| `fines_check` | `{ providerId, force?: boolean }` | `FinesCheckResult` | samo `auto` (`json_get`, `html_form`, `json_post`); zahteva `fines.consentGiven` (`error.finesConsent`) i uključen portal (`error.finesProviderDisabled`); keš 30 min, `force` posle ≥ 60 s |
 | `history_info` | – | `HistoryInfo` | lokalna VIN provera i servisi za trenutnu saobraćajnu (bez nje: samo servisi, bez provera) |
 | `history_set_api_key` | `{ providerId, apiKey, secret }` | `void` | samo `api`; čuva u `secrets.json` (Unix: 0600), briše keš tog servisa |
 | `history_remove_api_key` | `{ providerId }` | `void` | |

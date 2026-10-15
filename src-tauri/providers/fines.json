@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-16T09:00",
+  "updated": "2026-10-17",
   "providers": [
     {
       "id": "bg-parking",
@@ -50,8 +50,14 @@
       "category": "parking",
       "name": "Kragujevac – JKP „Šumadija“",
       "cities": ["KG"],
-      "kind": "link",
-      "url": "https://kragujevac.mojekazne.com/"
+      "kind": "json_post",
+      "url": "https://kragujevac.mojekazne.com/",
+      "check": {
+        "url": "https://api.mojekazne.com/API/kazne/",
+        "parser": "jsonArray",
+        "json": { "id": 9009, "regOzn": "{plate}" },
+        "emptyIsClean": true
+      }
     },
     {
       "id": "zr-parking",
@@ -70,8 +76,12 @@
       "category": "parking",
       "name": "Zlatibor / Čajetina – KJP „Zlatibor“ (eDPK)",
       "cities": ["UE"],
-      "kind": "link",
-      "url": "https://edpk.kjpzlatibor.rs/"
+      "kind": "json_get",
+      "url": "https://edpk.kjpzlatibor.rs/",
+      "check": {
+        "url": "https://prod.zlatibor.scancar.parking-servis.co.rs/api/fine/unpaid/{plate}",
+        "parser": "jsonArray"
+      }
     },
     {
       "id": "pk-parking",
