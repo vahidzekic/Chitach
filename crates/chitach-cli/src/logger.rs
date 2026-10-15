@@ -1,4 +1,4 @@
-//! Minimal stderr logger enabled by `--verbose` (Go version: `internal/logger`).
+//! Minimal stderr logger enabled by `--verbose`.
 
 use log::{Level, LevelFilter, Log, Metadata, Record};
 

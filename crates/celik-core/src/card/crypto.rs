@@ -1,7 +1,4 @@
 //! Cryptographic operations on Gemalto ID cards: PIN and certificates.
-//!
-//! Port of the crypto part of bas-celik `card/gemalto.go` and
-//! `internal/gui/crypto.go` (MIT, (c) Nikola Ubavić).
 
 use super::gemalto::{init_crypto, read_certificate_file, CERTIFICATE_FILES};
 use super::{CardDocument, CardKind, CardTransport};
@@ -20,7 +17,7 @@ pub struct Certificate {
 }
 
 impl Certificate {
-    /// Builds a certificate from DER bytes, labelled like Bas Celik does
+    /// Builds a certificate from DER bytes, with a human-readable label
     /// (`CERT #` + first six digits of the decimal serial number).
     pub fn from_der(der: Vec<u8>) -> Result<Self> {
         let (_, cert) = x509_parser::parse_x509_certificate(&der)

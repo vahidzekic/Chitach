@@ -1,6 +1,4 @@
 //! Apollo ID cards (the first generation of smart ID cards).
-//!
-//! Port of bas-celik `card/apollo.go` (MIT, (c) Nikola Ubavić).
 
 use super::id::IdFiles;
 use super::{read, read_chunks, select, CardDocument, CardKind, CardTransport};

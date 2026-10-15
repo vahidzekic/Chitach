@@ -9,7 +9,7 @@
 
   let { doc }: { doc: IdDocument } = $props();
 
-  // Port of IdDocument::full_address (crates/celik-core).
+  // Same rules as IdDocument::full_address (crates/celik-core).
   function fullAddress(d: IdDocument): string {
     let street = d.Street;
     if (d.HouseNumber || d.HouseLetter || d.Entrance) {

@@ -1,4 +1,4 @@
-//! Port of bas-celik `localization` package.
+//! Localization of labels and values used in exported documents.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Language {

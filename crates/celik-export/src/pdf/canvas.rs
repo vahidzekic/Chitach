@@ -1,10 +1,6 @@
-//! A tiny PDF drawing surface that mimics the subset of `gopdf` used by
-//! Bas Celik (top-left origin in points, `Cell` text placement, word wrap,
-//! char spacing, underline), so the layouts can be ported line by line and
-//! render identically.
-//!
-//! Port of bas-celik (MIT, (c) Nikola Ubavić) PDF behaviour; text metrics
-//! follow `github.com/signintech/gopdf` v0.38 (MIT).
+//! A tiny PDF drawing surface (top-left origin in points, `Cell` text placement,
+//! word wrap, char spacing, underline) used to lay out the document forms so that
+//! they match the official application's output.
 
 use std::collections::BTreeMap;
 
@@ -16,7 +12,7 @@ use ttf_parser::{Face, GlyphId};
 
 use crate::ExportError;
 
-/// A4 page size as used by gopdf (`PageSizeA4`).
+/// A4 page size in points.
 pub const PAGE_W: f64 = 595.0;
 pub const PAGE_H: f64 = 842.0;
 
@@ -77,14 +73,14 @@ impl FontState {
         })
     }
 
-    /// Glyph width in PDF units (1/1000 em), integer like gopdf `GlyphIndexToPdfWidth`.
+    /// Glyph width in PDF units (1/1000 em), truncated to an integer.
     fn pdf_width(&self, gid: GlyphId) -> u32 {
         let adv = self.face.glyph_hor_advance(gid).unwrap_or(0) as i64;
         (adv * 1000 / self.upem) as u32
     }
 }
 
-/// gopdf `convertTTFUnit2PDFUnit`.
+/// Converts font units to PDF units (1/1000 em) with integer rounding.
 fn ttf_to_pdf_unit(n: i64, upem: i64) -> i64 {
     if n < 0 {
         -((-1000 * n) / upem)
@@ -211,7 +207,7 @@ fn deflate(data: &[u8]) -> Vec<u8> {
     miniz_oxide::deflate::compress_to_vec_zlib(data, 6)
 }
 
-/// `CoefUnderlinePosition` of the only underlined cells Bas Celik draws (vehicle PDF).
+/// `CoefUnderlinePosition` of the only underlined cells (vehicle PDF).
 const UNDERLINE_COEF_POSITION: f64 = -2.0;
 
 /// PDF document info.
@@ -271,8 +267,8 @@ impl Canvas {
         self.y = y;
     }
 
-    /// gopdf `SetFont(family, style, size)`; `underline` corresponds to the "U" style
-    /// (which renders with the regular face, like gopdf does for style "U").
+    /// Selects the font style and size; `underline` draws text with the regular face
+    /// and an underline.
     pub fn set_font(&mut self, style: FontStyle, underline: bool, size: f64) {
         self.font = style;
         self.underline = underline;
@@ -289,7 +285,7 @@ impl Canvas {
         self.content.set_line_width(w as f32);
     }
 
-    /// gopdf `Line(x1, y1, x2, y2)`.
+    /// Straight line from (x1, y1) to (x2, y2).
     pub fn line(&mut self, x1: f64, y1: f64, x2: f64, y2: f64) {
         self.content.save_state();
         self.content.move_to(x1 as f32, (PAGE_H - y1) as f32);
@@ -298,7 +294,7 @@ impl Canvas {
         self.content.restore_state();
     }
 
-    /// gopdf `Rectangle(x0, y0, x1, y1, "D", 0, 0)`.
+    /// Stroked rectangle with corners (x0, y0) and (x1, y1).
     pub fn rectangle_stroke(&mut self, x0: f64, y0: f64, x1: f64, y1: f64) {
         self.content.rect(
             x0 as f32,
@@ -309,7 +305,7 @@ impl Canvas {
         self.content.stroke();
     }
 
-    /// gopdf `ImageFrom(img, x, y, &Rect{W: w, H: h})`.
+    /// Draws an image at (x, y) scaled to w x h.
     pub fn image(&mut self, img: Image, x: f64, y: f64, w: f64, h: f64) {
         let idx = self.images.len();
         self.images.push(img);
@@ -327,7 +323,7 @@ impl Canvas {
         self.content.restore_state();
     }
 
-    /// gopdf `MeasureTextWidth` (no kerning, char spacing included).
+    /// Text width (no kerning, char spacing included).
     pub fn measure(&self, text: &str) -> f64 {
         let f = self.font_state();
         let mut sum: i64 = 0;
@@ -342,7 +338,7 @@ impl Canvas {
         sum as f64 * self.size / 1000.0
     }
 
-    /// gopdf `Cell(nil, text)`: text whose top-left is the current position; X advances.
+    /// Text cell: text whose top-left is the current position; X advances.
     pub fn cell(&mut self, text: &str) {
         let width = self.measure(text);
         let size = self.size;
@@ -374,7 +370,7 @@ impl Canvas {
             self.content.end_text();
         }
         if self.underline && width > 0.0 {
-            // gopdf cacheContentText.underline with CoefUnderlinePosition -2 (the only use).
+            // Underline with CoefUnderlinePosition -2 (the only use).
             let upem = f.upem as f64;
             let asc = f.win_ascent / upem * size;
             let desc = f.win_descent / upem * size;
@@ -390,7 +386,7 @@ impl Canvas {
         self.x += width;
     }
 
-    /// gopdf `SplitTextWithWordWrap(text, width)` (break on spaces, hard break on '\n').
+    /// Word wrap to `width` (break on spaces, hard break on '\n').
     pub fn split_text_with_word_wrap(&self, text: &str, width: f64) -> Vec<String> {
         let runes: Vec<char> = text.chars().collect();
         let mut lines: Vec<String> = Vec::new();

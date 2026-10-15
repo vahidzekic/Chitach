@@ -11,4 +11,4 @@ Svelte 5 + TypeScript + Vite frontend for the Chitach Tauri app.
 - `npm run build` – production build into `dist/` (Tauri `frontendDist`).
 
 The Rust ↔ UI contract is documented in `docs/04-api-ugovor.md`; types live in `src/lib/api/types.ts`.
-Translations (`src/lib/i18n/*.json`) are derived from Bas Celik (MIT) plus Chitach keys.
+Translations live in `src/lib/i18n/*.json` (one file per language, same keys).

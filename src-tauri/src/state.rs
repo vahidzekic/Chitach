@@ -1,8 +1,7 @@
 //! Application state shared between the poller thread and Tauri commands.
 //!
 //! The card/reader state machine ([`Core`]) is pure (no Tauri, no PC/SC) so it can
-//! be unit-tested. Behaviour follows bas-celik `internal/gui/poller.go`
-//! (Port of bas-celik (MIT, (c) Nikola Ubavić)).
+//! be unit-tested.
 
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};

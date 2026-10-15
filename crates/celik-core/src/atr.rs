@@ -1,7 +1,4 @@
 //! Known ATRs (Answer To Reset) of Serbian document cards and ATR based detection.
-//!
-//! Port of bas-celik `card/atr.go` and the ATR constants from
-//! `gemalto.go`, `apollo.go`, `medical.go`, `vehicle.go` (MIT, (c) Nikola Ubavić).
 
 use crate::card::CardKind;
 
@@ -92,7 +89,7 @@ pub fn detect_card_document_by_atr(atr: &[u8]) -> Vec<CardKind> {
     }
 }
 
-/// ATR formatted as lowercase hex (as Bas Celik displays it).
+/// ATR formatted as lowercase hex (as displayed in the UI).
 pub fn atr_to_string(atr: &[u8]) -> String {
     crate::apdu::to_hex(atr)
 }

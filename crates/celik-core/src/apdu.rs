@@ -1,7 +1,4 @@
 //! APDU construction and response helpers.
-//!
-//! Port of bas-celik `card/apdu.go` and parts of `card/card.go`
-//! (MIT, (c) Nikola Ubavić).
 
 /// Constructs an APDU (Application Protocol Data Unit) command according to
 /// ISO 7816-4 (5. Organization for interchange).
@@ -10,7 +7,7 @@
 /// 65536 = extended `00 00`).
 ///
 /// # Panics
-/// Panics if `data` is longer than 0xFFFF bytes (same as Bas Celik).
+/// Panics if `data` is longer than 0xFFFF bytes.
 pub fn build_apdu(cla: u8, ins: u8, p1: u8, p2: u8, data: &[u8], ne: usize) -> Vec<u8> {
     let length = data.len();
     assert!(length <= 0xFFFF, "APDU command length too large");
@@ -64,7 +61,7 @@ pub fn status_word(rsp: &[u8]) -> Option<(u8, u8)> {
     }
 }
 
-/// Lowercase hex encoding (same as Go's `hex.EncodeToString`).
+/// Lowercase hex encoding.
 pub fn to_hex(bytes: &[u8]) -> String {
     use std::fmt::Write;
     let mut s = String::with_capacity(bytes.len() * 2);

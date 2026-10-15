@@ -1,8 +1,4 @@
 //! RFZO "valid until" web service.
-//!
-//! Port of bas-celik `document/medical.go` (`UpdateValidUntilDateFromRfzo`,
-//! `ParseValidUntilDateFromRfzoResponse`, `ParseApiKeyFromRfzoPage`)
-//! (MIT, (c) Nikola Ubavić).
 
 use crate::{document::MedicalDocument, CardError, Result};
 use std::time::Duration;

@@ -1,4 +1,4 @@
-//! XLSX export. Port of bas-celik (MIT, (c) Nikola Ubavić) `document/excel.go` (`CreateExcel`).
+//! XLSX export.
 
 use std::fmt;
 
@@ -10,7 +10,7 @@ use serde_json::Value;
 
 use crate::{ExportError, Result};
 
-/// Field name / value pairs in declaration order (Go uses reflection for this).
+/// Field name / value pairs in declaration order.
 struct OrderedFields(Vec<(String, Value)>);
 
 impl<'de> Deserialize<'de> for OrderedFields {
@@ -36,7 +36,7 @@ impl<'de> Deserialize<'de> for OrderedFields {
     }
 }
 
-/// Rows written to the sheet: label = Go struct field name, value as string.
+/// Rows written to the sheet: label = document field name, value as string.
 /// Booleans are formatted as English Yes/No; the portrait is omitted.
 pub(crate) fn rows(doc: &Document) -> Result<Vec<(String, String)>> {
     let json = match doc {

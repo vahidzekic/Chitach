@@ -1,5 +1,4 @@
-//! Document helper tests ported from bas-celik `document/id_test.go` and
-//! `document/medical_test.go` (MIT, (c) Nikola Ubavić). PDF tests live in celik-export.
+//! Document helper tests (ID and medical documents). PDF tests live in celik-export.
 
 use celik_core::{Document, IdDocument, MedicalDocument, VehicleDocument};
 

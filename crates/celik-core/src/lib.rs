@@ -1,7 +1,4 @@
 //! Chitach core: smart-card protocol and document model.
-//!
-//! Port of the `card`, `document` (data part) and `localization` packages of
-//! [Bas Celik](https://github.com/ubavic/bas-celik) (MIT, (c) Nikola Ubavic).
 
 pub mod apdu;
 pub mod atr;

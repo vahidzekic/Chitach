@@ -1,5 +1,4 @@
-//! Medical insurance card PDF. Port of bas-celik (MIT, (c) Nikola Ubavić)
-//! `MedicalDocument.BuildPdf` (`document/medical.go`).
+//! Medical insurance card PDF.
 
 use celik_core::localization::{format_yes_no, Language};
 use celik_core::MedicalDocument;

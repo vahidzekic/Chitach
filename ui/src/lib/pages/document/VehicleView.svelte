@@ -8,7 +8,7 @@
 
   let { doc }: { doc: VehicleDocument } = $props();
 
-  // Like Bas Celik: personal numbers (JMBG) are longer than 9 digits, company numbers (PIB) are not.
+  // Personal numbers (JMBG) are longer than 9 digits, company numbers (PIB) are not.
   const ownerNoLabel = $derived(
     doc.OwnersPersonalNo.length > 9 ? t("vehicle.ownersPersonalNo") : t("vehicle.ownersCompanyNo"),
   );

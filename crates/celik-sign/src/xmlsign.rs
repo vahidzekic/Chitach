@@ -1,16 +1,14 @@
 //! Enveloped XML-DSig signatures (RSA-SHA256, C14N 1.0).
 //!
-//! Port of bas-celik (MIT, (c) Nikola Ubavić) `internal/xmlsign` (`SignXMLBytes`,
-//! `PopulateSignature`, `FormatSubject`). The output is byte-identical to Bas Celik's, which
-//! signs with `moov-io/signedxml`:
+//! The output format accepted by the ePorezi portal:
 //!
 //! * a `<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">` element is appended as the last
 //!   child of the document root,
 //! * `SignedInfo` carries an explicit copy of the XML-DSig namespace declaration,
 //! * the reference (`URI=""`) uses the enveloped-signature transform, SHA-256 digest of the
 //!   inclusive C14N 1.0 form of the root element,
-//! * `KeyInfo/X509Data` contains the certificate (base64 *without* padding, like Go's
-//!   `RawStdEncoding`), issuer name (Go `pkix.Name.String()` format), decimal serial number and
+//! * `KeyInfo/X509Data` contains the certificate (base64 *without* padding),
+//!   issuer name (RFC 2253-like format, see [`distinguished_name_string`]), decimal serial number and
 //!   the subject formatted by [`format_subject`].
 
 use base64::Engine;
@@ -97,17 +95,17 @@ pub(crate) fn parse_cert(der: &[u8]) -> Result<X509Certificate<'_>> {
 }
 
 // ---------------------------------------------------------------------------
-// X.509 names (Go crypto/x509/pkix semantics)
+// X.509 names
 // ---------------------------------------------------------------------------
 
-/// Decodes a directory string the way Go's x509 parser does.
+/// Decodes a directory string attribute value.
 pub(crate) fn atv_string(atv: &AttributeTypeAndValue) -> Option<String> {
     let any = atv.attr_value();
     let data = any.data;
     match any.tag().0 {
         // UTF8String, NumericString, PrintableString, IA5String
         12 | 18 | 19 | 22 => std::str::from_utf8(data).ok().map(str::to_string),
-        // T61String: Go returns the bytes unchanged
+        // T61String: bytes taken unchanged
         20 => Some(String::from_utf8_lossy(data).into_owned()),
         // BMPString (UTF-16BE)
         30 => {
@@ -128,7 +126,7 @@ fn oid_string(atv: &AttributeTypeAndValue) -> String {
     atv.attr_type().to_id_string()
 }
 
-/// Go `pkix.Name.FillFromRDNSequence` fields.
+/// Well-known name attributes extracted from an RDN sequence.
 #[derive(Default)]
 struct GoName {
     names: Vec<(String, Option<String>, Vec<u8>)>,
@@ -193,8 +191,8 @@ impl GoName {
     }
 }
 
-/// Go `asn1.Marshal` of a string value (PrintableString when possible, otherwise UTF8String).
-fn marshal_go_string(s: &str) -> Vec<u8> {
+/// DER encoding of a string value (PrintableString when possible, otherwise UTF8String).
+fn der_string(s: &str) -> Vec<u8> {
     let printable = s.chars().all(|c| {
         c.is_ascii_alphanumeric()
             || matches!(
@@ -224,7 +222,7 @@ fn hex_lower(data: &[u8]) -> String {
     crate::hex_encode(data)
 }
 
-/// Formats a distinguished name exactly like Go's `pkix.Name.String()` (RFC 2253-like,
+/// Formats a distinguished name (RFC 2253-like,
 /// most specific RDN first). Used for `X509IssuerName`.
 pub fn distinguished_name_string(name: &X509Name) -> String {
     let n = GoName::from_x509(name);
@@ -294,7 +292,7 @@ pub fn distinguished_name_string(name: &X509Name) -> String {
             }
             let Some(type_name) = attribute_type_name(oid) else {
                 let der = match value {
-                    Some(v) => marshal_go_string(v),
+                    Some(v) => der_string(v),
                     None => raw.clone(),
                 };
                 s.push_str(oid);
@@ -323,7 +321,7 @@ pub fn distinguished_name_string(name: &X509Name) -> String {
     s
 }
 
-/// Port of Go `FormatSubject`: the subject format expected by the ePorezi portal
+/// The subject format expected by the ePorezi portal
 /// (`CN=…, GIVENNAME=…, SURNAME=…, SERIALNUMBER=…, SERIALNUMBER=…, C=…`).
 pub fn format_subject(subject: &X509Name) -> String {
     let n = GoName::from_x509(subject);
@@ -365,7 +363,7 @@ fn b64_std(data: &[u8]) -> String {
     base64::engine::general_purpose::STANDARD.encode(data)
 }
 
-/// Lenient base64 decoder (padding optional, CR/LF/whitespace ignored, like Go's decoder).
+/// Lenient base64 decoder (padding optional, CR/LF/whitespace ignored).
 pub(crate) fn b64_decode_lenient(s: &str) -> Result<Vec<u8>> {
     let cleaned: String = s
         .chars()
@@ -384,7 +382,7 @@ pub(crate) fn b64_decode_lenient(s: &str) -> Result<Vec<u8>> {
         .map_err(|e| SignError::Other(format!("decoding base64: {e}")))
 }
 
-/// Port of Go `PopulateSignature`: appends the signature skeleton to `root`.
+/// Appends the signature skeleton to `root`.
 fn populate_signature(root: &mut Element, cert_der: &[u8]) -> Result<()> {
     if root.child("Signature").is_some() {
         return Err(SignError::Xml("Signature element already exists".into()));
@@ -395,7 +393,7 @@ fn populate_signature(root: &mut Element, cert_der: &[u8]) -> Result<()> {
     signature.create_attr("xmlns", XMLDSIG_NAMESPACE);
 
     let signed_info = signature.create_element("SignedInfo");
-    // moov-io/signedxml copies the Signature namespace declaration onto SignedInfo.
+    // SignedInfo carries its own copy of the Signature namespace declaration.
     signed_info.create_attr("xmlns", XMLDSIG_NAMESPACE);
     signed_info
         .create_element("CanonicalizationMethod")
@@ -471,7 +469,7 @@ fn canonical_signed_info(root: &Element) -> Result<String> {
     Ok(canonicalize(signed_info, &[root, signature]))
 }
 
-/// Produce an enveloped XML-DSig signature (same output as bas-celik `SignXMLBytes`).
+/// Produce an enveloped XML-DSig signature.
 pub fn sign_xml(xml: &[u8], signer: &dyn DigestSigner, cert_der: &[u8]) -> Result<String> {
     let text = std::str::from_utf8(xml)
         .map_err(|e| SignError::Xml(format!("parsing XML: invalid UTF-8: {e}")))?;
@@ -526,7 +524,7 @@ pub fn sign_xml(xml: &[u8], signer: &dyn DigestSigner, cert_der: &[u8]) -> Resul
     Ok(doc.to_xml_string())
 }
 
-/// Verifies an enveloped signature produced by [`sign_xml`] (or Bas Celik): checks the
+/// Verifies an enveloped signature produced by [`sign_xml`]: checks the
 /// algorithms, the reference digest and the RSA-SHA256 signature against the embedded
 /// `X509Certificate`. Returns the DER of the signing certificate.
 pub fn verify_signed_xml(xml: &str) -> Result<Vec<u8>> {

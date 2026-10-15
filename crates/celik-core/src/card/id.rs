@@ -1,6 +1,4 @@
 //! Parsing of ID card files (shared by Apollo and Gemalto cards).
-//!
-//! Port of bas-celik `card/idCard.go` (MIT, (c) Nikola Ubavić).
 
 use crate::document::IdDocument;
 use crate::localization::format_date;
@@ -70,7 +68,7 @@ pub fn parse_id_residence_file(data: &[u8], doc: &mut IdDocument) -> Result<()> 
     Ok(())
 }
 
-/// Stores the portrait. Bas Celik decodes the image here; we keep the JPEG
+/// Stores the portrait. The image is not decoded here; we keep the JPEG
 /// bytes but still reject data that is not a JPEG image.
 pub fn parse_and_assign_id_photo_file(data: &[u8], doc: &mut IdDocument) -> Result<()> {
     if data.len() < 4 || data[0] != 0xFF || data[1] != 0xD8 {

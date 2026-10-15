@@ -1,5 +1,4 @@
-//! Integration tests for celik-export. The sample data mirrors the reference
-//! documents used to compare against Bas Celik's Go output.
+//! Integration tests for celik-export, using sample documents with known expected output.
 
 use celik_core::{Document, IdDocument, MedicalDocument, VehicleDocument};
 use celik_export::{file_name, to_json, to_pdf, to_xlsx, PdfOptions};
@@ -289,7 +288,7 @@ fn json_roundtrip_and_shape() {
 }
 
 #[test]
-fn json_go_escaping() {
+fn json_html_safe_escaping() {
     let json = to_json(&Document::Id(Box::new(foreigner_doc("RP")))).unwrap();
     let text = String::from_utf8(json).unwrap();
     assert!(
@@ -299,7 +298,7 @@ fn json_go_escaping() {
 }
 
 #[test]
-fn json_matches_go_field_order() {
+fn json_field_order() {
     let json =
         String::from_utf8(to_json(&Document::Vehicle(Box::new(vehicle_doc()))).unwrap()).unwrap();
     assert!(json.starts_with(r#"{"AuthorityIssuing":"MUP R. SRBIJE","ColourOfVehicle":"CRNA","#));

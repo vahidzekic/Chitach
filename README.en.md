@@ -21,8 +21,7 @@
 
 **Chitach** is a free, open-source desktop application that reads documents issued by the
 Republic of Serbia on smart cards, with a new, modern interface. It is written in Rust
-(Tauri v2); the card protocol and export logic are ported from the excellent
-[Baš Čelik](https://github.com/ubavic/bas-celik) project by Nikola Ubavić.
+(Tauri v2).
 
 ## Features
 
@@ -108,13 +107,13 @@ Releases are built by GitHub Actions when a `vX.Y.Z` tag is pushed.
 * [Technology research](docs/01-istrazivanje-jezika.md)
 * [Contributing](CONTRIBUTING.md)
 
-## License and credits
+## License
 
+Author: **Vahid Zekic** ([github.com/vahidzekic](https://github.com/vahidzekic)).
 Chitach is released under the [MIT License](LICENSE).
 
-* Card reading logic, PDF layout, RFZO client, Smartbox and translations are ported from
-  **[Baš Čelik](https://github.com/ubavic/bas-celik)** — © 2023–2026 Nikola Ubavić, MIT License.
 * **Liberation Sans** fonts — SIL Open Font License 1.1 ([assets/fonts/LICENSE-OFL.txt](assets/fonts/LICENSE-OFL.txt)).
+* Third-party licenses: [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 
-See [NOTICE](NOTICE). Chitach is not an official application of the Ministry of Interior,
+Chitach is not an official application of the Ministry of Interior,
 RFZO or any other government institution.

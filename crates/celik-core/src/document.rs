@@ -1,5 +1,5 @@
 //! Document data model. Field names serialize in PascalCase so that JSON
-//! export is identical to Bas Celik's JSON output.
+//! export uses the established field names and order.
 
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +11,7 @@ pub const ID_TYPE_RESIDENCE_PERMIT: &str = "RP";
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct IdDocument {
-    /// JPEG bytes of the portrait. Serialized as base64 string (like Bas Celik).
+    /// JPEG bytes of the portrait. Serialized as base64 string.
     #[serde(with = "crate::document::b64")]
     pub portrait: Vec<u8>,
     pub doc_reg_no: String,

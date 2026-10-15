@@ -19,7 +19,7 @@
   let submitted = $state(false);
   let serverError = $state<string | null>(null);
 
-  // Port of card.ValidatePin (bas-celik/card/pin.go): 4-8 digits.
+  // A valid PIN has 4-8 digits (same rule as celik_core::pin).
   const validatePin = (pin: string) => /^[0-9]{4,8}$/.test(pin);
 
   const errors = $derived({

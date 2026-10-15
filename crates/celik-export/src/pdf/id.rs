@@ -1,5 +1,4 @@
-//! ID card PDF. Port of bas-celik (MIT, (c) Nikola Ubavić) `document/idPrint.go`
-//! and `IdDocument.BuildPdf`.
+//! ID card PDF.
 
 use celik_core::document::{
     ID_TYPE_APOLLO, ID_TYPE_ID, ID_TYPE_IDENTITY_FOREIGNER, ID_TYPE_RESIDENCE_PERMIT,
@@ -325,7 +324,7 @@ pub fn build(doc: &IdDocument, cyrillic_labels: bool, print_date: &str) -> Resul
         ID_TYPE_APOLLO | ID_TYPE_ID => w.print_regular_id(),
         ID_TYPE_IDENTITY_FOREIGNER => w.print_foreigner_id(),
         ID_TYPE_RESIDENCE_PERMIT => w.print_residence_permit(),
-        // Bas Celik renders an empty page for unknown types; print the regular layout instead.
+        // Unknown document types use the regular layout.
         _ => w.print_regular_id(),
     }
 

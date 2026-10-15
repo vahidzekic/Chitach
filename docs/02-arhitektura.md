@@ -2,7 +2,7 @@
 
 Chitach je Cargo workspace sa četiri Rust biblioteke/programa, Tauri v2 aplikacijom i
 Svelte 5 + TypeScript frontendom. Jezgro (protokol kartica, izvoz, potpisivanje) je
-port projekta [Baš Čelik](https://github.com/ubavic/bas-celik) (MIT, © Nikola Ubavić).
+podeljeno u tri crate-a: `celik-core`, `celik-export` i `celik-sign`.
 
 ```
 ┌──────────────────────────── Chitach.app / Chitach.exe / chitach ─────────────────────────────┐

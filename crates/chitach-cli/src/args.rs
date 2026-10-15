@@ -1,6 +1,6 @@
-//! Command-line flags. Port of bas-celik (MIT, (c) Nikola Ubavić) `internal/flags.go`.
+//! Command-line flags.
 //!
-//! Accepts both GNU-style (`--pdf out.pdf`, `--pdf=out.pdf`) and Go `flag`
+//! Accepts both GNU-style (`--pdf out.pdf`, `--pdf=out.pdf`) and single-dash
 //! style spellings (`-pdf out.pdf`, `-pdf=out.pdf`, `-verbose=false`), plus the
 //! original `-rfzoValidUntil` spelling.
 
@@ -77,7 +77,7 @@ fn lookup(name: &str) -> Option<Kind> {
 }
 
 fn parse_bool(s: &str) -> Option<bool> {
-    // Same values Go's strconv.ParseBool accepts.
+    // Accepted spellings: 1/t/T/TRUE/true/True and 0/f/F/FALSE/false/False.
     match s {
         "1" | "t" | "T" | "true" | "TRUE" | "True" => Some(true),
         "0" | "f" | "F" | "false" | "FALSE" | "False" => Some(false),
@@ -153,7 +153,7 @@ mod tests {
     }
 
     #[test]
-    fn gnu_and_go_spellings() {
+    fn gnu_and_single_dash_spellings() {
         let c = parse([
             "--pdf",
             "a.pdf",

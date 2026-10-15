@@ -1,6 +1,4 @@
 //! PKCS#11 module handling, XML-DSig signing and Smartbox server.
-//! Port of bas-celik (MIT, (c) Nikola Ubavić) `internal/pkcs11`, `internal/xmlsign`,
-//! `internal/smartbox`.
 
 pub mod pkcs11;
 pub mod smartbox;
@@ -25,7 +23,7 @@ pub enum SignError {
 
 pub type Result<T> = std::result::Result<T, SignError>;
 
-/// Lowercase hex encoding (Go `hex.EncodeToString`).
+/// Lowercase hex encoding.
 pub fn hex_encode(data: &[u8]) -> String {
     use std::fmt::Write;
     data.iter()
@@ -35,7 +33,7 @@ pub fn hex_encode(data: &[u8]) -> String {
         })
 }
 
-/// Hex decoding (Go `hex.DecodeString`: case-insensitive, even length required).
+/// Hex decoding (case-insensitive, even length required).
 pub fn hex_decode(s: &str) -> Result<Vec<u8>> {
     if !s.len().is_multiple_of(2) {
         return Err(SignError::Other(

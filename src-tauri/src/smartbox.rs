@@ -1,7 +1,7 @@
 //! "smartbox" mode: Smartbox (ePorezi) emulation server.
 //!
 //! Thin adapter over `celik_sign::smartbox`. The PIN is supplied by the
-//! ePorezi web client in each request (as in bas-celik), so no PIN prompt is
+//! ePorezi web client in each request, so no PIN prompt is
 //! needed here; if `celik_sign` later adds a PIN provider callback, wire it in
 //! [`start_server`].
 

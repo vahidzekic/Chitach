@@ -95,6 +95,9 @@ jobs:
               --notes-file notes.md \
               --generate-notes
             id="$(find_id)"
+          else
+            # Re-run: point the (still draft) release at the commit being built.
+            gh release edit "$TAG" --target "$GITHUB_SHA"
           fi
           echo "Release id: $id"
           echo "id=$id" >> "$GITHUB_OUTPUT"
@@ -167,7 +170,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
-          tauriScript: npm --prefix ui exec -- tauri
+          tauriScript: npm run tauri
           args: ${{ matrix.tauri-args }}
 
       - name: Build CLI (macOS universal)

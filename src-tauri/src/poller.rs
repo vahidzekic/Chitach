@@ -1,6 +1,4 @@
 //! Background thread watching card readers and reading inserted cards.
-//!
-//! Port of bas-celik `internal/gui/poller.go` (MIT, (c) Nikola Ubavić).
 
 use std::time::Duration;
 
@@ -69,7 +67,7 @@ fn handle(
     }
 }
 
-/// Auto-save and bring the window back from the tray (bas-celik behaviour).
+/// Auto-save and bring the window back from the tray.
 fn after_read(app: &AppHandle, doc: Document) {
     let settings = app.state::<Shared>().settings().clone();
     if settings.run_in_background && settings.auto_save != crate::settings::AutoSave::SaveAndOpen {

@@ -1,6 +1,4 @@
 //! PKCS#11 modules (signing tokens) of Serbian certificate authorities.
-//!
-//! Port of bas-celik (MIT, (c) Nikola Ubavić) `internal/pkcs11`.
 
 use std::sync::Mutex;
 
@@ -26,7 +24,7 @@ pub enum CardVendor {
 }
 
 impl CardVendor {
-    /// All vendors, in the order Bas Celik lists them in its settings.
+    /// All vendors, in the order they are listed in the settings.
     pub const ALL: [CardVendor; 5] = [
         CardVendor::Mup,
         CardVendor::Pks,
@@ -35,7 +33,7 @@ impl CardVendor {
         CardVendor::Esmart,
     ];
 
-    /// Numeric id used by Bas Celik and the Smartbox protocol (`providerId`).
+    /// Numeric id used by the Smartbox protocol (`providerId`).
     pub fn id(self) -> i64 {
         match self {
             CardVendor::Halcom => 0,
@@ -57,7 +55,7 @@ impl CardVendor {
         })
     }
 
-    /// Display name of the certificate authority (Go `CardVendor.String()`).
+    /// Display name of the certificate authority.
     pub fn name(self) -> &'static str {
         match self {
             CardVendor::Halcom => "Halcom CA",
@@ -87,7 +85,7 @@ pub fn current_os() -> &'static str {
 }
 
 /// Default module path for the vendor on the given OS ("linux" | "macos" | "windows";
-/// Go's "darwin" is accepted too). Empty string when there is no default.
+/// "darwin" is accepted too). Empty string when there is no default.
 pub fn default_path(vendor: CardVendor, os: &str) -> String {
     use CardVendor::*;
     let path = match (os, vendor) {
@@ -133,9 +131,9 @@ pub struct NamedCert {
     pub id: Vec<u8>,
     /// `CKA_LABEL`, or the subject common name when the token has no label.
     pub label: String,
-    /// Subject DN (Go `pkix.Name.String()` format).
+    /// Subject DN (RFC 2253-like format).
     pub subject: String,
-    /// Issuer DN (Go `pkix.Name.String()` format).
+    /// Issuer DN (RFC 2253-like format).
     pub issuer: String,
     /// Expiry date, `YYYY-MM-DD` (UTC).
     pub not_after: String,
@@ -169,7 +167,7 @@ impl NamedCert {
     }
 }
 
-/// Subject common name (last CN attribute, like Go's `Subject.CommonName`).
+/// Subject common name (last CN attribute).
 pub fn common_name(der: &[u8]) -> Option<String> {
     let cert = parse_cert(der).ok()?;
     cert.subject()
@@ -204,7 +202,7 @@ impl Modules {
     /// Loads and initialises the module of every configured vendor. An empty path means the
     /// vendor's [`default_path`] for the current OS; vendors without any path are skipped.
     /// Modules that fail to load are skipped (and logged); [`SignError::NoModules`] is returned
-    /// when none could be loaded. Duplicate vendors are an error (like Bas Celik).
+    /// when none could be loaded. Duplicate vendors are an error.
     pub fn load(paths: &[ModulePath]) -> Result<Self> {
         let mut seen = Vec::new();
         for mp in paths {
@@ -420,7 +418,7 @@ impl Pkcs11Session {
     }
 
     /// RSA PKCS#1 v1.5 signature over a SHA-256 digest, made with the private key whose
-    /// `CKA_ID` equals `cert_id` (`CKM_RSA_PKCS` over the DigestInfo, like Bas Celik).
+    /// `CKA_ID` equals `cert_id` (`CKM_RSA_PKCS` over the DigestInfo).
     pub fn sign_digest(&self, cert_id: &[u8], sha256: &[u8]) -> Result<Vec<u8>> {
         let session = self.logged_in()?;
         let keys = session

@@ -1,7 +1,4 @@
 //! Card detection and reading.
-//!
-//! Port of bas-celik `card/card.go`, `gemalto.go`, `apollo.go`, `idCard.go`,
-//! `medical.go` and `vehicle.go` (MIT, (c) Nikola Ubavić).
 
 use crate::apdu::build_apdu;
 use crate::atr::{atr_to_string, detect_card_document_by_atr};
@@ -73,7 +70,7 @@ pub enum CardKind {
     Unknown,
 }
 
-/// A smart card holding a document (port of Bas Celik's `CardDocument` interface).
+/// A smart card holding a document.
 pub trait CardDocument {
     /// Document type of this card.
     fn kind(&self) -> CardKind;
@@ -150,7 +147,7 @@ pub fn read_document(card: &dyn CardTransport) -> Result<Document> {
 }
 
 /// Reads binary data from the card starting at `offset` (at most 0xFF bytes).
-/// Like Bas Celik, the status word is stripped without being checked.
+/// The status word is stripped without being checked.
 pub(crate) fn read(card: &dyn CardTransport, offset: usize, length: usize) -> Result<Vec<u8>> {
     if length == 0 {
         return Ok(Vec::new());

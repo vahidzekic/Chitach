@@ -1,6 +1,4 @@
 //! Serbian vehicle registration cards.
-//!
-//! Port of bas-celik `card/vehicle.go` (MIT, (c) Nikola Ubavić).
 
 use super::{read, read_chunks, select, CardDocument, CardKind, CardTransport};
 use crate::apdu::build_apdu;

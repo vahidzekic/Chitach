@@ -1,6 +1,4 @@
 //! Gemalto ID cards (ID, identity card for foreigners IF, residence permit RP).
-//!
-//! Port of bas-celik `card/gemalto.go` (MIT, (c) Nikola Ubavić).
 
 use super::id::{IdFiles, ID_DOCUMENT_FILE_LOC};
 use super::{read, read_chunks, select, trim4b, CardDocument, CardKind, CardTransport};

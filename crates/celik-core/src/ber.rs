@@ -1,6 +1,4 @@
 //! BER-TLV parser (ISO/IEC 7816-4) used by vehicle registration cards.
-//!
-//! Port of bas-celik `card/ber` (MIT, (c) Nikola Ubavić).
 
 use crate::error::FormatError;
 use std::fmt;
@@ -67,7 +65,7 @@ pub fn parse_ber(data: &[u8]) -> Result<Ber, BerError> {
 }
 
 /// Inserts `(tag, value)` replacing an existing entry with the same tag
-/// (mirrors the Go map semantics: the last record with a tag wins).
+/// (map semantics: the last record with a tag wins).
 fn upsert<'a>(v: &mut Vec<(u32, &'a [u8])>, tag: u32, value: &'a [u8]) {
     if let Some(e) = v.iter_mut().find(|(t, _)| *t == tag) {
         e.1 = value;

@@ -1,16 +1,13 @@
 //! Minimal XML tree, parser, serializer and inclusive C14N 1.0.
 //!
-//! Port of bas-celik (MIT, (c) Nikola Ubavić). Bas Celik signs XML documents with the Go
-//! libraries `beevik/etree` (parsing / serialisation), `moov-io/signedxml` and
-//! `russellhaering/goxmldsig` (canonicalisation). This module reproduces their observable
-//! behaviour byte for byte, so that signatures produced by Chitach are identical to the ones
-//! produced by Bas Celik:
+//! Parsing, serialisation and canonicalisation are deterministic and byte-exact, so that the
+//! signed documents are accepted by the ePorezi portal:
 //!
 //! * the tree is "raw": namespace prefixes are kept as written (`space` / `tag`),
 //! * line endings are normalised (`\r\n` and `\r` become `\n`), entities are decoded,
 //!   CDATA sections become plain text,
 //! * normal serialisation escapes `& < > ' "` and writes childless elements as `<a/>`,
-//! * canonical serialisation follows goxmldsig's C14N 1.0 (inclusive, without comments).
+//! * canonical serialisation follows C14N 1.0 (inclusive, without comments).
 
 use std::collections::{BTreeMap, HashMap};
 
@@ -52,7 +49,7 @@ pub(crate) struct Element {
     pub children: Vec<Node>,
 }
 
-/// Splits `prefix:local` at the first colon (etree `spaceDecompose`).
+/// Splits `prefix:local` at the first colon.
 fn space_decompose(key: &str) -> (&str, &str) {
     match key.find(':') {
         Some(i) => (&key[..i], &key[i + 1..]),
@@ -78,7 +75,7 @@ impl Element {
         }
     }
 
-    /// Creates an attribute or replaces the value of an existing one (etree `CreateAttr`).
+    /// Creates an attribute or replaces the value of an existing one .
     pub fn create_attr(&mut self, key: &str, value: &str) {
         let (space, key) = space_decompose(key);
         if let Some(a) = self
@@ -139,8 +136,7 @@ impl Element {
         })
     }
 
-    /// First direct child element with the given local name (any prefix), like etree's
-    /// `SelectElement` / `FindElement("./tag")`.
+    /// First direct child element with the given local name (any prefix).
     pub fn child(&self, tag: &str) -> Option<&Element> {
         self.child_elements().find(|e| e.tag == tag)
     }
@@ -177,7 +173,7 @@ impl Document {
         Parser::new(input).parse()
     }
 
-    /// Serialises the document with etree's default settings.
+    /// Serialises the document (no indentation, attributes in document order).
     pub fn to_xml_string(&self) -> String {
         let mut out = String::new();
         for c in &self.children {
@@ -208,7 +204,7 @@ fn is_in_character_range(c: char) -> bool {
         || (0x10000..=0x10FFFF).contains(&r)
 }
 
-/// Port of etree `escapeString`.
+/// Escapes text / attribute values.
 fn escape_into(out: &mut String, s: &str, mode: EscapeMode) {
     for c in s.chars() {
         match c {
@@ -297,12 +293,12 @@ fn write_element(out: &mut String, e: &Element, canonical: bool) {
 }
 
 // ---------------------------------------------------------------------------
-// Canonicalisation (goxmldsig C14N 1.0, without comments)
+// Canonicalisation (C14N 1.0, without comments)
 // ---------------------------------------------------------------------------
 
 const XMLNS: &str = "xmlns";
 
-/// goxmldsig `SortedAttrs.Less`, evaluated on the current state of the slice.
+/// C14N attribute ordering, evaluated on the current state of the slice.
 fn attr_less(a: &[Attr], i: usize, j: usize) -> bool {
     let (ai, aj) = (&a[i], &a[j]);
     if aj.space.is_empty() && aj.key == XMLNS {
@@ -348,7 +344,7 @@ fn attr_less(a: &[Attr], i: usize, j: usize) -> bool {
     ai.key < aj.key
 }
 
-/// Go's `sort.Sort` uses insertion sort for short slices; we use it for all lengths.
+/// Stable insertion sort (keeps the relative order of equal attributes).
 fn sort_attrs(a: &mut [Attr]) {
     for i in 1..a.len() {
         let mut j = i;
@@ -359,7 +355,7 @@ fn sort_attrs(a: &mut [Attr]) {
     }
 }
 
-/// goxmldsig `canonicalPrepInner` (strip redundant namespace declarations, sort attributes,
+/// Prepares an element for canonicalisation (strip redundant namespace declarations, sort attributes,
 /// remove comments).
 fn canonical_prep(el: &Element, seen_so_far: &HashMap<String, String>) -> Element {
     let mut seen = seen_so_far.clone();
@@ -442,7 +438,7 @@ pub(crate) fn canonicalize(el: &Element, ancestors: &[&Element]) -> String {
 }
 
 // ---------------------------------------------------------------------------
-// Parsing (behaviour of Go's encoding/xml in strict mode + etree)
+// Parsing (strict mode)
 // ---------------------------------------------------------------------------
 
 struct Parser {
@@ -517,7 +513,7 @@ impl Parser {
         Ok(self.chars[start..self.pos].iter().collect())
     }
 
-    /// Go `nsname`: returns (space, local).
+    /// Reads a qualified name: returns (space, local).
     fn ns_name(&mut self) -> Result<(String, String)> {
         let s = self.name()?;
         if s.matches(':').count() > 1 {
@@ -740,7 +736,7 @@ impl Parser {
                             self.pos += 1;
                             self.skip_ws();
                             let value = self.attr_value()?;
-                            // etree: duplicate attributes keep the first position, last value
+                            // duplicate attributes keep the first position, last value
                             if let Some(a) = el
                                 .attrs
                                 .iter_mut()
@@ -787,7 +783,7 @@ mod tests {
     }
 
     #[test]
-    fn serializes_like_etree() {
+    fn serializes_compact() {
         assert_eq!(
             roundtrip(
                 "<?xml version=\"1.0\"?>\n<a x='1&amp;2'><b></b>t&lt;\"'&#65;<![CDATA[<x>]]></a>\n"

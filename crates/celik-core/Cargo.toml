@@ -1,9 +1,10 @@
 [package]
 name = "celik-core"
-description = "Reading Serbian eID, medical insurance and vehicle registration smart cards (port of Bas Celik)"
+description = "Reading Serbian eID, medical insurance and vehicle registration smart cards"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+authors.workspace = true
 
 [features]
 default = ["pcsc", "rfzo"]

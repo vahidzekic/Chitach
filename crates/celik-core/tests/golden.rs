@@ -1,4 +1,4 @@
-//! Golden tests ported from bas-celik `card/*_golden_test.go` (MIT, (c) Nikola Ubavić),
+//! Golden tests of card file parsing,
 //! plus end-to-end reads through the virtual card.
 //!
 //! All values are fabricated; only the tag layouts mirror real cards.
@@ -191,7 +191,7 @@ fn large_portrait_is_read_in_chunks() {
 
 // ----------------------------------------------------------- Medical ----
 
-/// UTF-16 LE with BOM, like Go's `unicode.UTF16(LittleEndian, UseBOM)` encoder.
+/// UTF-16 LE with BOM.
 fn u16(s: &str) -> Vec<u8> {
     let mut out = vec![0xFF, 0xFE];
     out.extend(s.encode_utf16().flat_map(u16::to_le_bytes));

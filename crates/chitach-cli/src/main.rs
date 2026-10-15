@@ -1,7 +1,4 @@
 //! Chitach command-line interface.
-//!
-//! Port of bas-celik (MIT, (c) Nikola Ubavić) `main.go`, `internal/flags.go`,
-//! `internal/runCLI.go` and `internal/read.go`.
 
 mod args;
 mod logger;
@@ -97,7 +94,7 @@ fn print_atr(index: usize) -> Result<(), String> {
     Ok(())
 }
 
-/// Fail early when an output path exists but cannot be inspected (like Go's os.Stat check).
+/// Fail early when an output path exists but cannot be inspected (stat check).
 fn check_path(path: &Option<String>) -> Result<(), String> {
     if let Some(p) = path {
         if let Err(e) = std::fs::metadata(p) {

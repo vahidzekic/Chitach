@@ -4,6 +4,7 @@ description = "PDF / JSON / XLSX export of Serbian smart-card documents"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+authors.workspace = true
 
 [dependencies]
 celik-core = { workspace = true, default-features = false }

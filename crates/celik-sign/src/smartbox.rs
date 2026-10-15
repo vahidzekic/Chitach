@@ -1,13 +1,11 @@
 //! Smartbox emulation: the local websocket server used by the ePorezi portal
 //! (eporezi.purs.gov.rs) to sign tax returns with a token.
 //!
-//! Port of bas-celik (MIT, (c) Nikola Ubavić) `internal/smartbox`.
-//!
 //! Protocol: on connect the server sends `ON_OPEN_EVENT`; then the portal sends JSON messages
 //! `{"operation": ..., "input": {...}}` (`GET_INFO`, `GET_PROVIDERS`, `GET_TERMINALS`,
 //! `GET_CERTIFICATES`, `GET_SIGNED_XML`) and gets `{"operation", "status", "payload"}` replies.
 //! The PIN is sent by the portal with `GET_CERTIFICATES` / `GET_SIGNED_XML`, so the server needs
-//! no PIN entry UI. Any error closes the connection (like Bas Celik).
+//! no PIN entry UI. Any error closes the connection.
 
 use std::collections::HashMap;
 use std::io::ErrorKind;
@@ -41,7 +39,7 @@ const OPERATION_GET_TERMINALS: &str = "GET_TERMINALS";
 const OPERATION_GET_CERTIFICATES: &str = "GET_CERTIFICATES";
 const OPERATION_GET_SIGNED_XML: &str = "GET_SIGNED_XML";
 
-/// The token operations the Smartbox server needs (Go `PkcsModuleSession`); implemented by
+/// The token operations the Smartbox server needs; implemented by
 /// [`Pkcs11Session`] and by mocks in tests.
 pub trait TokenSession: Send {
     fn list_slots(&mut self) -> Result<Vec<Slot>>;
@@ -90,7 +88,7 @@ struct Response_<P: Serialize> {
     payload: P,
 }
 
-/// Serialises a response like Go's `json.Encoder` (with a trailing newline).
+/// Serialises a response as compact JSON with a trailing newline.
 fn response<P: Serialize>(operation: &'static str, payload: P) -> Result<String> {
     let mut s = serde_json::to_string(&Response_ {
         operation,
@@ -160,14 +158,14 @@ struct GetSignedXmlPayload {
     xml: String,
 }
 
-fn go_os() -> &'static str {
+fn protocol_os_name() -> &'static str {
     match std::env::consts::OS {
         "macos" => "darwin",
         os => os,
     }
 }
 
-fn go_arch() -> &'static str {
+fn protocol_arch_name() -> &'static str {
     match std::env::consts::ARCH {
         "x86_64" => "amd64",
         "aarch64" => "arm64",
@@ -183,20 +181,20 @@ fn on_open() -> Result<String> {
             app_name: "SmartBox",
             app_version: "2.0.0",
             app_build: 1,
-            os_name: go_os(),
+            os_name: protocol_os_name(),
             os_version: "1",
-            os_arch: go_arch(),
+            os_arch: protocol_arch_name(),
         },
     )
 }
 
-// --- lenient JSON access mimicking Go's encoding/json --------------------------------------
+// --- lenient JSON access ---------------------------------------------------------------
 
 fn server_err(msg: impl Into<String>) -> SignError {
     SignError::Server(msg.into())
 }
 
-/// Case-insensitive field lookup (Go matches struct fields case-insensitively).
+/// Case-insensitive field lookup (the portal's field name casing varies).
 fn get_ci<'a>(obj: &'a Map<String, Value>, key: &str) -> Option<&'a Value> {
     obj.get(key).or_else(|| {
         obj.iter()
@@ -249,7 +247,7 @@ fn int_field(obj: &Map<String, Value>, key: &str) -> Result<i64> {
     }
 }
 
-/// Go `stringOrInt`: accepts `3` and `"3"`.
+/// Integer that may be sent as a number or a string: accepts `3` and `"3"`.
 fn string_or_int(v: Option<&Value>) -> Result<i64> {
     match v {
         None | Some(Value::Null) => Ok(0),
@@ -270,7 +268,7 @@ fn string_or_int(v: Option<&Value>) -> Result<i64> {
 // ---------------------------------------------------------------------------
 
 /// Certificates currently valid; for MUP tokens only the ones with the non-repudiation
-/// (content commitment) key usage (Go `GetValidCertificates`).
+/// (content commitment) key usage.
 pub fn get_valid_certificates(certs: &[NamedCert], vendor: CardVendor) -> Vec<NamedCert> {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -308,7 +306,7 @@ fn subject_common_name(der: &[u8]) -> String {
         .unwrap_or_default()
 }
 
-/// Go `GetCertificateAliases`.
+/// Certificate aliases reported to the portal.
 pub fn get_certificate_aliases(certs: &[NamedCert]) -> Vec<CertificateAlias> {
     certs
         .iter()
@@ -391,8 +389,8 @@ impl ServerState {
             .insert(id.to_string(), session);
     }
 
-    /// Handles one websocket message (Go `onMessage`). Returns the frame to send back
-    /// (`None`: nothing; `Some("")`: an empty frame, which Go sends when a handler fails) and
+    /// Handles one websocket message. Returns the frame to send back
+    /// (`None`: nothing; `Some("")`: an empty frame, sent when a handler fails) and
     /// whether the connection should continue.
     fn on_message(&self, session_id: &mut String, data: &str) -> (Option<String>, Result<()>) {
         let msg: Value = match serde_json::from_str(data) {
@@ -585,7 +583,7 @@ fn origin_host(origin: &str) -> Option<&str> {
     Some(host.rsplit_once('@').map(|(_, h)| h).unwrap_or(host))
 }
 
-/// Origin check of coder/websocket `Accept` with Bas Celik's `OriginPatterns`.
+/// Origin check: only the ePorezi portal origins are accepted.
 fn origin_allowed(origin: Option<&str>, request_host: Option<&str>) -> bool {
     let Some(origin) = origin else {
         return true;
@@ -787,7 +785,7 @@ impl SmartboxServer {
         self.port
     }
 
-    /// Display names of the loaded vendors (Go `StartServer`'s second return value).
+    /// Display names of the loaded vendors.
     pub fn vendor_names(&self) -> Vec<&'static str> {
         self.vendors.iter().map(|v| v.name()).collect()
     }

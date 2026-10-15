@@ -1,5 +1,4 @@
-//! Vehicle registration PDF. Port of bas-celik (MIT, (c) Nikola Ubavić)
-//! `VehicleDocument.BuildPdf` (`document/vehicle.go`).
+//! Vehicle registration PDF.
 
 use celik_core::VehicleDocument;
 

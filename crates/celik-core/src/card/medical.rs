@@ -1,6 +1,4 @@
 //! Serbian medical insurance cards (RFZO).
-//!
-//! Port of bas-celik `card/medical.go` (MIT, (c) Nikola Ubavić).
 
 use super::{read, read_chunks, select, CardDocument, CardKind, CardTransport};
 use crate::apdu::build_apdu;

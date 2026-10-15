@@ -1,7 +1,6 @@
 //! In-memory smart card used by tests, mock mode and UI development.
 //!
-//! Inspired by bas-celik `card/smartCard.go` `MakeVirtualCard` (MIT, (c) Nikola Ubavić),
-//! but implementing enough of ISO 7816-4 (SELECT, READ BINARY, VERIFY,
+//! Implements enough of ISO 7816-4 (SELECT, READ BINARY, VERIFY,
 //! CHANGE REFERENCE DATA) for the real card readers in [`crate::card`] to work on it.
 
 use crate::card::gemalto::{AID_ID, AID_IF, AID_PKCS15, AID_RP};
@@ -50,7 +49,7 @@ pub struct VirtualCard {
 }
 
 impl VirtualCard {
-    /// Empty card with the given ATR (like Go's `MakeVirtualCard`).
+    /// Empty card with the given ATR.
     pub fn new(atr: impl Into<Vec<u8>>) -> Self {
         Self {
             atr: atr.into(),

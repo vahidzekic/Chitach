@@ -20,9 +20,7 @@
 ---
 
 **Chitach** je besplatan program otvorenog koda za čitanje srpskih dokumenata sa
-pametnih kartica, sa novim, modernim interfejsom. Napisan je u Rust-u (Tauri v2), a
-logika čitanja kartica i izvoza je preneta iz odličnog projekta
-[Baš Čelik](https://github.com/ubavic/bas-celik) Nikole Ubavića.
+pametnih kartica, sa novim, modernim interfejsom. Napisan je u Rust-u (Tauri v2).
 
 ## Mogućnosti
 
@@ -106,13 +104,13 @@ cargo build --release -p chitach-cli    # CLI
 * [Istraživanje izbora jezika](docs/01-istrazivanje-jezika.md)
 * [Doprinos projektu](CONTRIBUTING.md)
 
-## Licenca i zahvalnice
+## Licenca
 
+Autor: **Vahid Zekic** ([github.com/vahidzekic](https://github.com/vahidzekic)).
 Chitach je objavljen pod [MIT licencom](LICENSE).
 
-* Logika čitanja kartica, PDF izgled, RFZO, Smartbox i prevodi su preneti iz projekta
-  **[Baš Čelik](https://github.com/ubavic/bas-celik)** — © 2023–2026 Nikola Ubavić, MIT licenca.
 * Fontovi **Liberation Sans** — SIL Open Font License 1.1 ([assets/fonts/LICENSE-OFL.txt](assets/fonts/LICENSE-OFL.txt)).
+* Licence korišćenih komponenti: [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 
-Detalji u [NOTICE](NOTICE). Chitach nije zvanična aplikacija MUP-a, RFZO-a niti bilo koje
+Chitach nije zvanična aplikacija MUP-a, RFZO-a niti bilo koje
 državne institucije.

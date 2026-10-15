@@ -1,5 +1,4 @@
-// Minimal reactive i18n. Translation files are derived from Bas Celik's
-// (assets/translations, MIT) with additional Chitach keys.
+// Minimal reactive i18n. One JSON dictionary per language, all with the same keys.
 import type { Language } from "../api/types";
 import srLatn from "./sr-Latn.json";
 import srCyrl from "./sr-Cyrl.json";

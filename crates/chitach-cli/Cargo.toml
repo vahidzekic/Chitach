@@ -4,6 +4,7 @@ description = "Command-line version of Chitach"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+authors.workspace = true
 
 [[bin]]
 name = "chitach-cli"

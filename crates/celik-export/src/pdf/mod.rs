@@ -1,4 +1,4 @@
-//! PDF rendering. Port of bas-celik (MIT, (c) Nikola Ubavić) `BuildPdf` methods.
+//! PDF rendering.
 
 mod canvas;
 mod id;
@@ -17,7 +17,7 @@ pub fn build(doc: &Document, opts: PdfOptions) -> Result<Vec<u8>> {
     }
 }
 
-/// Today's date as `DD.MM.YYYY.` (Go format `02.01.2006.`).
+/// Today's date as `DD.MM.YYYY.`.
 fn print_date() -> String {
     chrono::Local::now().format("%d.%m.%Y.").to_string()
 }

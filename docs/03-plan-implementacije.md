@@ -41,10 +41,10 @@ svaki tok u svom direktorijumu:
 
 ## Rizici
 
-* **Nema fizičkog čitača u CI** – parsiranje se testira golden podacima iz Baš Čelika;
+* **Nema fizičkog čitača u CI** – parsiranje se testira golden podacima i virtuelnom karticom;
   UI i backend se testiraju mock režimom (`CHITACH_MOCK=1` / `npm run dev` u browseru).
-* **Port bez kartice za proveru** – logika se prenosi 1:1 iz Baš Čelika (iste APDU
-  sekvence i konstante); greške prijavljene od korisnika se porede sa ponašanjem originala.
+* **Razvoj bez kartice za proveru** – APDU sekvence i konstante prate specifikaciju
+  kartica; greške prijavljene od korisnika se reprodukuju golden testovima.
 * **macOS potpisivanje** – bez Apple Developer naloga build je ad-hoc potpisan i nije
   notarizovan (Gatekeeper: "Open Anyway").
 * **Windows SmartScreen** – nepotpisan instaler daje upozorenje dok se ne nabavi

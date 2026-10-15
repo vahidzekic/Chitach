@@ -1,6 +1,4 @@
 //! Document export (PDF / JSON / XLSX) and auto-save after reading.
-//!
-//! Auto-save is a port of bas-celik `internal/gui/autoSave.go` (MIT, (c) Nikola Ubavić).
 
 use std::path::{Path, PathBuf};
 

@@ -1,4 +1,4 @@
-//! Port of bas-celik (MIT, (c) Nikola Ubavić) `internal/smartbox/*_test.go`.
+//! Tests of the Smartbox protocol handlers and server.
 
 use std::net::TcpStream;
 use std::time::Duration;
@@ -12,7 +12,7 @@ use tungstenite::WebSocket;
 use super::*;
 use crate::xmlsign::{verify_digest_signature, verify_signed_xml, SoftwareSigner};
 
-// --- mock (mock_test.go) -------------------------------------------------------------------
+// --- mock -----------------------------------------------------------------------------------
 
 type SignFn = Box<dyn Fn(&[u8], &[u8]) -> Result<Vec<u8>> + Send>;
 
@@ -120,11 +120,11 @@ fn session_with(mock: &Arc<Mutex<MockToken>>, vendor: CardVendor) -> SmartboxSes
 }
 
 fn parse(rsp: &str) -> Value {
-    assert!(rsp.ends_with('\n'), "Go's json.Encoder appends a newline");
+    assert!(rsp.ends_with('\n'), "responses end with a newline");
     serde_json::from_str(rsp).unwrap()
 }
 
-// --- stringOrInt_test.go ---------------------------------------------------------------------
+// --- string or int --------------------------------------------------------------------------
 
 #[test]
 fn string_or_int_values() {
@@ -143,7 +143,7 @@ fn string_or_int_values() {
     assert_eq!(string_or_int(None).unwrap(), 0);
 }
 
-// --- onOpen_test.go --------------------------------------------------------------------------
+// --- ON_OPEN_EVENT --------------------------------------------------------------------------
 
 #[test]
 fn on_open_payload() {
@@ -153,12 +153,12 @@ fn on_open_payload() {
     assert_eq!(rsp["payload"]["appName"], "SmartBox");
     assert_eq!(rsp["payload"]["appVersion"], "2.0.0");
     assert_eq!(rsp["payload"]["appBuild"], 1);
-    assert_eq!(rsp["payload"]["osName"], go_os());
-    assert_eq!(rsp["payload"]["osArch"], go_arch());
+    assert_eq!(rsp["payload"]["osName"], protocol_os_name());
+    assert_eq!(rsp["payload"]["osArch"], protocol_arch_name());
     assert_eq!(rsp["payload"]["osVersion"], "1");
 }
 
-// --- getInfo_test.go ---------------------------------------------------------------------------
+// --- GET_INFO -------------------------------------------------------------------------------
 
 #[test]
 fn get_info_new_session() {
@@ -199,7 +199,7 @@ fn get_info_empty_session() {
 }
 
 #[test]
-fn get_info_accepts_go_style_field_names() {
+fn get_info_accepts_capitalized_field_names() {
     let st = new_test_state(None, &[]);
     let msg = json!({"operation": "GET_INFO", "Input": {"SbSession": "x"}});
     let mut id = String::new();
@@ -207,7 +207,7 @@ fn get_info_accepts_go_style_field_names() {
     assert_eq!(id, "x");
 }
 
-// --- getProviders_test.go ----------------------------------------------------------------------
+// --- GET_PROVIDERS --------------------------------------------------------------------------
 
 #[test]
 fn get_providers() {
@@ -234,7 +234,7 @@ fn get_providers_empty() {
     assert_eq!(rsp["payload"]["providers"].as_array().unwrap().len(), 0);
 }
 
-// --- getTerminals_test.go ----------------------------------------------------------------------
+// --- GET_TERMINALS --------------------------------------------------------------------------
 
 fn terminals_msg(provider: Value) -> Value {
     json!({"operation": "GET_TERMINALS", "input": {"providerId": provider}})
@@ -323,7 +323,7 @@ fn get_terminals_no_slots() {
     assert_eq!(rsp["payload"]["terminals"].as_array().unwrap().len(), 0);
 }
 
-// --- getCertificates_test.go -------------------------------------------------------------------
+// --- GET_CERTIFICATES -----------------------------------------------------------------------
 
 #[test]
 fn valid_certificates() {
@@ -420,7 +420,7 @@ fn get_certificates_terminal_id_must_be_int() {
     assert!(st.handle_get_certificates(&mut session, &msg).is_err());
 }
 
-// --- getSignedXml_test.go ----------------------------------------------------------------------
+// --- GET_SIGNED_XML -------------------------------------------------------------------------
 
 fn signed_xml_msg(alias: &str, xml_b64: &str) -> Value {
     json!({"operation": "GET_SIGNED_XML", "input": {
@@ -501,7 +501,7 @@ fn get_signed_xml_cert_not_found() {
         .is_err());
 }
 
-// --- session_test.go ---------------------------------------------------------------------------
+// --- session --------------------------------------------------------------------------------
 
 #[test]
 fn session_certificate() {
@@ -555,7 +555,7 @@ fn session_sign_errors() {
     assert!(session.sign_sha256_digest(&[0; 20]).is_err(), "sha1 digest");
 }
 
-// --- onMessage (server.go) ---------------------------------------------------------------------
+// --- message dispatch -----------------------------------------------------------------------
 
 #[test]
 fn on_message_requires_session() {
@@ -583,7 +583,7 @@ fn on_message_requires_session() {
     assert!(res.is_err());
 }
 
-// --- server_test.go (integration over a real websocket) ----------------------------------------
+// --- server (integration over a real websocket) ---------------------------------------------
 
 type Client = WebSocket<MaybeTlsStream<TcpStream>>;
 
@@ -618,7 +618,7 @@ fn write_json(ws: &mut Client, v: Value) {
     ws.send(tungstenite::Message::text(v.to_string())).unwrap();
 }
 
-/// Reads until the connection fails (Go: "expected connection to eventually close").
+/// Reads until the connection fails (the server is expected to close it).
 fn expect_closed(ws: &mut Client) {
     for _ in 0..10 {
         match ws.read() {

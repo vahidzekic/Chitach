@@ -1,7 +1,4 @@
-//! Export of documents to PDF (layout identical to Bas Celik / official apps), JSON and XLSX.
-//!
-//! Port of bas-celik (MIT, (c) Nikola Ubavić) `document` package export functions
-//! (`BuildPdf`, `BuildJson`, `CreateExcel`).
+//! Export of documents to PDF (layout matches the official application's output), JSON and XLSX.
 
 use celik_core::Document;
 
@@ -27,12 +24,12 @@ pub struct PdfOptions {
     pub cyrillic_labels: bool,
 }
 
-/// Render the document to a single-page A4 PDF (same layout as Bas Celik).
+/// Render the document to a single-page A4 PDF (layout of the official forms).
 pub fn to_pdf(doc: &Document, opts: PdfOptions) -> Result<Vec<u8>> {
     pdf::build(doc, opts)
 }
 
-/// Serialize the document to JSON, byte-compatible with Bas Celik's JSON output.
+/// Serialize the document to compact JSON with stable field order.
 pub fn to_json(doc: &Document) -> Result<Vec<u8>> {
     json::build(doc)
 }

@@ -36,8 +36,6 @@ CI pokreće iste provere na svaki push i pull request.
 
 * Kod, identifikatori i komentari su na engleskom; tekstovi za korisnika idu kroz prevode
   (`ui/src/lib/i18n`, `assets/translations`) — dodajte ključ za sve jezike.
-* Fajlovi preneti iz Baš Čelika zadržavaju zaglavlje
-  `Port of bas-celik (MIT, (c) Nikola Ubavić)`.
 * Izmene API-ja između Rust-a i UI-ja prvo upišite u `docs/04-api-ugovor.md`.
 * Za logiku čitanja kartica dodajte testove sa (anonimizovanim) primer podacima.
 * Jedan pull request — jedna tema; opišite kako ste testirali (sa kojim čitačem/karticom).

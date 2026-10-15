@@ -25,14 +25,14 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "publisher": "Chitach contributors",
-    "copyright": "Copyright (c) 2026 Chitach contributors. MIT License.",
+    "publisher": "Vahid Zekic",
+    "copyright": "Copyright © 2026 Vahid Zekic",
     "homepage": "https://github.com/vahidzekic/Chitach",
     "license": "MIT",
     "licenseFile": "../LICENSE",
     "category": "Utility",
     "shortDescription": "Čitač srpskih elektronskih dokumenata (lična karta, zdravstvena knjižica, saobraćajna dozvola)",
-    "longDescription": "Chitach reads Serbian smart-card documents - the electronic ID card (lična karta), the health insurance card (zdravstvena knjižica) and the vehicle registration card (saobraćajna dozvola) - through any PC/SC smart-card reader, shows the data in a modern interface and exports it to PDF, JSON and XLSX. It also emulates the Smartbox service used by ePorezi and signs XML documents with qualified certificates. Inspired by and ported from Baš Čelik.",
+    "longDescription": "Chitach reads Serbian smart-card documents - the electronic ID card (lična karta), the health insurance card (zdravstvena knjižica) and the vehicle registration card (saobraćajna dozvola) - through any PC/SC smart-card reader, shows the data in a modern interface and exports it to PDF, JSON and XLSX. It also emulates the Smartbox service used by ePorezi and signs XML documents with qualified certificates.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

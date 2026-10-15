@@ -1,6 +1,4 @@
 //! "xmlSign" mode: sign XML files with a PKCS#11 token.
-//!
-//! Port of bas-celik `internal/gui/docSigning.go` / `docSigner` (MIT, (c) Nikola Ubavić).
 
 use std::sync::Mutex;
 

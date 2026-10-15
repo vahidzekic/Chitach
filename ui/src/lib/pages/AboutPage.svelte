@@ -37,7 +37,10 @@
     <section class="card box">
       <h2><Icon name="info" size={16} />{t("about.moreAboutProgram")}</h2>
       <p>{t("about.description")}</p>
-      <p class="muted">{t("about.basedOn")}</p>
+      <p class="muted">
+        {t("about.author")}: Vahid Zekic ·
+        <a href={REPO} onclick={(e) => { e.preventDefault(); void api.openUrl(REPO); }}>github.com/vahidzekic/Chitach</a>
+      </p>
       <p class="privacy"><Icon name="lock" size={15} />{t("about.privacy")}</p>
       <div class="links">
         <button class="btn btn-sm" type="button" onclick={() => void api.openUrl(REPO)}>

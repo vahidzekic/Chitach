@@ -1,6 +1,4 @@
 //! PIN and certificate operations on the ID card in the selected reader.
-//!
-//! Port of bas-celik `internal/gui/crypto.go` / `pinChange.go` (MIT, (c) Nikola Ubavić).
 
 use celik_core::{reader::PcscCard, CardTransport, Certificate, Document, IdCardCrypto};
 use serde::Serialize;

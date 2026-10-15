@@ -4,6 +4,7 @@ description = "Chitach - Serbian eID, medical and vehicle card reader"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+authors.workspace = true
 
 [lib]
 name = "chitach_lib"

@@ -1,7 +1,6 @@
-//! Byte-for-byte compatibility with Bas Celik's Go implementation (`xmlsign.SignXMLBytes`).
+//! Byte-for-byte comparison of signed XML against reference fixtures.
 //!
-//! The `out*.xml` fixtures were produced by the Go reference implementation (moov-io/signedxml
-//! v1.4.1 + beevik/etree v1.8.1) from the corresponding `in*.xml` fixtures, with the RSA key
+//! The `out*.xml` fixtures are the expected signatures of the corresponding `in*.xml` fixtures, with the RSA key
 //! `key.pem` and certificate `cert.der`. RSASSA-PKCS1-v1_5 is deterministic, so the Rust output
 //! must match exactly.
 
@@ -24,7 +23,7 @@ fn signer() -> SoftwareSigner {
 }
 
 #[test]
-fn identical_to_go_output() {
+fn identical_to_reference_output() {
     let cert = fixture("cert.der");
     let signer = signer();
     for case in [
@@ -44,7 +43,7 @@ fn identical_to_go_output() {
 }
 
 #[test]
-fn errors_like_go() {
+fn rejects_invalid_input() {
     let cert = fixture("cert.der");
     let signer = signer();
     let err = sign_xml(&fixture("err01_existing_sig.xml"), &signer, &cert).unwrap_err();
@@ -68,10 +67,10 @@ fn tampered_documents_do_not_verify() {
 }
 
 #[test]
-fn names_like_go() {
+fn certificate_names() {
     let der = fixture("cert.der");
     let (_, cert) = X509Certificate::from_der(&der).unwrap();
-    // values printed by the Go reference (`pkix.Name.String()` and `FormatSubject`)
+    // expected issuer DN and formatted subject of the test certificate
     assert_eq!(
         distinguished_name_string(cert.issuer()),
         r#"CN=Test CA\, \"Root\" #1,O=Test Org,L=Beograd,C=RS,2.5.4.97=#130f56415452532d313030303030303030"#

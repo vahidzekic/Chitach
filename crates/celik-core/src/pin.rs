@@ -1,4 +1,4 @@
-//! PIN helpers. Port of bas-celik `card/pin.go` (MIT, (c) Nikola Ubavić).
+//! PIN helpers.
 
 /// Checks that the PIN consists only of (ASCII) digits and that its length is between 4 and 8.
 pub fn validate_pin(pin: &str) -> bool {

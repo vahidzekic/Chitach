@@ -1,7 +1,4 @@
 //! PC/SC reader access.
-//!
-//! Port of the reader handling in bas-celik `internal/gui/reader` and
-//! `card/state.go` (MIT, (c) Nikola Ubavić).
 
 use crate::apdu::to_hex;
 use crate::{card::CardTransport, CardError, Result};
@@ -237,7 +234,7 @@ pub struct ReaderStatus {
     pub atr: Option<String>,
 }
 
-/// Formats reader state flags (port of bas-celik `card.FormatState`, used for logging).
+/// Formats reader state flags (used for logging).
 pub fn format_state(state: State) -> String {
     let flags = [
         (State::IGNORE, "StateIgnore"),

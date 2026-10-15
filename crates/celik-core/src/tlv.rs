@@ -1,7 +1,5 @@
 //! Simple TLV format used by Serbian ID and medical cards
 //! (two-byte little-endian tag, two-byte little-endian length, value).
-//!
-//! Port of bas-celik `card/tlv` (MIT, (c) Nikola Ubavić).
 
 use crate::error::FormatError;
 use std::collections::HashMap;
