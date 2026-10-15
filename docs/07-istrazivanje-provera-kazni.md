@@ -94,7 +94,7 @@ kazne u registru vezuju se za osobu (JMBG)**, ne za vozilo. Javne provere „po 
 | Zrenjanin | JKP „Pijace i parkinzi", `zrenjanin.park4all.rs/surcharge` (ranije mojekazne.com) | Da (ePPK) | **`GET /api/v1/publicApi/surcharge?plateNumber=<tablica>`** → JSON niz (`[]` = nema), bez prijave, tokena i captcha (reCAPTCHA je samo na formi za prigovor) | **[L]** 2026-10-15 |
 | Zlatibor / Čajetina | KJP „Zlatibor", `edpk.kjpzlatibor.rs` | Da (eDPK) | Angular SPA; iz koda: `GET https://prod.zlatibor.scancar.parking-servis.co.rs/api/fine/unpaid/<tablica>` → `{paymentAccountNumber, fines: [...]}`, bez captcha; odgovor nije viđen (domen blokiran u razvojnom okruženju) | [L] stranica i JS, 2026-10-15; API [P] |
 | Prokuplje | `prokuplje.mojekazne.com` (koncesionar) | Da | nepoznat | [T] |
-| Novi Pazar | Parking servis Novi Pazar; `https://parkingservisnp.rs/info/` samo uključuje (iframe) **ParkingNS** stranicu `https://portal.parkingns.rs/ppkNP` | Da — polje „Registarska oznaka" (format `NPXXXXX`), dugme „Provera"; uputstvo za plaćanje samo za karte iz poslednjih godinu dana; podaci informativni | tačan API zahtev nije utvrđen (verovatno isti `checkPPK`, možda sa parametrom grada/operatera) | **[U]** prijavio saradnik, nije provereno iz ovog okruženja |
+| Novi Pazar | Parking servis Novi Pazar; `https://parkingservisnp.rs/info/` samo uključuje (iframe) **ParkingNS** stranicu `https://portal.parkingns.rs/ppkNP` | Da — polje „Registarska oznaka" (format `NPXXXXX`), dugme „Provera"; uputstvo za plaćanje samo za karte iz poslednjih godinu dana; podaci informativni | `GET https://portal.parkingns.rs/portal/auth/checkPPKNP?platePr=<tablica>` → JSON niz naloga (`[]` = nema) | **[L]** 15. 10. 2026 (v. §13) |
 | ~28 drugih | navodno ParkingNS portal | Da | `checkPPK` | [T] |
 | Subotica | JKP „Parking" Subotica | **Nije pronađena** online provera | SMS/kiosci | [T] |
 | Pančevo | `pancevo.co.rs/parking` | **Nije pronađena** | SMS | [T] |
@@ -520,6 +520,25 @@ Lokalno: `node scripts/fines-portals.mjs [--only nis-parking,kg-sumadija] [--out
 - `robots.txt`: Niš traži `Crawl-delay: 10` (jedan zahtev po proveri to poštuje), Zrenjanin ga nema.
 - Uslovi korišćenja i `robots.txt` tih portala i dalje nisu pročitani (§3, §9); automatsku proveru
   uključivati tek posle toga.
-- Novi Pazar (`np-parking`) se radi u posebnoj grani/niti; ova faza ga ne menja.
+- Novi Pazar (`np-parking`) je urađen posebno (§13).
 - GitHub runner-i su van Srbije; ako neki portal blokira strane IP adrese, nedeljna provera će to
   prijaviti kao grešku iako portal radi za korisnike u Srbiji.
+
+## 13. Novi Pazar: automatska provera
+
+Provereno 15. 10. 2026 učitavanjem stranice `https://portal.parkingns.rs/ppkNP` (Angular aplikacija;
+`parkingservisnp.rs/info/` je samo okvir/iframe oko nje) i njenog `main.*.js`:
+
+- Komponenta `proveraPPKNP` šalje `GET <et>auth/checkPPKNP?platePr=<tablica>`, gde je
+  `et = https://portal.parkingns.rs/portal/` (Novi Sad koristi `auth/checkPPK`). Bez tokena, kolačića
+  i CAPTCHA-e. Tablica se pre slanja samo čisti od razmaka i crtica.
+- Odgovor je JSON niz naloga (`application/json`), `[]` kada nema karata. Stranica grupiše naloge po
+  `idfirme`/`nazivGrada` i prikazuje `brojNaloga`, `regOznaka`, `nazivStatusa`/`statusNaloga`,
+  `zaUplatu`, `primalac`. Primer sa kartama nije viđen (probna tablica je vratila `[]`), pa su imena
+  polja preuzeta iz koda stranice.
+- `robots.txt` portala vraća 403; uslovi korišćenja nisu objavljeni na portalu. Važi isto što i za
+  Novi Sad: provera je opt-in, uz saglasnost, jedan GET po proveri, keš 30 min.
+
+Promena: `np-parking` u `fines.json` je `json_get` sa `check.url`
+`https://portal.parkingns.rs/portal/auth/checkPPKNP?platePr={plate}` i parserom `jsonArray`;
+parser prepoznaje i `zaUplatu` (iznos), `nazivGrada` (mesto) i `nazivStatusa` (opis).
