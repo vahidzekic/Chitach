@@ -1,0 +1,75 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Chitach",
+  "version": "0.1.0",
+  "identifier": "rs.chitach.desktop",
+  "build": {
+    "frontendDist": "../ui/dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": { "script": "npm run dev", "cwd": "../ui", "wait": false },
+    "beforeBuildCommand": { "script": "npm run build", "cwd": "../ui" }
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Chitach",
+        "width": 1100,
+        "height": 760,
+        "minWidth": 860,
+        "minHeight": 600
+      }
+    ],
+    "security": { "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'" }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "publisher": "Vahid Zekic",
+    "copyright": "Copyright © 2026 Vahid Zekic",
+    "homepage": "https://github.com/vahidzekic/Chitach",
+    "license": "MIT",
+    "licenseFile": "../LICENSE",
+    "category": "Utility",
+    "shortDescription": "Čitač srpskih elektronskih dokumenata (lična karta, zdravstvena knjižica, saobraćajna dozvola)",
+    "longDescription": "Chitach reads Serbian smart-card documents - the electronic ID card (lična karta), the health insurance card (zdravstvena knjižica) and the vehicle registration card (saobraćajna dozvola) - through any PC/SC smart-card reader, shows the data in a modern interface and exports it to PDF, JSON and XLSX. It also emulates the Smartbox service used by ePorezi and signs XML documents with qualified certificates.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "linux": {
+      "deb": {
+        "depends": ["libpcsclite1", "pcscd"],
+        "recommends": ["libccid"],
+        "section": "utils"
+      },
+      "rpm": {
+        "depends": ["pcsc-lite", "pcsc-lite-ccid"]
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    },
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true },
+      "nsis": {
+        "installMode": "both",
+        "languages": ["English"],
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "startMenuFolder": "Chitach"
+      },
+      "wix": {
+        "language": ["en-US"]
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "10.15",
+      "signingIdentity": "-",
+      "hardenedRuntime": true
+    }
+  }
+}

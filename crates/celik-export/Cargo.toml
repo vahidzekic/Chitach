@@ -1,0 +1,24 @@
+[package]
+name = "celik-export"
+description = "PDF / JSON / XLSX export of Serbian smart-card documents"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+celik-core = { workspace = true, default-features = false }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+pdf-writer = "0.15"
+subsetter = "0.2.6"
+ttf-parser = "0.25.1"
+miniz_oxide = "0.8"
+png = "0.18"
+rust_xlsxwriter = { version = "0.99", default-features = false }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+
+[dev-dependencies]
+lopdf = "0.45"
+serde_json.workspace = true

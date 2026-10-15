@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Root>
+  <Item b="2" a="1">Tekst &amp; &lt;znak&gt; "q" 'a'</Item>
+  <Empty/>
+  <!-- comment -->
+  <Unicode>Ђорђе Đorđe čćžšđ</Unicode>
+</Root>
