@@ -28,3 +28,5 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 semver = "1"
 sys-locale = "0.3"
 ureq = "3"
+base64.workspace = true
+ring = "0.17"
