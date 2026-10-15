@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns1:PodaciPoreskeDeklaracije xmlns:ns1="http://pid.purs.gov.rs" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pid.purs.gov.rs pid.xsd">
+	<ns1:PodaciOPrijavi>
+		<ns1:VrstaPrijave>1</ns1:VrstaPrijave>
+		<ns1:ObracunskiPeriod>2024-01</ns1:ObracunskiPeriod>
+		<ns1:Iznos valuta="RSD" xmlns:ns1="http://pid.purs.gov.rs">1234.56</ns1:Iznos>
+		<ns1:Napomena><![CDATA[a < b & c]]></ns1:Napomena>
+	</ns1:PodaciOPrijavi>
+	<ns1:Prazno></ns1:Prazno>
+	<?pi data?>
+</ns1:PodaciPoreskeDeklaracije>

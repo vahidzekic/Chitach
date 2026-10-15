@@ -1,0 +1,216 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release, e.g. v0.1.0 (created from the selected branch if it does not exist)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}-${{ inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
+
+jobs:
+  create-release:
+    name: Create draft release
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.release.outputs.id }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate tag
+        id: version
+        shell: bash
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-+].*)?$ ]]; then
+            echo "::error::Tag '$TAG' is not of the form vX.Y.Z"; exit 1
+          fi
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Write release notes header
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          cat > notes.md <<EOF
+          ## Preuzimanje / Download
+
+          | Sistem / OS | Fajl / File |
+          |---|---|
+          | **Windows 10/11 (x64)** | \`Chitach_${VERSION}_x64-setup.exe\` (preporučeno / recommended) ili / or \`Chitach_${VERSION}_x64_en-US.msi\` |
+          | **macOS 10.15+ (Intel i/and Apple Silicon)** | \`Chitach_${VERSION}_universal.dmg\` |
+          | **Ubuntu / Debian / Mint (x64)** | \`Chitach_${VERSION}_amd64.deb\` |
+          | **Ubuntu / Debian / Raspberry Pi OS (arm64)** | \`Chitach_${VERSION}_arm64.deb\` |
+          | **Fedora / RHEL / openSUSE (x64)** | \`Chitach-${VERSION}-1.x86_64.rpm\` |
+          | **Fedora / RHEL / openSUSE (arm64)** | \`Chitach-${VERSION}-1.aarch64.rpm\` |
+          | **Ostali Linux / Other Linux** | \`Chitach_${VERSION}_amd64.AppImage\` / \`Chitach_${VERSION}_aarch64.AppImage\` |
+          | **Komandna linija / Command line** | \`chitach-cli-<os>-<arch>\` |
+
+          **Srpski:** Na Linuksu je potreban servis \`pcscd\` (\`sudo systemctl enable --now pcscd\`).
+          macOS verzija nije notarizovana: prvi put otvorite aplikaciju desnim klikom → *Open*
+          ili u *System Settings → Privacy & Security* kliknite *Open Anyway*.
+          Windows SmartScreen može prikazati upozorenje: *More info → Run anyway*.
+          Detaljno uputstvo: [docs/05-korisnicko-uputstvo.md](https://github.com/${GITHUB_REPOSITORY}/blob/${TAG}/docs/05-korisnicko-uputstvo.md).
+
+          **English:** Linux needs the \`pcscd\` service (\`sudo systemctl enable --now pcscd\`).
+          The macOS build is not notarized: the first time, right-click the app → *Open*,
+          or click *Open Anyway* in *System Settings → Privacy & Security*.
+          Windows SmartScreen may warn about an unknown publisher: *More info → Run anyway*.
+
+          EOF
+          cat notes.md
+
+      - name: Create (or reuse) draft release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          find_id() {
+            gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              --jq ".[] | select(.tag_name == \"${TAG}\") | .id" | head -n1
+          }
+          id="$(find_id)"
+          if [ -z "$id" ]; then
+            prerelease=""
+            if [[ "$VERSION" == *-* ]]; then prerelease="--prerelease"; fi
+            gh release create "$TAG" \
+              --draft $prerelease \
+              --target "$GITHUB_SHA" \
+              --title "Chitach ${TAG}" \
+              --notes-file notes.md \
+              --generate-notes
+            id="$(find_id)"
+          fi
+          echo "Release id: $id"
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS universal
+            os: macos-latest
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+            tauri-args: --target universal-apple-darwin
+            cli-name: chitach-cli-macos-universal
+          - name: Windows x64
+            os: windows-latest
+            rust-targets: ""
+            tauri-args: ""
+            cli-name: chitach-cli-windows-x64.exe
+          - name: Linux x64
+            os: ubuntu-22.04
+            rust-targets: ""
+            tauri-args: ""
+            cli-name: chitach-cli-linux-x64
+          - name: Linux arm64
+            os: ubuntu-22.04-arm
+            rust-targets: ""
+            tauri-args: ""
+            cli-name: chitach-cli-linux-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libpcsclite-dev libgtk-3-dev librsvg2-dev \
+            libayatana-appindicator3-dev libssl-dev libxdo-dev pkg-config \
+            patchelf file xdg-utils
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.os }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Sync version from tag
+        shell: bash
+        run: node scripts/set-version.mjs "$TAG"
+
+      - name: Install UI dependencies
+        run: npm ci
+        working-directory: ui
+
+      - name: Build and upload app bundles
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          tauriScript: npm --prefix ui exec -- tauri
+          args: ${{ matrix.tauri-args }}
+
+      - name: Build CLI (macOS universal)
+        if: runner.os == 'macOS'
+        run: |
+          cargo build --release -p chitach-cli --target aarch64-apple-darwin
+          cargo build --release -p chitach-cli --target x86_64-apple-darwin
+          mkdir -p dist-cli
+          lipo -create -output "dist-cli/${{ matrix.cli-name }}" \
+            target/aarch64-apple-darwin/release/chitach-cli \
+            target/x86_64-apple-darwin/release/chitach-cli
+          codesign --force --sign - "dist-cli/${{ matrix.cli-name }}"
+          lipo -info "dist-cli/${{ matrix.cli-name }}"
+
+      - name: Build CLI (Linux / Windows)
+        if: runner.os != 'macOS'
+        shell: bash
+        run: |
+          cargo build --release -p chitach-cli
+          mkdir -p dist-cli
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp target/release/chitach-cli.exe "dist-cli/${{ matrix.cli-name }}"
+          else
+            cp target/release/chitach-cli "dist-cli/${{ matrix.cli-name }}"
+            chmod +x "dist-cli/${{ matrix.cli-name }}"
+          fi
+
+      - name: Upload CLI to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" "dist-cli/${{ matrix.cli-name }}" --clobber --repo "$GITHUB_REPOSITORY"
+
+  publish:
+    name: Publish release
+    needs: [create-release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
+        run: |
+          gh api -X PATCH "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+            -F draft=false > /dev/null
+          echo "Published ${TAG}: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"

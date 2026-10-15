@@ -1,0 +1,15 @@
+[package]
+name = "chitach-cli"
+description = "Command-line version of Chitach"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "chitach-cli"
+path = "src/main.rs"
+
+[dependencies]
+celik-core = { workspace = true, features = ["pcsc", "rfzo"] }
+celik-export.workspace = true
+log.workspace = true

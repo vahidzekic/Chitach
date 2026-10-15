@@ -1,0 +1,29 @@
+[package]
+name = "chitach"
+description = "Chitach - Serbian eID, medical and vehicle card reader"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "chitach_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+celik-core = { workspace = true, features = ["pcsc", "rfzo"] }
+celik-export.workspace = true
+celik-sign.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+log.workspace = true
+x509-parser.workspace = true
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+semver = "1"
+sys-locale = "0.3"
+ureq = "3"
