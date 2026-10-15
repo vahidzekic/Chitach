@@ -46,8 +46,14 @@
       "category": "parking",
       "name": "Kragujevac – JKP „Šumadija“",
       "cities": ["KG"],
-      "kind": "link",
-      "url": "https://kragujevac.mojekazne.com/"
+      "kind": "json_post",
+      "url": "https://kragujevac.mojekazne.com/",
+      "check": {
+        "url": "https://api.mojekazne.com/API/kazne/",
+        "parser": "jsonArray",
+        "json": { "id": 9009, "regOzn": "{plate}" },
+        "emptyIsClean": true
+      }
     },
     {
       "id": "zr-parking",

@@ -140,7 +140,7 @@
   "fines.provider.euprava-prekrsaji.name": "eUprava – Traffic offences overview",
   "fines.provider.euprava-prekrsaji.note": "Offences, penalty points and orders of the signed-in person. Sign in with ConsentID or the ID card certificate.",
   "fines.provider.kg-sumadija.name": "Kragujevac – JKP “Šumadija”",
-  "fines.provider.kg-sumadija.note": "Check of daily parking tickets by plate.",
+  "fines.provider.kg-sumadija.note": "Check of daily parking tickets by plate. Supports the automatic check.",
   "fines.provider.nis-parking.name": "Niš – Parking servis (eDPK)",
   "fines.provider.nis-parking.note": "Menu “eDPK provera”, tickets from the last 60 days.",
   "fines.provider.np-parking.name": "Novi Pazar – Parking servis (ParkingNS portal)",

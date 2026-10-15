@@ -252,8 +252,8 @@ export interface UpdateInfo {
 }
 
 export type FinesCategory = "parking" | "person" | "toll";
-/** "link": opened in the browser; "json_get" / "html_form": optional automatic check */
-export type FinesProviderKind = "link" | "json_get" | "html_form";
+/** "link": opened in the browser; "json_get" / "html_form" / "json_post": optional automatic check */
+export type FinesProviderKind = "link" | "json_get" | "html_form" | "json_post";
 
 export interface FinesProvider {
   id: string;

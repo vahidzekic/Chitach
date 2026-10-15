@@ -4,7 +4,7 @@
 // For every provider in src-tauri/providers/fines.json:
 //   - the page (`url`) must answer (2xx/3xx). 401/403/429 count as "protected" (bot
 //     protection, a warning, not a failure);
-//   - an automatic check (`json_get`, `html_form`) is sent once with a test plate and
+//   - an automatic check (`json_get`, `html_form`, `json_post`) is sent once with a test plate and
 //     its answer must have the shape the app's parser expects;
 //   - the page is summarised (title, forms with their fields, iframes, captcha) so link-only
 //     cities can be turned into automatic checks, and the bodies are saved as samples.
@@ -50,10 +50,13 @@ const expand = (p, t) =>
 // A plate that is very unlikely to have tickets; only sent to portals the app itself uses.
 const testPlate = (p) => `${p.cities?.[0] ?? "BG"}999ZZ`;
 
-async function request(method, url, form) {
+async function request(method, url, form, json) {
   const headers = { "User-Agent": USER_AGENT, Accept: "text/html,application/json;q=0.9,*/*;q=0.5" };
   let body;
-  if (form && method === "POST") {
+  if (json) {
+    headers["Content-Type"] = "application/json";
+    body = JSON.stringify(json);
+  } else if (form && method === "POST") {
     headers["Content-Type"] = "application/x-www-form-urlencoded";
     body = new URLSearchParams(form).toString();
   } else if (form && Object.keys(form).length) {
@@ -85,16 +88,22 @@ function summarize(html) {
 
 function checkShape(p, r) {
   const c = p.check;
-  if (p.kind === "json_get") {
+  if (p.kind === "json_get" || p.kind === "json_post") {
+    // Same rules as fines.rs `parse_json_array` / `interpret`.
+    if (c.emptyIsClean && ["", '""'].includes(r.text.trim())) return null;
     if (/html/i.test(r.contentType) || r.text.trimStart().startsWith("<")) return "HTML instead of JSON";
     let v;
     try {
       v = JSON.parse(r.text);
+      if (typeof v === "string") v = JSON.parse(v);
     } catch {
       return "not JSON";
     }
     const arrays = Array.isArray(v) ? [v] : v && typeof v === "object" ? Object.values(v).filter(Array.isArray) : [];
-    return arrays.length === 1 ? null : "JSON without a single array";
+    if (arrays.length !== 1) return "JSON without a single array";
+    const rows = arrays[0];
+    const errorRow = (r) => typeof r?.response === "string" && r.response.toUpperCase().includes("ERROR");
+    return rows.length && rows.every(errorRow) ? "error row instead of tickets" : null;
   }
   if (p.kind === "html_form") {
     const lower = r.text.toLowerCase();
@@ -126,12 +135,21 @@ for (const p of defs.providers) {
   if (page.text !== undefined) writeFileSync(join(outDir, `${p.id}.page.html`), page.text);
 
   let checkState = "—";
-  if (p.check && (p.kind === "json_get" || p.kind === "html_form")) {
+  if (p.check && ["json_get", "html_form", "json_post"].includes(p.kind)) {
     const c = p.check;
-    const method = (c.method ?? "get").toUpperCase();
+    const method = p.kind === "json_post" ? "POST" : (c.method ?? "get").toUpperCase();
+    const json =
+      p.kind === "json_post"
+        ? Object.fromEntries(
+            Object.entries(c.json ?? {}).map(([k, v]) => [
+              k,
+              typeof v === "string" ? v.replaceAll("{route}", p.route ?? "").replaceAll("{city}", p.cities?.[0] ?? "").replaceAll("{plate}", plate) : v,
+            ]),
+          )
+        : undefined;
     const form = Object.fromEntries(Object.entries(c.form ?? {}).map(([k, v]) => [k, expand(p, v).replaceAll("{plate}", plate)]));
     const url = expand(p, c.url).replaceAll("{plate}", encodeURIComponent(plate));
-    const r = await request(method, url, form);
+    const r = await request(method, url, form, json);
     if (r.error) checkState = `FAIL ${r.error}`;
     else if ([401, 403, 429].includes(r.status)) checkState = `FAIL protected (HTTP ${r.status}): the app falls back to "check by hand"`;
     else if (r.status >= 400) checkState = `FAIL HTTP ${r.status}`;

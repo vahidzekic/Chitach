@@ -1,7 +1,7 @@
 //! Vehicle fines check ("Provera kazni"), see docs/07-istrazivanje-provera-kazni.md.
 //!
 //! Provider definitions are declarative JSON (`providers/fines.json`, embedded in the
-//! binary; newer signed copies are downloaded by [`crate::fines_defs`]). Three kinds exist:
+//! binary; newer signed copies are downloaded by [`crate::fines_defs`]). Four kinds exist:
 //! - `link`: the UI opens the official portal in the system browser (optionally with the
 //!   plate in the URL); nothing is sent by the app.
 //! - `json_get`: an opt-in automatic check. Only the plate is sent, with a single GET to
@@ -11,6 +11,9 @@
 //! - `html_form`: an opt-in automatic check of a portal that answers a plain HTML form:
 //!   one GET or POST (`check.method`, form fields in `check.form`), the answer page is
 //!   classified by text markers (`check.found` / `check.clean`, parser `htmlMarkers`).
+//! - `json_post`: an opt-in automatic check of a JSON API that takes a POST with a JSON
+//!   body (`check.json`, string values may contain `{plate}`), answered like `json_get`
+//!   (parser `jsonArray`); `check.emptyIsClean` makes an empty answer mean "no tickets".
 //!
 //! A provider whose `kind` or `check` this version does not understand is still shown,
 //! as a `link` to its page.
@@ -63,16 +66,18 @@ pub enum Kind {
     Link,
     JsonGet,
     HtmlForm,
+    JsonPost,
     /// Kinds added by newer definitions are ignored.
     #[serde(other)]
     Unknown,
 }
 
 /// Response parser of a `json_get` provider.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Parser {
     /// JSON array of tickets; empty array = no tickets.
+    #[default]
     JsonArray,
     /// HTML answer page classified by `found` / `clean` text markers.
     HtmlMarkers,
@@ -106,24 +111,39 @@ pub struct CheckDef {
     /// `htmlMarkers`: text that appears on the answer page only when nothing was found.
     #[serde(default)]
     pub clean: Vec<String>,
+    /// `json_post`: JSON object sent as the body; `{plate}`, `{route}`, `{city}` are
+    /// substituted in its string values.
+    #[serde(default)]
+    pub json: serde_json::Map<String, Value>,
+    /// An empty answer means "no tickets" (the portal says so by sending nothing).
+    #[serde(default)]
+    pub empty_is_clean: bool,
 }
 
 impl CheckDef {
     fn has_plate(&self) -> bool {
-        self.url.contains("{plate}") || self.form.values().any(|v| v.contains("{plate}"))
+        self.url.contains("{plate}")
+            || self.form.values().any(|v| v.contains("{plate}"))
+            || self
+                .json
+                .values()
+                .any(|v| v.as_str().is_some_and(|s| s.contains("{plate}")))
     }
 }
 
 /// One automatic-check request, resolved for a plate.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Request {
     pub method: Method,
     pub url: String,
     /// Form fields (query of a GET, body of a POST), values not encoded.
     pub form: Vec<(String, String)>,
+    /// JSON body of a POST (`json_post`); sent instead of `form`.
+    pub json: Option<Value>,
     pub parser: Parser,
     pub found: Vec<String>,
     pub clean: Vec<String>,
+    pub empty_is_clean: bool,
 }
 
 /// One provider from `fines.json`. The UI translates the name and the note with the keys
@@ -146,7 +166,7 @@ pub struct Provider {
     pub kind: Kind,
     /// Page opened for the user; may contain `{plate}`.
     pub url: String,
-    /// Automatic check (`json_get` only).
+    /// Automatic check (`json_get`, `html_form`, `json_post`).
     #[serde(default)]
     pub check: Option<CheckDef>,
 }
@@ -209,16 +229,44 @@ impl Provider {
                 .iter()
                 .map(|(k, v)| (k.clone(), self.expand(v).replace("{plate}", plate)))
                 .collect(),
+            json: (self.kind == Kind::JsonPost).then(|| {
+                Value::Object(
+                    c.json
+                        .iter()
+                        .map(|(k, v)| {
+                            let v = match v {
+                                Value::String(s) => {
+                                    Value::String(self.expand_raw(s).replace("{plate}", plate))
+                                }
+                                other => other.clone(),
+                            };
+                            (k.clone(), v)
+                        })
+                        .collect(),
+                )
+            }),
             parser: c.parser,
             found: c.found.clone(),
             clean: c.clean.clone(),
+            empty_is_clean: c.empty_is_clean,
         })
+    }
+
+    /// Like [`Provider::expand`], without URL encoding (for JSON bodies).
+    fn expand_raw(&self, template: &str) -> String {
+        let route = self.route.as_deref().unwrap_or_default();
+        let city = self.cities.first().map(String::as_str).unwrap_or_default();
+        template.replace("{route}", route).replace("{city}", city)
     }
 
     fn uses_route(&self) -> bool {
         self.url.contains("{route}")
             || self.check.as_ref().is_some_and(|c| {
-                c.url.contains("{route}") || c.form.values().any(|v| v.contains("{route}"))
+                c.url.contains("{route}")
+                    || c.form.values().any(|v| v.contains("{route}"))
+                    || c.json
+                        .values()
+                        .any(|v| v.as_str().is_some_and(|s| s.contains("{route}")))
             })
     }
 
@@ -238,6 +286,7 @@ impl Provider {
         let base = c.url.starts_with("https://") && url_host(&c.url).is_some() && c.has_plate();
         base && match self.kind {
             Kind::JsonGet => c.parser == Parser::JsonArray && c.method == Method::Get,
+            Kind::JsonPost => c.parser == Parser::JsonArray && !c.json.is_empty(),
             // Both marker lists are required: a page that matches neither is never "clean".
             Kind::HtmlForm => {
                 c.parser == Parser::HtmlMarkers
@@ -249,7 +298,7 @@ impl Provider {
     }
 
     pub fn is_auto(&self) -> bool {
-        matches!(self.kind, Kind::JsonGet | Kind::HtmlForm)
+        matches!(self.kind, Kind::JsonGet | Kind::HtmlForm | Kind::JsonPost)
     }
 
     /// Validate; an automatic check this version cannot run degrades to a `link`.
@@ -422,7 +471,7 @@ pub struct ProviderView {
     pub category: Category,
     pub cities: Vec<String>,
     pub kind: Kind,
-    /// Has an automatic check (`json_get`, `html_form`).
+    /// Has an automatic check (`json_get`, `html_form`, `json_post`).
     pub auto: bool,
     /// Page to open (plate filled in where supported).
     pub url: String,
@@ -643,15 +692,24 @@ fn looks_like_html(body: &str, content_type: Option<&str>) -> bool {
 }
 
 /// `jsonArray` parser: `[]` = clean, `[..]` = tickets. An object wrapping a single
-/// array (e.g. `{"data": [...]}`) is accepted too. HTML (captcha, login page) = manual.
+/// array (e.g. `{"data": [...]}`) is accepted too, also when the whole answer is JSON
+/// encoded once more as a string (mojekazne: `"{\"table\":[...]}"`). HTML (captcha, login
+/// page) = manual. Rows that only report an error (`{"response":"ERROR_MESSAGE"}`) are
+/// an unexpected answer, never tickets and never "clean".
 pub fn parse_json_array(content_type: Option<&str>, body: &str) -> Parsed {
     if looks_like_html(body, content_type) {
         return Parsed::new(CheckStatus::Manual, Some("HTML response".into()));
     }
-    let value: Value = match serde_json::from_str(body) {
+    let mut value: Value = match serde_json::from_str(body) {
         Ok(v) => v,
         Err(e) => return Parsed::new(CheckStatus::ParseError, Some(e.to_string())),
     };
+    if let Value::String(inner) = &value {
+        value = match serde_json::from_str(inner) {
+            Ok(v) => v,
+            Err(e) => return Parsed::new(CheckStatus::ParseError, Some(e.to_string())),
+        };
+    }
     let array = match &value {
         Value::Array(a) => Some(a),
         Value::Object(o) => {
@@ -668,6 +726,14 @@ pub fn parse_json_array(content_type: Option<&str>, body: &str) -> Parsed {
     };
     if array.is_empty() {
         return Parsed::new(CheckStatus::Clean, None);
+    }
+    let error_row = |v: &Value| {
+        v.get("response")
+            .and_then(Value::as_str)
+            .is_some_and(|r| r.to_ascii_uppercase().contains("ERROR"))
+    };
+    if array.iter().all(error_row) {
+        return Parsed::new(CheckStatus::ParseError, Some("error row".into()));
     }
     Parsed {
         status: CheckStatus::Found,
@@ -941,6 +1007,10 @@ pub fn interpret(req: &Request, fetched: Fetched) -> Parsed {
         }
         Fetched::Network(e) => Parsed::new(CheckStatus::Unavailable, Some(e)),
         Fetched::Body { content_type, body } => match req.parser {
+            // An empty answer, or an empty JSON string (`""`).
+            Parser::JsonArray if req.empty_is_clean && matches!(body.trim(), "" | "\"\"") => {
+                Parsed::new(CheckStatus::Clean, None)
+            }
             Parser::JsonArray => parse_json_array(content_type.as_deref(), &body),
             Parser::HtmlMarkers => parse_html_markers(&body, &req.found, &req.clean),
             Parser::Unknown => Parsed::new(CheckStatus::Manual, None),
@@ -949,9 +1019,9 @@ pub fn interpret(req: &Request, fetched: Fetched) -> Parsed {
 }
 
 impl Request {
-    /// URL with the form fields as query (GET) or as is (POST).
+    /// URL with the form fields as query (GET) or as is (POST, JSON body).
     pub fn full_url(&self) -> String {
-        if self.method == Method::Post || self.form.is_empty() {
+        if self.method == Method::Post || self.json.is_some() || self.form.is_empty() {
             return self.url.clone();
         }
         let sep = if self.url.contains('?') { '&' } else { '?' };
@@ -980,13 +1050,19 @@ pub fn fetch(req: &Request) -> Fetched {
         _ => "application/json",
     };
     let url = req.full_url();
-    let response = match req.method {
-        Method::Get => agent
+    let response = match (req.method, &req.json) {
+        (_, Some(json)) => agent
+            .post(&url)
+            .header("User-Agent", USER_AGENT)
+            .header("Accept", accept)
+            .content_type("application/json")
+            .send(json.to_string()),
+        (Method::Get, None) => agent
             .get(&url)
             .header("User-Agent", USER_AGENT)
             .header("Accept", accept)
             .call(),
-        Method::Post => agent
+        (Method::Post, None) => agent
             .post(&url)
             .header("User-Agent", USER_AGENT)
             .header("Accept", accept)
@@ -1209,8 +1285,7 @@ mod tests {
             url: "https://x.rs/p?a=1".into(),
             form: vec![("t".into(), "BG 1".into())],
             parser: Parser::HtmlMarkers,
-            found: vec![],
-            clean: vec![],
+            ..Default::default()
         };
         assert_eq!(get.full_url(), "https://x.rs/p?a=1&t=BG%201");
     }
@@ -1287,7 +1362,7 @@ mod tests {
         assert!(info
             .providers
             .iter()
-            .all(|p| p.kind == Kind::JsonGet || p.check_domain.is_none()));
+            .all(|p| p.auto || p.check_domain.is_none()));
     }
 
     #[test]
@@ -1538,6 +1613,7 @@ mod tests {
             parser: Parser::HtmlMarkers,
             found: vec!["Broj naloga".into()],
             clean: vec!["Nema izdatih karata".into()],
+            ..Default::default()
         }
     }
 
@@ -1568,6 +1644,60 @@ mod tests {
         assert_eq!(
             normalize_text(" Нема  ИЗДАТИХ\n карата "),
             "nema izdatih karata"
+        );
+    }
+
+    #[test]
+    fn json_post_request_and_answers() {
+        let json = r#"{"schema":1,"providers":[
+          {"id":"kg","category":"parking","name":"KG","cities":["KG"],"kind":"json_post",
+           "url":"https://kg.example.rs/",
+           "check":{"url":"https://api.example.rs/API/kazne/","parser":"jsonArray",
+                    "json":{"id":9009,"regOzn":"{plate}","grad":"{city}"},"emptyIsClean":true}},
+          {"id":"nobody","category":"parking","name":"X","kind":"json_post","url":"https://x.rs/",
+           "check":{"url":"https://x.rs/api","parser":"jsonArray"}}
+        ]}"#;
+        let ps = parse_providers(json).unwrap();
+        assert_eq!(ps[0].kind, Kind::JsonPost);
+        // Without a body (and so without the plate) it is only a link.
+        assert_eq!(ps[1].kind, Kind::Link);
+        let req = ps[0].check_request("KG12ČĆ").unwrap();
+        assert_eq!(req.full_url(), "https://api.example.rs/API/kazne/");
+        assert_eq!(
+            req.json,
+            Some(serde_json::json!({"id": 9009, "regOzn": "KG12ČĆ", "grad": "KG"}))
+        );
+        let body = |b: &str| Fetched::Body {
+            content_type: Some("application/json".into()),
+            body: b.into(),
+        };
+        // Empty answer (or an empty JSON string): no tickets, but only when the definition says so.
+        assert_eq!(interpret(&req, body("")).status, CheckStatus::Clean);
+        assert_eq!(interpret(&req, body("\"\"")).status, CheckStatus::Clean);
+        let strict = Request {
+            empty_is_clean: false,
+            ..req.clone()
+        };
+        assert_eq!(interpret(&strict, body("")).status, CheckStatus::ParseError);
+        // The answer JSON encoded once more as a string.
+        let p = interpret(
+            &req,
+            body(r#""{\"table\":[{\"datum\":\"01.10.2026.\",\"iznos\":\"1000\"}]}""#),
+        );
+        assert_eq!(p.status, CheckStatus::Found);
+        assert_eq!(p.items.len(), 1);
+        assert_eq!(
+            interpret(&req, body(r#""{\"table\":[]}""#)).status,
+            CheckStatus::Clean
+        );
+        // A row that only reports an error is neither tickets nor "clean".
+        assert_eq!(
+            interpret(
+                &req,
+                body(r#""{\"table\":[{\"response\":\"ERROR_MESSAGE\"}]}""#)
+            )
+            .status,
+            CheckStatus::ParseError
         );
     }
 
