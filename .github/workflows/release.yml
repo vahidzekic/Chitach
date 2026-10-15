@@ -43,8 +43,18 @@ jobs:
       - name: Write release notes header
         env:
           VERSION: ${{ steps.version.outputs.version }}
+          MAC_SIGNED: ${{ secrets.APPLE_CERTIFICATE != '' && 'yes' || '' }}
         shell: bash
         run: |
+          if [ -n "$MAC_SIGNED" ]; then
+            MAC_SR="macOS verzija je potpisana i notarizovana kod Apple-a."
+            MAC_EN="The macOS build is signed and notarized by Apple."
+          else
+            MAC_SR="macOS verzija nije notarizovana: prvi put otvorite aplikaciju desnim klikom → *Open*
+          ili u *System Settings → Privacy & Security* kliknite *Open Anyway*."
+            MAC_EN="The macOS build is not notarized: the first time, right-click the app → *Open*,
+          or click *Open Anyway* in *System Settings → Privacy & Security*."
+          fi
           cat > notes.md <<EOF
           ## Preuzimanje / Download
 
@@ -60,14 +70,12 @@ jobs:
           | **Komandna linija / Command line** | \`chitach-cli-<os>-<arch>\` |
 
           **Srpski:** Na Linuksu je potreban servis \`pcscd\` (\`sudo systemctl enable --now pcscd\`).
-          macOS verzija nije notarizovana: prvi put otvorite aplikaciju desnim klikom → *Open*
-          ili u *System Settings → Privacy & Security* kliknite *Open Anyway*.
+          ${MAC_SR}
           Windows SmartScreen može prikazati upozorenje: *More info → Run anyway*.
           Detaljno uputstvo: [docs/05-korisnicko-uputstvo.md](https://github.com/${GITHUB_REPOSITORY}/blob/${TAG}/docs/05-korisnicko-uputstvo.md).
 
           **English:** Linux needs the \`pcscd\` service (\`sudo systemctl enable --now pcscd\`).
-          The macOS build is not notarized: the first time, right-click the app → *Open*,
-          or click *Open Anyway* in *System Settings → Privacy & Security*.
+          ${MAC_EN}
           Windows SmartScreen may warn about an unknown publisher: *More info → Run anyway*.
 
           EOF
@@ -137,6 +145,9 @@ jobs:
             tauri-args: ""
             cli-name: chitach-cli-linux-arm64
     runs-on: ${{ matrix.os }}
+    env:
+      # Windows code signing through SignPath (see docs/06-razvoj.md); off until the token exists.
+      SIGNPATH: ${{ matrix.os == 'windows-latest' && secrets.SIGNPATH_API_TOKEN != '' && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -171,7 +182,66 @@ jobs:
         run: npm ci
         working-directory: ui
 
+      # Developer ID signing and notarization, only when the Apple secrets are set
+      # (see docs/06-razvoj.md). Without them the build stays ad-hoc signed.
+      - name: Set up Apple signing
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "Apple secrets not set: ad-hoc signing, no notarization."
+            exit 0
+          fi
+          if [ -z "$APPLE_SIGNING_IDENTITY" ]; then
+            echo "::error::APPLE_SIGNING_IDENTITY is required with APPLE_CERTIFICATE"; exit 1
+          fi
+          keychain="$RUNNER_TEMP/chitach-signing.keychain-db"
+          kc_pass="$(openssl rand -hex 16)"
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$kc_pass" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$kc_pass" "$keychain"
+          security import "$RUNNER_TEMP/cert.p12" -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$kc_pass" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/cert.p12"
+          echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY" >> "$GITHUB_ENV"
+
+          if [ -n "$APPLE_API_KEY_P8" ]; then
+            mkdir -p "$RUNNER_TEMP/private_keys"
+            key_path="$RUNNER_TEMP/private_keys/AuthKey_${APPLE_API_KEY}.p8"
+            printf '%s' "$APPLE_API_KEY_P8" > "$key_path"
+            {
+              echo "APPLE_API_ISSUER=$APPLE_API_ISSUER"
+              echo "APPLE_API_KEY=$APPLE_API_KEY"
+              echo "APPLE_API_KEY_PATH=$key_path"
+            } >> "$GITHUB_ENV"
+            echo "Notarization: App Store Connect API key."
+          elif [ -n "$APPLE_ID" ]; then
+            echo "::add-mask::$APPLE_PASSWORD"
+            {
+              echo "APPLE_ID=$APPLE_ID"
+              echo "APPLE_PASSWORD=$APPLE_PASSWORD"
+              echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"
+            } >> "$GITHUB_ENV"
+            echo "Notarization: Apple ID."
+          else
+            echo "::warning::No notarization credentials: the app is signed but not notarized."
+          fi
+
       - name: Build and upload app bundles
+        if: env.SIGNPATH != 'true'
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -179,6 +249,10 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           tauriScript: npm run tauri
           args: ${{ matrix.tauri-args }}
+
+      - name: Build app bundles (Windows, for signing)
+        if: env.SIGNPATH == 'true'
+        run: npm run tauri build
 
       - name: Build CLI (macOS universal)
         if: runner.os == 'macOS'
@@ -189,8 +263,25 @@ jobs:
           lipo -create -output "dist-cli/${{ matrix.cli-name }}" \
             target/aarch64-apple-darwin/release/chitach-cli \
             target/x86_64-apple-darwin/release/chitach-cli
-          codesign --force --sign - "dist-cli/${{ matrix.cli-name }}"
-          lipo -info "dist-cli/${{ matrix.cli-name }}"
+          cli="dist-cli/${{ matrix.cli-name }}"
+          if [ -n "$APPLE_SIGNING_IDENTITY" ]; then
+            codesign --force --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" "$cli"
+            # A bare binary cannot be stapled, but Gatekeeper finds the ticket online.
+            notary=()
+            if [ -n "$APPLE_API_KEY_PATH" ]; then
+              notary=(--key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY" --issuer "$APPLE_API_ISSUER")
+            elif [ -n "$APPLE_ID" ]; then
+              notary=(--apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID")
+            fi
+            if [ ${#notary[@]} -gt 0 ]; then
+              ditto -c -k --keepParent "$cli" "$RUNNER_TEMP/cli.zip"
+              xcrun notarytool submit "$RUNNER_TEMP/cli.zip" "${notary[@]}" --wait
+            fi
+          else
+            codesign --force --sign - "$cli"
+          fi
+          codesign --verify --verbose "$cli"
+          lipo -info "$cli"
 
       - name: Build CLI (Linux / Windows)
         if: runner.os != 'macOS'
@@ -205,7 +296,49 @@ jobs:
             chmod +x "dist-cli/${{ matrix.cli-name }}"
           fi
 
+      - name: Collect unsigned Windows files
+        if: env.SIGNPATH == 'true'
+        shell: bash
+        run: |
+          mkdir -p unsigned
+          cp target/release/bundle/nsis/*-setup.exe target/release/bundle/msi/*.msi unsigned/
+          cp "dist-cli/${{ matrix.cli-name }}" unsigned/
+          ls -l unsigned
+
+      - name: Upload unsigned Windows files
+        if: env.SIGNPATH == 'true'
+        id: unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-unsigned
+          path: unsigned/*
+          if-no-files-found: error
+
+      - name: Sign with SignPath
+        if: env.SIGNPATH == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'Chitach' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG || 'windows' }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed
+
+      - name: Upload signed Windows files to release
+        if: env.SIGNPATH == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -l signed
+          gh release upload "$TAG" signed/* --clobber --repo "$GITHUB_REPOSITORY"
+
       - name: Upload CLI to release
+        if: env.SIGNPATH != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
