@@ -154,7 +154,7 @@
   "fines.provider.zlatibor-parking.name": "Zlatibor / Čajetina – KJP “Zlatibor” (eDPK)",
   "fines.provider.zlatibor-parking.note": "eDPK check by plate.",
   "fines.provider.zr-parking.name": "Zrenjanin – JKP “Pijace i parkinzi” (ePPK)",
-  "fines.provider.zr-parking.note": "Check of electronic parking tickets by plate.",
+  "fines.provider.zr-parking.note": "Check of electronic parking tickets by plate. Supports the automatic check.",
   "fines.status.checking": "Checking…",
   "fines.status.clean": "No fines",
   "fines.status.found": "Fines found: %s",
