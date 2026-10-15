@@ -121,6 +121,10 @@ Napomene:
 
 ### macOS potpisivanje i notarizacija
 
+Najlakše: na Mac-u na kome je sertifikat pokrenite `bash scripts/setup-macos-signing.sh`. Skripta
+izvozi najnoviji „Developer ID Application" sertifikat, pita za App Store Connect API ključ i
+upisuje sve tajne preko GitHub CLI-ja (`gh`). Ručno:
+
 U *Settings → Secrets and variables → Actions → New repository secret* dodajte:
 
 | Tajna | Vrednost |

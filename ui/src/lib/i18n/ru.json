@@ -144,7 +144,7 @@
   "fines.provider.nis-parking.name": "Ниш – Parking servis (eDPK)",
   "fines.provider.nis-parking.note": "Меню «eDPK provera», квитанции за последние 60 дней.",
   "fines.provider.np-parking.name": "Нови-Пазар – Parking servis (портал ParkingNS)",
-  "fines.provider.np-parking.note": "Поле «Registarska oznaka» (например, NP123AB), кнопка «Provera». Инструкции по оплате только для квитанций за последний год; данные носят справочный характер.",
+  "fines.provider.np-parking.note": "Электронные парковочные квитанции по номеру (например, NP123AB) на портале ParkingNS. Поддерживает автопроверку. Инструкции по оплате только для квитанций за последний год; данные носят справочный характер.",
   "fines.provider.parkingns.name": "Нови-Сад – портал ParkingNS (ePPK)",
   "fines.provider.parkingns.note": "Электронные парковочные квитанции по номеру; по сообщениям, система используется и в других городах. Поддерживает автопроверку.",
   "fines.provider.pk-parking.name": "Прокуплье",

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="sr">
+<html lang="sr-Latn">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -126,7 +126,7 @@
       <figure><img src="img/05-settings.png" alt="" loading="lazy">
         <figcaption><span class="sr">Podešavanja</span><span class="en">Settings</span></figcaption></figure>
     </div>
-    <p class="note"><span class="sr">Na slikama su izmišljeni primer podaci.</span>
+    <p class="note"><span class="sr">Na slikama su izmišljeni podaci, samo kao primer.</span>
       <span class="en">Screenshots show made-up sample data.</span></p>
   </section>
 
@@ -134,18 +134,18 @@
     <h2><span class="sr">Preuzimanje</span><span class="en">Download</span></h2>
     <div class="table-scroll">
     <table>
-      <tr><th><span class="sr">Sistem</span><span class="en">System</span></th><th><span class="sr">Fajl</span><span class="en">File</span></th></tr>
+      <tr><th><span class="sr">Sistem</span><span class="en">System</span></th><th><span class="sr">Datoteka</span><span class="en">File</span></th></tr>
       <tr><td>Windows 10/11 (x64)</td><td><code>Chitach_X.Y.Z_x64-setup.exe</code> <span class="sr">ili</span><span class="en">or</span> <code>.msi</code></td></tr>
       <tr><td>macOS 10.15+ (Intel, Apple Silicon)</td><td><code>Chitach_X.Y.Z_universal.dmg</code></td></tr>
       <tr><td>Ubuntu / Debian / Mint</td><td><code>Chitach_X.Y.Z_amd64.deb</code> / <code>_arm64.deb</code></td></tr>
       <tr><td>Fedora / RHEL / openSUSE</td><td><code>Chitach-X.Y.Z-1.x86_64.rpm</code> / <code>.aarch64.rpm</code></td></tr>
-      <tr><td><span class="sr">Ostali Linux</span><span class="en">Other Linux</span></td><td><code>Chitach_X.Y.Z_amd64.AppImage</code> / <code>_aarch64.AppImage</code></td></tr>
+      <tr><td><span class="sr">Ostale Linux distribucije</span><span class="en">Other Linux</span></td><td><code>Chitach_X.Y.Z_amd64.AppImage</code> / <code>_aarch64.AppImage</code></td></tr>
       <tr><td><span class="sr">Komandna linija</span><span class="en">Command line</span></td><td><code>chitach-cli-&lt;os&gt;-&lt;arch&gt;</code></td></tr>
     </table>
     </div>
     <p class="note">
       <span class="sr">Na Linuksu je potreban servis <code>pcscd</code> (<code>sudo systemctl enable --now pcscd</code>).
-        Detaljno <a href="https://github.com/vahidzekic/Chitach/blob/main/docs/05-korisnicko-uputstvo.md">korisničko uputstvo</a>.</span>
+        Detaljnije u <a href="https://github.com/vahidzekic/Chitach/blob/main/docs/05-korisnicko-uputstvo.md">korisničkom uputstvu</a>.</span>
       <span class="en">Linux needs the <code>pcscd</code> service (<code>sudo systemctl enable --now pcscd</code>).
         See the <a href="https://github.com/vahidzekic/Chitach/blob/main/docs/05-korisnicko-uputstvo.md">user guide</a> (Serbian).</span>
     </p>
@@ -158,12 +158,12 @@
     <p class="en">Free code signing for Windows releases is provided by <a href="https://about.signpath.io/">SignPath.io</a>,
       with a certificate by <a href="https://signpath.org/">SignPath Foundation</a>.</p>
     <ul>
-      <li><span class="sr">Autori i recenzenti:</span><span class="en">Committers and reviewers:</span>
+      <li><span class="sr">Autori izmena i recenzenti:</span><span class="en">Committers and reviewers:</span>
         <a href="https://github.com/vahidzekic">Vahid Zekic</a></li>
       <li><span class="sr">Odobravanje izdanja:</span><span class="en">Approvers:</span>
         <a href="https://github.com/vahidzekic">Vahid Zekic</a></li>
     </ul>
-    <p class="sr">Potpisuju se samo fajlovi koje GitHub Actions izgradi iz
+    <p class="sr">Potpisuju se isključivo datoteke koje GitHub Actions izgradi iz
       <a href="https://github.com/vahidzekic/Chitach">ovog repozitorijuma</a> za objavljen tag.</p>
     <p class="en">Only files built by GitHub Actions from
       <a href="https://github.com/vahidzekic/Chitach">this repository</a> for a published tag are signed.</p>
@@ -187,21 +187,18 @@
     var body = document.body, btn = document.getElementById("lang");
     function set(lang) {
       body.dataset.lang = lang;
-      document.documentElement.lang = lang;
+      document.documentElement.lang = lang === "sr" ? "sr-Latn" : "en";
       btn.textContent = lang === "sr" ? "English" : "Srpski";
-      try { localStorage.setItem("chitach-lang", lang); } catch (e) {}
     }
-    var saved = null;
-    try { saved = localStorage.getItem("chitach-lang"); } catch (e) {}
-    if (location.hash === "#en") saved = "en";
-    set(saved || ((navigator.language || "").slice(0, 2) === "sr" || !navigator.language ? "sr" : "en"));
+    // The site always opens in Serbian; English only via the button (or a #en link).
+    set(location.hash === "#en" ? "en" : "sr");
     btn.addEventListener("click", function () { set(body.dataset.lang === "sr" ? "en" : "sr"); });
 
     fetch("https://api.github.com/repos/vahidzekic/Chitach/releases/latest")
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (rel) {
         if (!rel || !rel.tag_name) return;
-        var d = new Date(rel.published_at).toLocaleDateString(body.dataset.lang === "sr" ? "sr-Latn" : "en");
+        var d = new Date(rel.published_at).toLocaleDateString(document.documentElement.lang);
         document.getElementById("version").textContent = rel.tag_name + " · " + d;
       })
       .catch(function () {});

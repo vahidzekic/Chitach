@@ -144,7 +144,7 @@
   "fines.provider.nis-parking.name": "Niš – Parking servis (eDPK)",
   "fines.provider.nis-parking.note": "Meni „eDPK provera“, karte iz poslednjih 60 dana.",
   "fines.provider.np-parking.name": "Novi Pazar – Parking servis (ParkingNS portal)",
-  "fines.provider.np-parking.note": "Polje „Registarska oznaka“ (npr. NP123AB), dugme „Provera“. Uputstvo za plaćanje samo za karte iz poslednjih godinu dana; podaci su informativni.",
+  "fines.provider.np-parking.note": "Elektronske parking karte po tablici (npr. NP123AB) na ParkingNS portalu. Podržava automatsku proveru. Uputstvo za plaćanje samo za karte iz poslednjih godinu dana; podaci su informativni.",
   "fines.provider.parkingns.name": "Novi Sad – ParkingNS portal (ePPK)",
   "fines.provider.parkingns.note": "Elektronske parking karte po tablici; isti sistem navodno koriste i drugi gradovi. Podržava automatsku proveru.",
   "fines.provider.pk-parking.name": "Prokuplje",
