@@ -113,8 +113,11 @@ jobs:
               -F generate_release_notes=true \
               --jq .id)"
           else
-            # Re-run: point the (still draft) release at the commit being built.
-            gh release edit "$TAG" --target "$GITHUB_SHA"
+            # Re-run: point the (still draft) release at the commit being built
+            # and refresh its notes (header + GitHub's generated changelog).
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+              -f tag_name="$TAG" -f target_commitish="$GITHUB_SHA" --jq .body >> notes.md
+            gh release edit "$TAG" --target "$GITHUB_SHA" --notes-file notes.md
           fi
           if [ -z "$id" ]; then
             echo "::error::Could not determine the release id for ${TAG}"; exit 1
