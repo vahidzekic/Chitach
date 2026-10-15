@@ -130,4 +130,4 @@ Chitach/
 macOS build se potpisuje Developer ID sertifikatom i notarizuje kada su Apple tajne
 podešene u repozitorijumu ([06-razvoj.md](06-razvoj.md#macos-potpisivanje-i-notarizacija));
 bez njih je ad-hoc potpisan (`signingIdentity: "-"`), pa važi "Open Anyway" iz
-[korisničkog uputstva](05-korisnicko-uputstvo.md). Windows code-signing još nije podešen.
+[korisničkog uputstva](05-korisnicko-uputstvo.md). Windows instalacije potpisuje SignPath Foundation kada je podešen `SIGNPATH_API_TOKEN`.

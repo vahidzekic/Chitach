@@ -104,6 +104,20 @@ cargo build --release -p chitach-cli    # CLI
 * [Istraživanje izbora jezika](docs/01-istrazivanje-jezika.md)
 * [Doprinos projektu](CONTRIBUTING.md)
 
+## Politika potpisivanja koda
+
+Windows izdanja potpisuje besplatna usluga [SignPath.io](https://about.signpath.io/), a sertifikat izdaje
+[SignPath Foundation](https://signpath.org/).
+
+* Autori i recenzenti: [vlasnik repozitorijuma](https://github.com/vahidzekic)
+* Odobravanje izdanja: [vahidzekic](https://github.com/vahidzekic)
+
+Potpisuju se samo fajlovi koje GitHub Actions izgradi iz ovog repozitorijuma za objavljen tag.
+
+**Privatnost:** podaci sa kartica ne napuštaju računar osim kada to korisnik sam zatraži
+(upit RFZO-u, provera kazni uz izričitu saglasnost). Pri pokretanju program proverava da li
+postoji nova verzija na GitHub-u; to se isključuje u podešavanjima.
+
 ## Licenca
 
 Autor: **Vahid Zekic** ([github.com/vahidzekic](https://github.com/vahidzekic)).

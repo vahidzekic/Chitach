@@ -141,6 +141,40 @@ Bez `APPLE_CERTIFICATE` build ostaje ad-hoc potpisan, a beleške izdanja zadrža
 „Open Anyway". Sa sertifikatom, a bez kredencijala za notarizaciju, aplikacija je potpisana,
 ali nije notarizovana (upozorenje u logu).
 
+### Windows potpisivanje (SignPath Foundation)
+
+Windows instalacije (`*-setup.exe`, `*.msi`) i `chitach-cli-windows-x64.exe` potpisuje
+[SignPath Foundation](https://signpath.org/), besplatno za open-source projekte. Sertifikat
+glasi na SignPath Foundation. Instalirani `chitach.exe` unutar NSIS instalera za sada nije
+zasebno potpisan.
+
+1. Prijavite projekat na signpath.org (GitHub repo, MIT licenca). Uslov je odeljak
+   „Politika potpisivanja koda“ u README-u, koji već postoji.
+2. U SignPath-u, posle odobrenja: projekat `Chitach`, povezan sa GitHub repozitorijumom
+   (*Trusted Build System: GitHub.com*), politika potpisivanja `release-signing` i artifact
+   configuration `windows` sa sadržajem:
+   ```xml
+   <?xml version="1.0" encoding="utf-8"?>
+   <artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+     <zip-file>
+       <pe-file path="*.exe" max-matches="unbounded">
+         <authenticode-sign/>
+       </pe-file>
+       <msi-file path="*.msi" max-matches="unbounded">
+         <authenticode-sign/>
+       </msi-file>
+     </zip-file>
+   </artifact-configuration>
+   ```
+3. U GitHub-u dodajte tajnu `SIGNPATH_API_TOKEN` (token CI korisnika iz SignPath-a) i
+   promenljivu (*Variables*) `SIGNPATH_ORGANIZATION_ID`. Ako su slug-ovi drugačiji od
+   gore navedenih, postavite i `SIGNPATH_PROJECT_SLUG`, `SIGNPATH_SIGNING_POLICY_SLUG`,
+   `SIGNPATH_ARTIFACT_CONFIGURATION_SLUG`.
+
+Bez `SIGNPATH_API_TOKEN` Windows build se gradi i kači nepotpisan, kao ranije. Sa tokenom
+Windows posao gradi instalacije bez kačenja, šalje ih SignPath-u, čeka potpis (zavisno od
+politike, možda uz ručno odobrenje u SignPath-u) i tek onda kači potpisane fajlove na release.
+
 ## Doprinos
 
 Vidi [CONTRIBUTING.md](../CONTRIBUTING.md).

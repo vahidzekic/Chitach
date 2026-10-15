@@ -138,6 +138,9 @@ jobs:
             tauri-args: ""
             cli-name: chitach-cli-linux-arm64
     runs-on: ${{ matrix.os }}
+    env:
+      # Windows code signing through SignPath (see docs/06-razvoj.md); off until the token exists.
+      SIGNPATH: ${{ matrix.os == 'windows-latest' && secrets.SIGNPATH_API_TOKEN != '' && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -231,6 +234,7 @@ jobs:
           fi
 
       - name: Build and upload app bundles
+        if: env.SIGNPATH != 'true'
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -238,6 +242,11 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           tauriScript: npm run tauri
           args: ${{ matrix.tauri-args }}
+
+      - name: Build app bundles (Windows, for signing)
+        if: env.SIGNPATH == 'true'
+        run: npm run tauri build
+        working-directory: ui
 
       - name: Build CLI (macOS universal)
         if: runner.os == 'macOS'
@@ -281,7 +290,49 @@ jobs:
             chmod +x "dist-cli/${{ matrix.cli-name }}"
           fi
 
+      - name: Collect unsigned Windows files
+        if: env.SIGNPATH == 'true'
+        shell: bash
+        run: |
+          mkdir -p unsigned
+          cp target/release/bundle/nsis/*-setup.exe target/release/bundle/msi/*.msi unsigned/
+          cp "dist-cli/${{ matrix.cli-name }}" unsigned/
+          ls -l unsigned
+
+      - name: Upload unsigned Windows files
+        if: env.SIGNPATH == 'true'
+        id: unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-unsigned
+          path: unsigned/*
+          if-no-files-found: error
+
+      - name: Sign with SignPath
+        if: env.SIGNPATH == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'Chitach' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG || 'windows' }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed
+
+      - name: Upload signed Windows files to release
+        if: env.SIGNPATH == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -l signed
+          gh release upload "$TAG" signed/* --clobber --repo "$GITHUB_REPOSITORY"
+
       - name: Upload CLI to release
+        if: env.SIGNPATH != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

@@ -107,6 +107,20 @@ Releases are built by GitHub Actions when a `vX.Y.Z` tag is pushed.
 * [Technology research](docs/01-istrazivanje-jezika.md)
 * [Contributing](CONTRIBUTING.md)
 
+## Code signing policy
+
+Free code signing for Windows releases is provided by [SignPath.io](https://about.signpath.io/),
+with a certificate by [SignPath Foundation](https://signpath.org/).
+
+* Committers and reviewers: [repository owner](https://github.com/vahidzekic)
+* Approvers: [vahidzekic](https://github.com/vahidzekic)
+
+Only files built by GitHub Actions from this repository for a published tag are signed.
+
+**Privacy:** card data never leaves the computer unless specifically requested by the user
+(the RFZO query, the fines check after explicit consent). On start-up the program checks GitHub
+for a new version; this can be turned off in the settings.
+
 ## License
 
 Author: **Vahid Zekic** ([github.com/vahidzekic](https://github.com/vahidzekic)).
