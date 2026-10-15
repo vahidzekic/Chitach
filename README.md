@@ -15,7 +15,7 @@
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/licenca-MIT-blue"></a>
 </p>
 
-<p align="center"><a href="README.en.md">English</a></p>
+<p align="center"><a href="https://vahidzekic.github.io/Chitach/">Sajt</a> · <a href="README.en.md">English</a></p>
 
 ---
 
