@@ -605,13 +605,23 @@ fn item_from(v: &Value) -> FineItem {
                 date: pick(&fields, &["date", "datum", "vreme", "time", "created"]),
                 amount: pick(
                     &fields,
-                    &["amount", "iznos", "price", "cena", "total", "sum", "dug"],
+                    &[
+                        "amount", "iznos", "zauplatu", "price", "cena", "total", "sum", "dug",
+                    ],
                 ),
                 location: pick(
                     &fields,
                     &[
-                        "location", "lokacija", "address", "adresa", "street", "ulica", "zone",
-                        "zona", "mesto",
+                        "location",
+                        "lokacija",
+                        "address",
+                        "adresa",
+                        "street",
+                        "ulica",
+                        "zone",
+                        "zona",
+                        "mesto",
+                        "nazivgrada",
                     ],
                 ),
                 description: pick(
@@ -623,6 +633,7 @@ fn item_from(v: &Value) -> FineItem {
                         "razlog",
                         "napomena",
                         "note",
+                        "nazivstatusa",
                     ],
                 ),
                 fields,
@@ -1113,9 +1124,13 @@ mod tests {
                 assert_eq!(normalize_plate(c), *c, "city codes are normalised");
             }
         }
-        assert!(ps
-            .iter()
-            .any(|p| p.id == "np-parking" && p.kind == Kind::Link));
+        let np = ps.iter().find(|p| p.id == "np-parking").unwrap();
+        assert!(np.is_auto());
+        assert_eq!(np.page_url("NP123AB"), "https://portal.parkingns.rs/ppkNP");
+        assert_eq!(
+            np.check_url("NP123AB").unwrap(),
+            "https://portal.parkingns.rs/portal/auth/checkPPKNP?platePr=NP123AB"
+        );
         assert!(ps
             .iter()
             .any(|p| p.id == "rnk" && p.category == Category::Person));
@@ -1293,6 +1308,21 @@ mod tests {
             info.providers[0].check_domain.as_deref(),
             Some("portal.parkingns.rs")
         );
+    }
+
+    #[test]
+    fn parkingns_order_fields() {
+        // Field names used by the ParkingNS portal (proveraPPK / proveraPPKNP pages).
+        let body = r#"[{"idfirme": 5, "nazivGrada": "Novi Pazar", "brojNaloga": "123/2026",
+            "regOznaka": "NP123AB", "statusNaloga": 1, "nazivStatusa": "Neplaćen",
+            "zaUplatu": 1500}]"#;
+        let r = parse_json_array(Some("application/json"), body);
+        assert_eq!(r.status, CheckStatus::Found);
+        let it = &r.items[0];
+        assert_eq!(it.amount.as_deref(), Some("1500"));
+        assert_eq!(it.location.as_deref(), Some("Novi Pazar"));
+        assert_eq!(it.description.as_deref(), Some("Neplaćen"));
+        assert_eq!(it.fields["brojNaloga"], "123/2026");
     }
 
     const EMPTY: &str = "[]";

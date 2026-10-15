@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-10-15",
+  "updated": "2026-10-15T09:00",
   "providers": [
     {
       "id": "bg-parking",
@@ -30,8 +30,12 @@
       "portal": "parkingns",
       "route": "ppkNP",
       "cities": ["NP"],
-      "kind": "link",
-      "url": "https://portal.parkingns.rs/{route}"
+      "kind": "json_get",
+      "url": "https://portal.parkingns.rs/{route}",
+      "check": {
+        "url": "https://portal.parkingns.rs/portal/auth/checkPPKNP?platePr={plate}",
+        "parser": "jsonArray"
+      }
     },
     {
       "id": "nis-parking",
