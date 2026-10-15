@@ -246,7 +246,6 @@ jobs:
       - name: Build app bundles (Windows, for signing)
         if: env.SIGNPATH == 'true'
         run: npm run tauri build
-        working-directory: ui
 
       - name: Build CLI (macOS universal)
         if: runner.os == 'macOS'
