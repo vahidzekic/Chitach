@@ -23,8 +23,8 @@
   - **[K]** – potvrđeno u **javnom kodu** na GitHub-u (tačan URL/parametar, ali ne nužno aktuelan);
   - **[T]** – navodi **trećih strana** (mediji, agregatori, blogovi);
   - **[P]** – pretpostavka / zaključak autora, **mora se proveriti** pre implementacije;
-  - **[U]** – podatak koji je prijavio korisnik/saradnik, **nije provereno** iz ovog okruženja.
-  - **[V]** – provereno uživo (stranica i zahtev učitani), datum naveden uz podatak.
+  - **[U]** – podatak koji je prijavio korisnik/saradnik, **nije provereno** iz ovog okruženja;
+  - **[L]** – stranica/API **učitan uživo** iz razvojnog okruženja (datum uz oznaku).
 - Pre implementacije svakog izvora obavezno: otvoriti stranicu u pregledaču, DevTools → Network,
   zabeležiti tačan zahtev/odgovor, CAPTCHA, kolačiće, `robots.txt` i uslove korišćenja.
 
@@ -88,13 +88,13 @@ kazne u registru vezuju se za osobu (JMBG)**, ne za vozilo. Javne provere „po 
 
 | Grad | Operater / portal | Provera po tablici? | Mehanizam | Pouzdanost |
 |---|---|---|---|---|
-| Niš | JKP „Parking servis" Niš, `nisparking.rs` (meni „еДПК ПРОВЕРА"); `nis.eparking.rs` | Da (eDPK) | nepoznat (forma) | [Z] postojanje, [T] detalji (60 dana, 8 dana rok) |
-| Kragujevac | JKP „Šumadija", `jkpsumadija.rs/sr/info/sektor-parkinga/provera-opstih-dnevnih-parking-karti.html` | Da (opšte dnevne karte) | forma, unos tablice | [Z] |
+| Niš | JKP „Parking servis" Niš, stranica „Провери дневне карте" (`nisparking.rs/sr/паркирање/остало/провери-дневне-карте?reg=<tablica>`); `nis.eparking.rs` | Da (dnevne karte) | AJAX `POST index.php?option=com_ajax&module=checkmydk&method=findDK&format=json&reg=<tablica>`, bez tokena i captcha; odgovor JSON `{"data":"<html>"}`; bez dugovanja: „за наведено возило не постоји дуговање …" | **[L]** 2026-10-15 (odgovor kad postoje karte nije viđen) |
+| Kragujevac | JKP „Šumadija", stranica „Провера општих дневних паркинг карти" (stara adresa vraća 404) samo uključuje (iframe) `https://kragujevac.mojekazne.com/#/` | Da (opšte dnevne karte) | SPA na `mojekazne.com`, API nije pročitan (domen blokiran u razvojnom okruženju) | [L] iframe, 2026-10-15 |
 | Čačak | JKP „Parking servis" Čačak, `status.parkingcacak.co.rs` | **Ne** — po **broju karte** | forma; odgovori „ПЛАЋЕН / СТОРНИРАН / НИЈЕ ПРОНАЂЕНА" | [Z] |
-| Zrenjanin | JKP „Pijace i parkinzi", `zrenjanin.park4all.rs/surcharge` (ranije mojekazne.com) | Da (ePPK) | nepoznat | [T] |
-| Zlatibor / Čajetina | KJP „Zlatibor", `edpk.kjpzlatibor.rs` | Da (eDPK) | nepoznat | [T] |
+| Zrenjanin | JKP „Pijace i parkinzi", `zrenjanin.park4all.rs/surcharge` (ranije mojekazne.com) | Da (ePPK) | **`GET /api/v1/publicApi/surcharge?plateNumber=<tablica>`** → JSON niz (`[]` = nema), bez prijave, tokena i captcha (reCAPTCHA je samo na formi za prigovor) | **[L]** 2026-10-15 |
+| Zlatibor / Čajetina | KJP „Zlatibor", `edpk.kjpzlatibor.rs` | Da (eDPK) | Angular SPA; iz koda: `GET https://prod.zlatibor.scancar.parking-servis.co.rs/api/fine/unpaid/<tablica>` → `{paymentAccountNumber, fines: [...]}`, bez captcha; odgovor nije viđen (domen blokiran u razvojnom okruženju) | [L] stranica i JS, 2026-10-15; API [P] |
 | Prokuplje | `prokuplje.mojekazne.com` (koncesionar) | Da | nepoznat | [T] |
-| Novi Pazar | Parking servis Novi Pazar; `https://parkingservisnp.rs/info/` samo uključuje (iframe) **ParkingNS** stranicu `https://portal.parkingns.rs/ppkNP` | Da — polje „Registarska oznaka" (format `NPXXXXX`), dugme „Provera"; uputstvo za plaćanje samo za karte iz poslednjih godinu dana; podaci informativni | `GET https://portal.parkingns.rs/portal/auth/checkPPKNP?platePr=<tablica>` → JSON niz naloga (`[]` = nema) | **[V]** provereno 15. 10. 2026 (v. §13) |
+| Novi Pazar | Parking servis Novi Pazar; `https://parkingservisnp.rs/info/` samo uključuje (iframe) **ParkingNS** stranicu `https://portal.parkingns.rs/ppkNP` | Da — polje „Registarska oznaka" (format `NPXXXXX`), dugme „Provera"; uputstvo za plaćanje samo za karte iz poslednjih godinu dana; podaci informativni | `GET https://portal.parkingns.rs/portal/auth/checkPPKNP?platePr=<tablica>` → JSON niz naloga (`[]` = nema) | **[L]** 15. 10. 2026 (v. §13) |
 | ~28 drugih | navodno ParkingNS portal | Da | `checkPPK` | [T] |
 | Subotica | JKP „Parking" Subotica | **Nije pronađena** online provera | SMS/kiosci | [T] |
 | Pančevo | `pancevo.co.rs/parking` | **Nije pronađena** | SMS | [T] |
@@ -394,7 +394,7 @@ Treće strane:
 
 | Stavka | Gde | Napomena |
 |---|---|---|
-| Deklarativne definicije provajdera, ugrađene `include_str!` | `src-tauri/providers/fines.json` | 12 izvora: Beograd, ParkingNS (Novi Sad, automatski), Novi Pazar na ParkingNS portalu (`ppkNP`, link) [U], Niš, Kragujevac, Zrenjanin, Zlatibor (`UE`), Prokuplje (`PK`), Čačak (samo link, po broju karte), RNK (samo link, JMBG se nikad ne šalje), eUprava (link), ENP/Toll4All (link). URL-ovi samo iz ovog dokumenta; kod nepoznatog parametra za tablicu — obična adresa + tablica u clipboard. |
+| Deklarativne definicije provajdera, ugrađene `include_str!` | `src-tauri/providers/fines.json` | 12 izvora: Beograd, ParkingNS (Novi Sad, automatski), Novi Pazar na ParkingNS portalu (`ppkNP`, link) [U], Niš, Kragujevac (`kragujevac.mojekazne.com`), Zrenjanin (ePPK, automatski), Zlatibor (`UE`), Prokuplje (`PK`), Čačak (samo link, po broju karte), RNK (samo link, JMBG se nikad ne šalje), eUprava (link), ENP/Toll4All (link). URL-ovi samo iz ovog dokumenta; kod nepoznatog parametra za tablicu — obična adresa + tablica u clipboard. |
 | Normalizacija tablice i oznaka grada | `src-tauri/src/fines.rs` (`normalize_plate`, `city_code`) | velika slova, bez razmaka/crtica/tačaka, ćirilica → latinica (Ч→Č, Ђ→Đ, Љ→LJ, Џ→DŽ…); Č/Ć/Š/Ž/Đ se čuvaju; u URL-u se procentno kodira. Provajderi grada iz tablice su prvi. |
 | Komande `fines_providers`, `fines_check` | `src-tauri/src/commands.rs` | v. `docs/04-api-ugovor.md`. |
 | Panel „Provera kazni" | `ui/src/lib/pages/document/FinesPanel.svelte` | grupe parking / osoba / putarina, „Grad tablice", „Ostali gradovi", „Otvori na portalu", „Kopiraj tablicu", statusi i tabela kazni. |
@@ -510,11 +510,14 @@ Lokalno: `node scripts/fines-portals.mjs [--only nis-parking,kg-sumadija] [--out
 
 ### 12.4 Šta nije provereno
 
-- **Nijedan portal nije bio dostupan iz razvojnog okruženja** (mrežna politika odbija domene
-  portala). Endpoint-i za Niš, Kragujevac, Zrenjanin i Zlatibor zato **nisu izmišljani**: ti gradovi
-  su i dalje `link`. Sledeći korak: pokrenuti „Fines portals" workflow ručno, iz izveštaja/artifact-a
-  pročitati formu svakog grada i dodati `html_form` (ili `json_get`) definiciju — posle potpisa stiže
-  u aplikaciju bez nove verzije.
+- Stanje 2026-10-15 (portali dozvoljeni u razvojnom okruženju):
+  - **Zrenjanin** je `json_get` (`publicApi/surcharge`), provereno test tablicom (`[]`).
+  - **Niš**: endpoint i poruka „nema dugovanja" su poznati, a `htmlMarkers` od ove verzije čita i
+    HTML upakovan u JSON (`{"data":"<html>"}`). Ostaje `link` (sa tablicom u adresi, pa se rezultat
+    odmah prikaže) dok se ne vidi odgovor **sa** kartama, jer `found` marker ne sme da se pogađa.
+  - **Kragujevac** (`kragujevac.mojekazne.com`) i **Zlatibor** (`prod.zlatibor.scancar.parking-servis.co.rs`)
+    ostaju `link`: ti API domeni nisu bili dozvoljeni u razvojnom okruženju, pa odgovor nije viđen.
+- `robots.txt`: Niš traži `Crawl-delay: 10` (jedan zahtev po proveri to poštuje), Zrenjanin ga nema.
 - Uslovi korišćenja i `robots.txt` tih portala i dalje nisu pročitani (§3, §9); automatsku proveru
   uključivati tek posle toga.
 - Novi Pazar (`np-parking`) je urađen posebno (§13).

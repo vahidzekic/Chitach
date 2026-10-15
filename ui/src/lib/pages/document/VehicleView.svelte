@@ -2,6 +2,7 @@
   import DocHero from "./DocHero.svelte";
   import DocSections from "./DocSections.svelte";
   import FinesPanel from "./FinesPanel.svelte";
+  import HistoryPanel from "./HistoryPanel.svelte";
   import type { VehicleDocument } from "../../api/types";
   import { t } from "../../i18n/index.svelte";
   import { isPast } from "../../util/format";
@@ -141,6 +142,8 @@
 <DocSections {sections} />
 
 <FinesPanel />
+
+<HistoryPanel />
 
 <style>
   .plate {

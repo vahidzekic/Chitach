@@ -13,6 +13,7 @@ use crate::{
     export::{self, Format},
     fines::{self, FinesCache},
     fines_defs::FinesDefinitions,
+    history::{self, HistoryState},
     settings::Settings,
     signing::{SigningState, SlotInfo, TokenCert},
     smartbox::{SmartboxState, SmartboxStatus},
@@ -249,6 +250,95 @@ pub async fn fines_check(
                     fines::mock_parsed(&plate)
                 } else {
                     fines::interpret(req, fines::fetch(req))
+                }
+            },
+        ))
+    })
+    .await
+}
+
+#[tauri::command]
+pub fn history_info(app: AppHandle) -> history::HistoryInfo {
+    let shared = app.state::<Shared>();
+    let doc = shared.current_document();
+    let vehicle = history::document_vehicle(doc.as_ref()).ok();
+    let secrets = app.state::<HistoryState>().secrets().clone();
+    history::info_for(
+        vehicle,
+        &history::providers(),
+        &history::WmiTable::embedded(),
+        &secrets,
+        chrono::Datelike::year(&chrono::Local::now()),
+    )
+}
+
+fn history_provider(id: &str) -> CmdResult<history::Provider> {
+    history::providers()
+        .into_iter()
+        .find(|p| p.id == id)
+        .ok_or_else(|| format!("error.historyUnknownProvider|{id}"))
+}
+
+#[tauri::command]
+pub fn history_set_api_key(
+    state: State<'_, HistoryState>,
+    provider_id: String,
+    api_key: String,
+    secret: String,
+) -> CmdResult<()> {
+    let p = history_provider(&provider_id)?;
+    if p.kind != history::Kind::Api {
+        return Err("error.historyNotApi".into());
+    }
+    let (api_key, secret) = (api_key.trim().to_string(), secret.trim().to_string());
+    if api_key.is_empty() {
+        return Err("error.historyNoKey".into());
+    }
+    state.set_key(&provider_id, Some(history::ApiKey { api_key, secret }))
+}
+
+#[tauri::command]
+pub fn history_remove_api_key(
+    state: State<'_, HistoryState>,
+    provider_id: String,
+) -> CmdResult<()> {
+    state.set_key(&provider_id, None)
+}
+
+#[tauri::command]
+pub async fn history_api_check(
+    app: AppHandle,
+    provider_id: String,
+    operation: String,
+    force: Option<bool>,
+) -> CmdResult<history::ApiResult> {
+    blocking(move || {
+        let shared = app.state::<Shared>();
+        let doc = shared.current_document();
+        let vin = history::document_vehicle(doc.as_ref())?
+            .vehicle_id_number
+            .clone();
+        let provider = history_provider(&provider_id)?;
+        let state = app.state::<HistoryState>();
+        let secrets = state.secrets().clone();
+        let settings = shared.settings().history.clone();
+        let (def, key) = history::api_allowed(&settings, &provider, &operation, &secrets)?;
+        let mock = shared.mock;
+        Ok(history::report_with(
+            &state.cache,
+            &provider,
+            def,
+            key,
+            &operation,
+            &vin,
+            force.unwrap_or(false),
+            std::time::Instant::now(),
+            |url| {
+                if mock {
+                    std::thread::sleep(std::time::Duration::from_millis(700));
+                    history::mock_parsed(&operation, &vin)
+                } else {
+                    history::interpret(def, &operation, history::fetch(url))
                 }
             },
         ))

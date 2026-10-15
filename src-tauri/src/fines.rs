@@ -865,10 +865,41 @@ const CAPTCHA_MARKERS: [&str; 5] = [
     "captcha",
 ];
 
+/// Some portals answer an AJAX call with JSON that carries the HTML fragment in a string
+/// field (Niš: `{"success":true,"data":"<div>…</div>"}`). Joins every string value of such
+/// a body so the markers see the fragment; anything that is not JSON is returned as is.
+fn html_of(body: &str) -> String {
+    fn strings(v: &Value, out: &mut String) {
+        match v {
+            Value::String(s) => {
+                out.push_str(s);
+                out.push('\n');
+            }
+            Value::Array(a) => a.iter().for_each(|v| strings(v, out)),
+            Value::Object(o) => o.values().for_each(|v| strings(v, out)),
+            _ => {}
+        }
+    }
+    let trimmed = body.trim_start_matches('\u{feff}').trim_start();
+    if !trimmed.starts_with(['{', '[']) {
+        return body.to_string();
+    }
+    match serde_json::from_str::<Value>(trimmed) {
+        Ok(v) => {
+            let mut out = String::new();
+            strings(&v, &mut out);
+            out
+        }
+        Err(_) => body.to_string(),
+    }
+}
+
 /// `htmlMarkers` parser. Order matters: a captcha means manual; a `found` marker wins
 /// over a `clean` one (a false "no fines" is worse than a false alarm); a page with
 /// neither marker is a parse error, never "clean".
 pub fn parse_html_markers(body: &str, found: &[String], clean: &[String]) -> Parsed {
+    let html = html_of(body);
+    let body = html.as_str();
     let lower = body.to_ascii_lowercase();
     if CAPTCHA_MARKERS.iter().any(|m| lower.contains(m)) {
         return Parsed::new(CheckStatus::Manual, Some("captcha".into()));
@@ -1567,6 +1598,28 @@ mod tests {
         assert_eq!(
             normalize_text(" Нема  ИЗДАТИХ\n карата "),
             "nema izdatih karata"
+        );
+    }
+
+    #[test]
+    fn html_markers_inside_json() {
+        // Shape of the Niš `checkmydk` answer: BOM, JSON, HTML with \u-escaped Cyrillic.
+        let found = vec!["Broj dnevne karte".to_string()];
+        let clean = vec!["ne postoji dugovanje".to_string()];
+        let body = "\u{feff}{\"success\":true,\"message\":null,\"data\":\"<div>\\u0437\\u0430 \\u043d\\u0430\\u0432\\u0435\\u0434\\u0435\\u043d\\u043e \\u0432\\u043e\\u0437\\u0438\\u043b\\u043e \\u043d\\u0435 \\u043f\\u043e\\u0441\\u0442\\u043e\\u0458\\u0438 \\u0434\\u0443\\u0433\\u043e\\u0432\\u0430\\u045a\\u0435<br \\/><\\/div>\"}";
+        assert_eq!(
+            parse_html_markers(body, &found, &clean).status,
+            CheckStatus::Clean
+        );
+        let body = r#"{"data":"<table><tr><th>Broj dnevne karte</th><th>Iznos</th></tr><tr><td>DK-1</td><td>1.800,00</td></tr></table>"}"#;
+        let p = parse_html_markers(body, &found, &clean);
+        assert_eq!(p.status, CheckStatus::Found);
+        assert_eq!(p.items.len(), 1);
+        // `data: null` (no fragment): neither marker, never "clean".
+        let body = r#"{"success":true,"data":null}"#;
+        assert_eq!(
+            parse_html_markers(body, &found, &clean).status,
+            CheckStatus::ParseError
         );
     }
 

@@ -24,7 +24,12 @@ export interface Settings {
   lastDir: string;
   pkcs11Paths: Record<CardVendor, string>;   // "" = podrazumevano
   fines: FinesSettings;                      // nedostaje u starom fajlu → podrazumevano
+  history: HistorySettings;                  // nedostaje u starom fajlu → podrazumevano
 }
+
+export interface HistorySettings {
+  consentGiven: boolean;       // saglasnost za slanje VIN-a API servisima istorije (podr. false)
+}                              // API ključevi NISU u podešavanjima, već u secrets.json
 
 export interface FinesSettings {
   autoCheck: boolean;          // automatska provera pri čitanju saobraćajne (podr. false)
@@ -97,6 +102,42 @@ export interface FinesCheckResult {
   checkedAt: number;                // unix ms
   cached: boolean;
 }
+
+// Istorija vozila (src-tauri/src/history.rs, definicije u src-tauri/providers/history.json i wmi.json)
+export type HistoryCategory = "domestic" | "foreign" | "usa" | "api";
+export interface HistoryProvider {
+  id: string; name: string; category: HistoryCategory;
+  kind: "link" | "api";
+  key: "vin" | "plate";             // po čemu servis pretražuje (kopira se ako nije u URL-u)
+  price: string | null;             // okvirna cena izveštaja, informativno
+  url: string;                      // {vin}/{plate} već zamenjeni
+  altUrl: string | null;            // druga stranica (npr. iOS aplikacija)
+  keyInUrl: boolean;
+  partner: boolean;                 // partnerski link (UI to mora da prikaže)
+  operations: string[];             // samo "api"
+  apiDomain: string | null;         // samo "api": domen kome se šalje VIN
+  configured: boolean;              // samo "api": ključ je sačuvan
+}
+export interface HistoryCheck { id: string; level: "ok" | "warning" | "info" | "unknown"; variant: string; args: string[]; }
+                                    // UI prevodi history.check.<id>.<variant> sa args
+export interface VinDecoded {
+  wmi: string; vds: string; vis: string;
+  make: string | null; country: string | null;   // ISO 3166-1 alpha-2
+  northAmerica: boolean; modelYear: number | null; checkDigitOk: boolean | null;
+}
+export interface HistoryInfo {
+  vin: string; normalizedVin: string; vinFormat: "valid" | "invalid" | "empty";
+  plate: string; normalizedPlate: string; make: string; model: string;
+  yearOfProduction: string; dateOfFirstRegistration: string;
+  decoded: VinDecoded | null; checks: HistoryCheck[]; providers: HistoryProvider[];
+}
+export interface HistoryApiResult {
+  providerId: string; operation: string;
+  status: "ok" | "unauthorized" | "error" | "unavailable" | "parseError";
+  fields: [string, string][];       // oznake i vrednosti servisa, redom, bez tumačenja
+  price: string | null;             // cena upita kako je javlja servis
+  detail: string | null; checkedAt: number; cached: boolean;
+}
 ```
 
 ## Komande
@@ -126,6 +167,10 @@ export interface FinesCheckResult {
 | `smartbox_status` | – | `SmartboxStatus` | |
 | `fines_providers` | – | `FinesInfo` | portali za tablicu trenutne saobraćajne (bez nje: svi, prazna tablica) |
 | `fines_check` | `{ providerId, force?: boolean }` | `FinesCheckResult` | samo `auto` (`json_get`, `html_form`); zahteva `fines.consentGiven` (`error.finesConsent`) i uključen portal (`error.finesProviderDisabled`); keš 30 min, `force` posle ≥ 60 s |
+| `history_info` | – | `HistoryInfo` | lokalna VIN provera i servisi za trenutnu saobraćajnu (bez nje: samo servisi, bez provera) |
+| `history_set_api_key` | `{ providerId, apiKey, secret }` | `void` | samo `api`; čuva u `secrets.json` (Unix: 0600), briše keš tog servisa |
+| `history_remove_api_key` | `{ providerId }` | `void` | |
+| `history_api_check` | `{ providerId, operation, force?: boolean }` | `HistoryApiResult` | zahteva `history.consentGiven` (`error.historyConsent`) i ključ (`error.historyNoKey`); šalje samo VIN; keš 30 min po (servis, operacija, VIN), `force` posle ≥ 60 s |
 
 ## Događaji (backend → UI, `listen(...)`)
 
@@ -142,3 +187,6 @@ implementaciju sa primer dokumentima — za razvoj i screenshot-ove.
 Backend: `CHITACH_MOCK=1` emituje primer dokumenta bez čitača.
 Provera kazni u mock režimu ne šalje zahteve: rezultat zavisi od tablice (paran zbir cifara =
 2 primer kazne, inače „čisto"); u UI mock-u se može zadati sa `?fines=found|clean|manual|unavailable|parseError`.
+Istorija vozila u mock režimu ne šalje zahteve (primer odgovora Vincario API-ja); u UI mock-u
+`?historyKey=1` unapred „čuva" API ključ, a `?history=ok|unauthorized|error|unavailable|parseError`
+zadaje rezultat.
