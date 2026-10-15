@@ -8,6 +8,7 @@
 //   &fines=found|clean|manual|unavailable|parseError  (forced automatic fines check result)
 //   &history=ok|unauthorized|error|unavailable|parseError  (forced vehicle history API result)
 //   &historyKey=1  (a vehicle history API key is already stored)
+//   &pro=0  (Chitach Pro is not activated; activate with the key CHITACH-PRO-DEMO)
 // A small control object is exposed as `window.__chitachMock` (insert/remove cards).
 import type {
   Api,
@@ -15,6 +16,7 @@ import type {
   CardVendor,
   Document,
   DocumentKind,
+  LicenseInfo,
   NotifyEvent,
   ReaderStatus,
   Settings,
@@ -25,6 +27,8 @@ import { mockHistoryApiCheck, mockHistoryInfo, mockHistoryRemoveKey, mockHistory
 import { sampleCerts, sampleId, sampleMedical, sampleTokenCerts, sampleVehicle } from "./mockData";
 
 const SETTINGS_KEY = "chitach.mock.settings";
+const LICENSE_KEY = "chitach.mock.license";
+const MOCK_PRO_KEY = "CHITACH-PRO-DEMO";
 
 export const defaultSettings: Settings = {
   language: "sr-Latn",
@@ -88,6 +92,26 @@ export function createMockApi(): Api {
   if (theme === "light" || theme === "dark" || theme === "system") settings.theme = theme;
   const lang = params.get("lang");
   if (lang === "sr-Latn" || lang === "sr-Cyrl" || lang === "en" || lang === "ru") settings.language = lang;
+  // Pro is on by default so screenshots show the panels; `?pro=0` shows the lock.
+  let pro = params.get("pro") !== "0";
+  try {
+    const raw = localStorage.getItem(LICENSE_KEY);
+    if (raw !== null && params.get("pro") === null) pro = raw === "1";
+  } catch {
+    /* storage unavailable */
+  }
+  const licenseInfo = (): LicenseInfo =>
+    pro
+      ? { active: true, stored: true, keyHint: "…DEMO", email: "kupac@example.com", validatedAt: Date.now(), buyUrl: null }
+      : { active: false, stored: false, keyHint: null, email: null, validatedAt: null, buyUrl: "https://example.com/chitach-pro" };
+  const setPro = (on: boolean) => {
+    pro = on;
+    try {
+      localStorage.setItem(LICENSE_KEY, on ? "1" : "0");
+    } catch {
+      /* storage unavailable */
+    }
+  };
   if (params.get("historyKey") === "1") void mockHistorySetKey("vincario", "demo-key", "demo-secret");
 
   const readers: MockReader[] = [
@@ -346,6 +370,7 @@ export function createMockApi(): Api {
       return mockFinesInfo(state.document?.kind === "vehicle" ? state.document.data.RegistrationNumberOfVehicle : "");
     },
     async finesCheck(providerId, force = false) {
+      if (!pro) throw "error.proRequired";
       if (state.document?.kind !== "vehicle") throw "error.notVehicleCard";
       return mockFinesCheck(state.document.data.RegistrationNumberOfVehicle, providerId, force, settings);
     },
@@ -359,8 +384,24 @@ export function createMockApi(): Api {
       await mockHistoryRemoveKey(providerId);
     },
     async historyApiCheck(providerId, operation, force = false) {
+      if (!pro) throw "error.proRequired";
       if (state.document?.kind !== "vehicle") throw "error.notVehicleCard";
       return mockHistoryApiCheck(state.document.data, providerId, operation, force, settings);
+    },
+    async licenseInfo() {
+      return licenseInfo();
+    },
+    async licenseActivate(key) {
+      await delay(600);
+      if (!key.trim()) throw "error.licenseNoKey";
+      if (key.trim() !== MOCK_PRO_KEY) throw "error.licenseInvalid|license_key not found.";
+      setPro(true);
+      return licenseInfo();
+    },
+    async licenseDeactivate() {
+      await delay(300);
+      setPro(false);
+      return licenseInfo();
     },
 
     async onAppState(cb) {

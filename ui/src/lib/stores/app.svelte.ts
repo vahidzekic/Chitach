@@ -1,6 +1,6 @@
 // Global application state (card state, settings, navigation).
 import { api } from "../api";
-import type { AppInfo, AppState, ExportFormat, Mode, Settings, UpdateInfo } from "../api/types";
+import type { AppInfo, AppState, ExportFormat, LicenseInfo, Mode, Settings, UpdateInfo } from "../api/types";
 import { setLanguage, t, translateError } from "../i18n/index.svelte";
 import { setTheme } from "../util/theme";
 import { baseName, dirName, joinPath } from "../util/format";
@@ -17,6 +17,8 @@ interface Store {
   page: Page;
   loaded: boolean;
   update: UpdateInfo | null;
+  /** Chitach Pro licence; null until loaded */
+  license: LicenseInfo | null;
 }
 
 export const app = $state<Store>({
@@ -35,6 +37,7 @@ export const app = $state<Store>({
   page: "document",
   loaded: false,
   update: null,
+  license: null,
 });
 
 export function homePage(mode: Mode): Page {
@@ -119,9 +122,39 @@ export async function init() {
       action,
     });
   });
+  void refreshLicense();
   app.loaded = true;
 
   if (app.settings?.checkUpdates && !api.isMock) void checkForUpdate(true);
+}
+
+export async function refreshLicense() {
+  try {
+    app.license = await api.licenseInfo();
+  } catch {
+    /* not critical: Pro features stay locked */
+  }
+}
+
+/** Activate a Chitach Pro key; returns true on success. */
+export async function activateLicense(key: string): Promise<boolean> {
+  try {
+    app.license = await api.licenseActivate(key);
+    toast("success", t("pro.activated"));
+    return true;
+  } catch (e) {
+    showError(e, "error.license");
+    return false;
+  }
+}
+
+export async function deactivateLicense(): Promise<void> {
+  try {
+    app.license = await api.licenseDeactivate();
+    toast("success", t("pro.deactivated"));
+  } catch (e) {
+    showError(e, "error.license");
+  }
 }
 
 export async function openPath(path: string) {

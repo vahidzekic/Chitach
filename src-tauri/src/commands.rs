@@ -14,6 +14,7 @@ use crate::{
     fines::{self, FinesCache},
     fines_defs::FinesDefinitions,
     history::{self, HistoryState},
+    license::{LicenseInfo, LicenseState},
     settings::Settings,
     signing::{SigningState, SlotInfo, TokenCert},
     smartbox::{SmartboxState, SmartboxStatus},
@@ -227,6 +228,7 @@ pub async fn fines_check(
     force: Option<bool>,
 ) -> CmdResult<fines::CheckResult> {
     blocking(move || {
+        app.state::<LicenseState>().require()?;
         let shared = app.state::<Shared>();
         let plate = fines::document_plate(shared.current_document().as_ref())?;
         let provider = app
@@ -313,6 +315,7 @@ pub async fn history_api_check(
     force: Option<bool>,
 ) -> CmdResult<history::ApiResult> {
     blocking(move || {
+        app.state::<LicenseState>().require()?;
         let shared = app.state::<Shared>();
         let doc = shared.current_document();
         let vin = history::document_vehicle(doc.as_ref())?
@@ -344,4 +347,19 @@ pub async fn history_api_check(
         ))
     })
     .await
+}
+
+#[tauri::command]
+pub fn license_info(state: State<'_, LicenseState>) -> LicenseInfo {
+    state.info()
+}
+
+#[tauri::command]
+pub async fn license_activate(app: AppHandle, key: String) -> CmdResult<LicenseInfo> {
+    blocking(move || app.state::<LicenseState>().activate(&key)).await
+}
+
+#[tauri::command]
+pub async fn license_deactivate(app: AppHandle) -> CmdResult<LicenseInfo> {
+    blocking(move || app.state::<LicenseState>().deactivate()).await
 }

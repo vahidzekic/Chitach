@@ -385,6 +385,20 @@ export interface HistoryApiResult {
   cached: boolean;
 }
 
+/** Chitach Pro licence (unlocks the fines check and the vehicle history). */
+export interface LicenseInfo {
+  active: boolean;
+  /** a key is stored (it may be inactive when it could not be validated for too long) */
+  stored: boolean;
+  /** last 4 characters of the stored key, e.g. "…A1B2" */
+  keyHint: string | null;
+  email: string | null;
+  /** unix time in ms of the last successful validation */
+  validatedAt: number | null;
+  /** checkout page, when configured */
+  buyUrl: string | null;
+}
+
 export interface NotifyEvent {
   level: "info" | "success" | "error";
   key: string;
@@ -430,6 +444,9 @@ export interface Api {
   historySetApiKey(providerId: string, apiKey: string, secret: string): Promise<void>;
   historyRemoveApiKey(providerId: string): Promise<void>;
   historyApiCheck(providerId: string, operation: string, force?: boolean): Promise<HistoryApiResult>;
+  licenseInfo(): Promise<LicenseInfo>;
+  licenseActivate(key: string): Promise<LicenseInfo>;
+  licenseDeactivate(): Promise<LicenseInfo>;
 
   onAppState(cb: (s: AppState) => void): Promise<Unlisten>;
   onNotify(cb: (n: NotifyEvent) => void): Promise<Unlisten>;
