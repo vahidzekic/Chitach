@@ -1,0 +1,72 @@
+name: Signing check
+
+# Checks the Apple signing secrets without a release: signs a tiny test binary with the
+# Developer ID certificate and notarizes it (docs/06-razvoj.md).
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/signing-check.yml
+      - scripts/setup-macos-signing.sh
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: macOS Developer ID + notarization
+    runs-on: macos-latest
+    steps:
+      - name: Check secrets, sign and notarize a test binary
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for v in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY \
+                   APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_P8; do
+            if [ -z "${!v}" ]; then echo "::error::secret $v is not set"; missing=1; else echo "✓ $v is set"; fi
+          done
+          [ "$missing" = 0 ] || exit 1
+
+          keychain="$RUNNER_TEMP/check.keychain-db"
+          kc_pass="$(openssl rand -hex 16)"
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$kc_pass" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$kc_pass" "$keychain"
+          security import "$RUNNER_TEMP/cert.p12" -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$kc_pass" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/cert.p12"
+          security find-identity -v -p codesigning "$keychain"
+
+          printf 'int main(void){return 0;}\n' > "$RUNNER_TEMP/hello.c"
+          clang -arch arm64 -arch x86_64 -o "$RUNNER_TEMP/chitach-signing-check" "$RUNNER_TEMP/hello.c"
+          codesign --force --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" \
+            "$RUNNER_TEMP/chitach-signing-check"
+          codesign --verify --verbose=2 "$RUNNER_TEMP/chitach-signing-check"
+          codesign -dvv "$RUNNER_TEMP/chitach-signing-check" 2>&1 | grep -E "Authority|TeamIdentifier"
+
+          mkdir -p "$RUNNER_TEMP/private_keys"
+          key_path="$RUNNER_TEMP/private_keys/AuthKey_${APPLE_API_KEY}.p8"
+          printf '%s' "$APPLE_API_KEY_P8" > "$key_path"
+          ditto -c -k --keepParent "$RUNNER_TEMP/chitach-signing-check" "$RUNNER_TEMP/check.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/check.zip" \
+            --key "$key_path" --key-id "$APPLE_API_KEY" --issuer "$APPLE_API_ISSUER" \
+            --wait --timeout 30m | tee "$RUNNER_TEMP/notary.log"
+          grep -q "status: Accepted" "$RUNNER_TEMP/notary.log" ||
+            { echo "::error::notarization was not accepted"; exit 1; }
+          echo "Signing and notarization work."
+
+      - name: Remove keychain
+        if: always()
+        shell: bash
+        run: security delete-keychain "$RUNNER_TEMP/check.keychain-db" 2>/dev/null || true
