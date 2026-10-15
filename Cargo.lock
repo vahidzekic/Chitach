@@ -563,7 +563,7 @@ dependencies = [
 
 [[package]]
 name = "celik-core"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "base64 0.22.1",
  "flate2",
@@ -578,7 +578,7 @@ dependencies = [
 
 [[package]]
 name = "celik-export"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "celik-core",
  "chrono",
@@ -596,7 +596,7 @@ dependencies = [
 
 [[package]]
 name = "celik-sign"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "base64 0.22.1",
  "cryptoki",
@@ -656,7 +656,7 @@ dependencies = [
 
 [[package]]
 name = "chitach"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "base64 0.22.1",
  "celik-core",
@@ -680,7 +680,7 @@ dependencies = [
 
 [[package]]
 name = "chitach-cli"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "celik-core",
  "celik-export",
