@@ -32,6 +32,7 @@ pub struct ReaderInfo {
     pub atr: Option<String>,
 }
 
+#[cfg(desktop)]
 impl From<celik_core::reader::ReaderStatus> for ReaderInfo {
     fn from(r: celik_core::reader::ReaderStatus) -> Self {
         ReaderInfo {

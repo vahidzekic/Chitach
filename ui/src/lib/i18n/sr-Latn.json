@@ -106,6 +106,7 @@
   "error.unknownCard": "Nepoznata kartica",
   "error.unknownCard.copyAtr": "Kopiraj ATR",
   "error.unsupported": "Operacija nije podržana za ovu karticu",
+  "error.readerUnsupported": "Ovaj čitač još nije podržan na telefonu. Koristite čitač koji radi sa celim APDU komandama (većina novijih USB čitača).",
   "error.update": "Provera ažuriranja nije uspela",
   "error.updateCheck": "Provera ažuriranja nije uspela",
   "error.writingCert": "Greška pri zapisivanju sertifikata",

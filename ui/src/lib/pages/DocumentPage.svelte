@@ -110,7 +110,7 @@
             title={`${t("ui.savePdf")} (Ctrl+S)`}
           >
             <Icon name={busy === "pdf" ? "refresh" : "download"} size={16} class={busy === "pdf" ? "spin" : ""} />
-            <span>{t("ui.savePdf")}</span>
+            <span class="long">{t("ui.savePdf")}</span><span class="short">PDF</span>
           </button>
         </div>
       </div>
@@ -185,6 +185,28 @@
     }
     .bar-inner {
       padding: 10px 20px;
+    }
+  }
+  .short {
+    display: none;
+  }
+  @media (max-width: 720px) {
+    .long {
+      display: none;
+    }
+    .short {
+      display: inline;
+    }
+    .bar-inner {
+      padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+      gap: 6px;
+    }
+    .collapse,
+    .collapse-sm {
+      display: none;
+    }
+    .right {
+      gap: 6px;
     }
   }
 </style>

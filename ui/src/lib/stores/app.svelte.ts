@@ -40,6 +40,11 @@ export const app = $state<Store>({
   license: null,
 });
 
+/** Android and iOS: only the reader mode, no tray or desktop-only settings. */
+export function isMobileOs(os: AppInfo["os"] | undefined): boolean {
+  return os === "android" || os === "ios";
+}
+
 export function homePage(mode: Mode): Page {
   return mode === "xmlSign" ? "xmlSign" : mode === "smartbox" ? "smartbox" : "document";
 }
@@ -97,12 +102,13 @@ export async function init() {
   try {
     const [settings, state, info] = await Promise.all([api.getSettings(), api.getState(), api.getAppInfo()]);
     app.settings = settings;
-    app.mode = settings.mode;
+    // Phones always run the reader (Smartbox and XML signing are desktop-only).
+    app.mode = isMobileOs(info.os) ? "reader" : settings.mode;
     app.state = state;
     app.info = info;
     previewSettings(settings);
     const p = params.get("page") as Page | null;
-    app.page = p ?? homePage(settings.mode);
+    app.page = p ?? homePage(app.mode);
   } catch (e) {
     showError(e);
   }
@@ -125,7 +131,8 @@ export async function init() {
   void refreshLicense();
   app.loaded = true;
 
-  if (app.settings?.checkUpdates && !api.isMock) void checkForUpdate(true);
+  // Phones get updates from the app stores.
+  if (app.settings?.checkUpdates && !api.isMock && !isMobileOs(app.info?.os)) void checkForUpdate(true);
 }
 
 export async function refreshLicense() {

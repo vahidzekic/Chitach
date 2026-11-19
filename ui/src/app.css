@@ -392,3 +392,11 @@ a {
     padding: 22px 22px 32px;
   }
 }
+@media (max-width: 720px) {
+  .page {
+    padding: 16px 14px calc(28px + env(safe-area-inset-bottom));
+  }
+  .page-header {
+    flex-wrap: wrap;
+  }
+}

@@ -1,6 +1,6 @@
 //! PIN and certificate operations on the ID card in the selected reader.
 
-use celik_core::{reader::PcscCard, CardTransport, Certificate, Document, IdCardCrypto};
+use celik_core::{Certificate, Document, IdCardCrypto};
 use serde::Serialize;
 use x509_parser::prelude::{FromDer, X509Certificate};
 
@@ -77,10 +77,10 @@ fn with_crypto<T>(
 ) -> CmdResult<T> {
     let reader = id_card_reader(shared)?;
     catch(context, || {
-        let card = PcscCard::connect(&reader).map_err(|e| card_error(context, &e))?;
+        let card = crate::transport::connect(&reader).map_err(|e| card_error(context, &e))?;
         card.begin_transaction()
             .map_err(|e| card_error(context, &e))?;
-        let res = IdCardCrypto::new(&card).and_then(|c| f(&c));
+        let res = IdCardCrypto::new(&*card).and_then(|c| f(&c));
         let _ = card.end_transaction();
         res.map_err(|e| card_error(context, &e))
     })

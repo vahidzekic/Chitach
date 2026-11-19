@@ -1,0 +1,16 @@
+[package]
+name = "tauri-plugin-ccid"
+description = "USB CCID smart-card readers on Android for Chitach"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+links = "tauri-plugin-ccid"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+tauri = { version = "2", default-features = false }
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }

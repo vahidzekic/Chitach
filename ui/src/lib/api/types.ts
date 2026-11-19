@@ -240,7 +240,7 @@ export interface SmartboxStatus {
 
 export interface AppInfo {
   version: string;
-  os: "linux" | "macos" | "windows";
+  os: "linux" | "macos" | "windows" | "android" | "ios";
   arch: string;
 }
 
