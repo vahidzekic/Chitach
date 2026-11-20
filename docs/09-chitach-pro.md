@@ -1,11 +1,30 @@
-# Chitach Pro: plaćena provera kazni i istorija vozila
+# Chitach Pro: Free i Pro verzija
 
-> Status: oktobar 2026. **Kod je spojen u `main` (PR #13), ali je zaključavanje isključeno**:
-> dok je `STORE_ID = 0`, provera kazni i istorija vozila su besplatne, a UI ne prikazuje ništa
-> o Pro-u. Naplata je odložena za neko od sledećih izdanja; uključuje se upisom podataka iz
-> Lemon Squeezy naloga (v. §4).
+> Status: novembar 2026. **Kod je spojen u `main`, ali je zaključavanje isključeno**:
+> dok je `STORE_ID = 0`, sve je besplatno, a UI ne prikazuje ništa o Pro-u. Uključuje se upisom
+> podataka prodavca (v. §4).
 
-## 1. Odluka
+## 0. Nova politika (novembar 2026)
+
+Odluka iz novembra 2026 menja §1: **Free** je samo čitanje tri kartice (lična, saobraćajna,
+zdravstvena, uz „overena do") i čuvanje u PDF. **Pro** je sve ostalo, kao mesečna ili godišnja
+pretplata: čuvanje u JSON i Excel, automatsko čuvanje, rad u pozadini, sertifikati i promena PIN-a,
+XML potpisivanje, Smartbox, provera kazni i istorija vozila. Postojeći korisnici v0.3.0 ne dobijaju
+ništa posebno; nalog i jedna pretplata za računar i telefon dolaze kasnije. Politika i plan: Claude
+Doc „Chitach Free i Pro: politika i plan".
+
+Lemon Squeezy prestaje sa naplatom 31. 3. 2027, pa se prodavac menja pre uključivanja Pro-a.
+
+**Korak 1 (urađen):** spisak Pro funkcija u kodu (`license::Feature`, `LicenseInfo.features`),
+zaključane sve Pro komande i pozadinski rad, a u UI-ju kartica „Ovo je deo Chitach Pro" na
+stranicama Sertifikati, XML potpisivanje i Smartbox, zaključana dugmad JSON/Excel i podešavanja
+za automatsko čuvanje i rad u pozadini. Zaključavanje je i dalje isključeno (`STORE_ID = 0`).
+Slike: `screenshots/25-pro-locked.png`, `27-pro-locked-page.png`, `28-pro-locked-export.png`.
+
+**Sledeći koraci:** pretplata (provera jednom dnevno, 7 dana bez interneta, „Pro do datuma X"),
+novi prodavac, test sa pravim ključem, uključivanje u izdanju.
+
+## 1. Odluka (oktobar 2026, zamenjena §0)
 
 - Naplaćuju se samo dve funkcije: **provera kazni** i **istorija vozila**. Sve ostalo ostaje
   besplatno.

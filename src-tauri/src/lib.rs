@@ -63,12 +63,16 @@ pub fn run() {
                 license::spawn_revalidate(handle.clone());
             }
 
+            let pro = app.state::<license::LicenseState>();
+            let run_in_background = run_in_background && pro.allows(license::Feature::Background);
+            let smartbox_allowed = pro.allows(license::Feature::Smartbox);
             if let Err(e) = tray::apply(&handle, run_in_background) {
                 log::warn!("tray: {e}");
             }
             match mode {
                 Mode::Reader => poller::spawn(handle),
-                Mode::Smartbox => smartbox::spawn(handle),
+                Mode::Smartbox if smartbox_allowed => smartbox::spawn(handle),
+                Mode::Smartbox => {}
                 Mode::XmlSign => {}
             }
             Ok(())

@@ -7,7 +7,7 @@
   import { api } from "../api";
   import type { ExportFormat } from "../api/types";
   import { t } from "../i18n/index.svelte";
-  import { app, exportDocument, showError } from "../stores/app.svelte";
+  import { app, exportDocument, proUnlocked, showError } from "../stores/app.svelte";
   import { toast } from "../stores/toasts.svelte";
 
   const doc = $derived(app.state.status === "ready" ? app.state.document : null);
@@ -95,11 +95,23 @@
         <div class="right">
           <span class="save-label">{t("ui.saveAs")}</span>
           <div class="group">
-            <button class="btn" type="button" onclick={() => save("json")} disabled={!!busy} title={t("ui.saveJson")}>
-              <Icon name="braces" size={16} /><span>JSON</span>
+            <button
+              class="btn"
+              type="button"
+              onclick={() => save("json")}
+              disabled={!!busy || !proUnlocked()}
+              title={proUnlocked() ? t("ui.saveJson") : t("pro.lockedHint")}
+            >
+              <Icon name={proUnlocked() ? "braces" : "lock"} size={16} /><span>JSON</span>
             </button>
-            <button class="btn" type="button" onclick={() => save("xlsx")} disabled={!!busy} title={t("ui.saveXlsx")}>
-              <Icon name="table" size={16} /><span>Excel</span>
+            <button
+              class="btn"
+              type="button"
+              onclick={() => save("xlsx")}
+              disabled={!!busy || !proUnlocked()}
+              title={proUnlocked() ? t("ui.saveXlsx") : t("pro.lockedHint")}
+            >
+              <Icon name={proUnlocked() ? "table" : "lock"} size={16} /><span>Excel</span>
             </button>
           </div>
           <button

@@ -101,10 +101,11 @@ export function createMockApi(): Api {
   } catch {
     /* storage unavailable */
   }
+  const features: LicenseInfo["features"] = ["dataExport", "autoSave", "background", "pin", "certificates", "xmlSign", "smartbox", "fines", "history"];
   const licenseInfo = (): LicenseInfo =>
     pro
-      ? { enabled: proEnabled, active: true, stored: true, keyHint: "…DEMO", email: "kupac@example.com", validatedAt: Date.now(), buyUrl: null }
-      : { enabled: proEnabled, active: false, stored: false, keyHint: null, email: null, validatedAt: null, buyUrl: "https://example.com/chitach-pro" };
+      ? { enabled: proEnabled, active: true, stored: true, keyHint: "…DEMO", email: "kupac@example.com", validatedAt: Date.now(), buyUrl: null, features }
+      : { enabled: proEnabled, active: false, stored: false, keyHint: null, email: null, validatedAt: null, buyUrl: "https://example.com/chitach-pro", features };
   const setPro = (on: boolean) => {
     pro = on;
     try {
