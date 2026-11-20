@@ -61,6 +61,54 @@ impl<T: CardTransport + ?Sized> CardTransport for Box<T> {
     }
 }
 
+/// Sends `apdu` through `raw` and handles T=0 status words the way a T=1
+/// reader would: `6Cxx` (wrong Le) is resent with the correct Le and `61xx`
+/// (more data) is followed by GET RESPONSE until the card is done.
+///
+/// Used by every transport (PC/SC on desktop, USB CCID on phones).
+pub fn transmit_with_status_handling(
+    apdu: &[u8],
+    mut raw: impl FnMut(&[u8]) -> Result<Vec<u8>>,
+) -> Result<Vec<u8>> {
+    let mut rsp = raw(apdu)?;
+
+    if let [.., 0x6C, le] = rsp[..] {
+        let mut retry = apdu.to_vec();
+        if has_le(apdu) {
+            *retry.last_mut().expect("APDU with Le is not empty") = le;
+        } else {
+            retry.push(le);
+        }
+        rsp = raw(&retry)?;
+    }
+
+    let mut data = Vec::new();
+    let mut guard = 0;
+    while let [.., 0x61, le] = rsp[..] {
+        data.extend_from_slice(&rsp[..rsp.len() - 2]);
+        guard += 1;
+        if guard > 256 {
+            return Err(CardError::Pcsc("too many GET RESPONSE rounds".into()));
+        }
+        rsp = raw(&[apdu[0] & 0x03, 0xC0, 0x00, 0x00, le])?;
+    }
+    if data.is_empty() {
+        Ok(rsp)
+    } else {
+        data.extend_from_slice(&rsp);
+        Ok(data)
+    }
+}
+
+/// Whether a short APDU carries an Le byte (case 2 or case 4).
+fn has_le(apdu: &[u8]) -> bool {
+    match apdu.len() {
+        0..=4 => false,
+        5 => true,
+        n => n == 6 + apdu[4] as usize,
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
 pub enum CardKind {
     ApolloId,
@@ -248,5 +296,35 @@ mod tests {
         assert_eq!(trim4b(&[1, 2, 3, 4, 5]), &[5]);
         assert_eq!(trim4b(&[1, 2, 3, 4]), &[1, 2, 3, 4]);
         assert_eq!(trim4b(&[]), &[] as &[u8]);
+    }
+}
+
+#[cfg(test)]
+mod status_handling_tests {
+    use super::*;
+
+    #[test]
+    fn le_detection() {
+        assert!(!has_le(&[0, 0xA4, 0, 0]));
+        assert!(has_le(&[0, 0xB0, 0, 0, 4]));
+        assert!(!has_le(&[0, 0xA4, 0, 0, 2, 0x0F, 0x02]));
+        assert!(has_le(&[0, 0xA4, 0, 0, 2, 0x0F, 0x02, 4]));
+    }
+
+    #[test]
+    fn get_response_and_wrong_le() {
+        let mut sent: Vec<Vec<u8>> = Vec::new();
+        let rsp = transmit_with_status_handling(&[0, 0xB0, 0, 0, 0x10], |a| {
+            sent.push(a.to_vec());
+            Ok(match sent.len() {
+                1 => vec![0x6C, 0x02],
+                2 => vec![0xAA, 0x61, 0x01],
+                _ => vec![0xBB, 0x90, 0x00],
+            })
+        })
+        .unwrap();
+        assert_eq!(rsp, vec![0xAA, 0xBB, 0x90, 0x00]);
+        assert_eq!(sent[1], vec![0, 0xB0, 0, 0, 0x02]);
+        assert_eq!(sent[2], vec![0, 0xC0, 0, 0, 0x01]);
     }
 }

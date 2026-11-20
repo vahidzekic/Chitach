@@ -4,6 +4,7 @@
 // URL parameters (all optional):
 //   ?mock=demo|waiting|id|medical|vehicle|reading|noReader|unknown|error
 //   &mode=reader|xmlSign|smartbox  &theme=light|dark|system  &lang=sr-Latn|sr-Cyrl|en|ru
+//   &os=linux|macos|windows|android|ios  (platform reported by getAppInfo; phones hide desktop-only settings)
 //   &page=document|certificates|xmlSign|smartbox|settings|about
 //   &fines=found|clean|manual|unavailable|parseError  (forced automatic fines check result)
 //   &history=ok|unauthorized|error|unavailable|parseError  (forced vehicle history API result)
@@ -263,7 +264,13 @@ export function createMockApi(): Api {
     isMock: true,
 
     async getAppInfo() {
-      return { version: "0.1.0", os: "linux", arch: "x86_64" };
+      const os = params.get("os");
+      const known = ["linux", "macos", "windows", "android", "ios"] as const;
+      return {
+        version: "0.1.0",
+        os: known.find((k) => k === os) ?? "linux",
+        arch: os === "android" || os === "ios" ? "aarch64" : "x86_64",
+      };
     },
     async getState() {
       state.readers = readerStatuses();

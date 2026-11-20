@@ -20,6 +20,7 @@
     activateLicense,
     app,
     deactivateLicense,
+    isMobileOs,
     previewSettings,
     saveSettings,
     showError,
@@ -171,6 +172,9 @@
     }
   }
 
+  // Phones: no tray, mode switch, auto-save folder or PKCS#11 modules.
+  const isMobile = $derived(isMobileOs(app.info?.os));
+
   let pdfScript = $derived<"latin" | "cyrillic">(draft.pdfCyrillicLabels ? "cyrillic" : "latin");
   $effect(() => {
     draft.pdfCyrillicLabels = pdfScript === "cyrillic";
@@ -206,6 +210,7 @@
     </div>
   </section>
 
+  {#if !isMobile}
   <section class="card group">
     <h2><Icon name="sliders" size={16} />{t("settings.application")}</h2>
     <div class="row">
@@ -238,6 +243,7 @@
       </div>
     </div>
   </section>
+  {/if}
 
   <section class="card group">
     <h2><Icon name="download" size={16} />{t("settings.documents")}</h2>
@@ -257,6 +263,7 @@
         />
       </div>
     </div>
+    {#if !isMobile}
     <div class="row">
       <div class="desc">
         <span>{t("preference.autoSave")}</span>
@@ -281,6 +288,7 @@
         </div>
       </div>
     </div>
+    {/if}
   </section>
 
   {#if app.license?.enabled}
@@ -458,6 +466,7 @@
     {/each}
   </section>
 
+  {#if !isMobile}
   <section class="card group">
     <h2><Icon name="chip" size={16} />{t("settings.pkcs11")}</h2>
     <p class="group-desc">{t("settings.pkcs11Desc")}</p>
@@ -489,6 +498,7 @@
       </div>
     {/each}
   </section>
+  {/if}
 </div>
 
 {#if dirty}

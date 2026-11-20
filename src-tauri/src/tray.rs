@@ -1,14 +1,37 @@
 //! System tray ("run in background"): Show / Quit menu; closing the window hides it.
+//!
+//! Phones have no tray: there every function here does nothing.
 
+#[cfg(desktop)]
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager, Runtime,
+    Manager,
 };
+use tauri::{AppHandle, Runtime};
 
 pub const TRAY_ID: &str = "main";
 pub const MAIN_WINDOW: &str = "main";
 
+#[cfg(mobile)]
+pub fn show_main_window<R: Runtime>(_app: &AppHandle<R>) {}
+
+#[cfg(mobile)]
+pub fn apply<R: Runtime>(_app: &AppHandle<R>, _enabled: bool) -> tauri::Result<()> {
+    Ok(())
+}
+
+#[cfg(mobile)]
+pub fn has_tray<R: Runtime>(_app: &AppHandle<R>) -> bool {
+    false
+}
+
+#[cfg(desktop)]
+pub fn has_tray<R: Runtime>(app: &AppHandle<R>) -> bool {
+    app.tray_by_id(TRAY_ID).is_some()
+}
+
+#[cfg(desktop)]
 pub fn show_main_window<R: Runtime>(app: &AppHandle<R>) {
     if let Some(w) = app.get_webview_window(MAIN_WINDOW) {
         let _ = w.unminimize();
@@ -18,6 +41,7 @@ pub fn show_main_window<R: Runtime>(app: &AppHandle<R>) {
 }
 
 /// Create or remove the tray icon according to `enabled`.
+#[cfg(desktop)]
 pub fn apply<R: Runtime>(app: &AppHandle<R>, enabled: bool) -> tauri::Result<()> {
     let exists = app.tray_by_id(TRAY_ID).is_some();
     if enabled && !exists {
@@ -28,6 +52,7 @@ pub fn apply<R: Runtime>(app: &AppHandle<R>, enabled: bool) -> tauri::Result<()>
     Ok(())
 }
 
+#[cfg(desktop)]
 fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "Show Chitach", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;

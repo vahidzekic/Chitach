@@ -15,6 +15,7 @@ pub mod settings;
 pub mod signing;
 pub mod smartbox;
 pub mod state;
+pub mod transport;
 pub mod tray;
 pub mod update;
 
@@ -34,10 +35,17 @@ pub fn mock_enabled() -> bool {
         .unwrap_or(false)
 }
 
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_opener::init());
+    #[cfg(mobile)]
+    let builder = builder
+        .plugin(tauri_plugin_ccid::init())
+        // Writes to the content:// URIs returned by Android's save dialog.
+        .plugin(tauri_plugin_fs::init());
+    builder
         .setup(|app| {
             let handle = app.handle().clone();
             let path = settings::settings_path(handle.path().app_config_dir().ok());
@@ -46,13 +54,20 @@ pub fn run() {
             if mock {
                 log::info!("CHITACH_MOCK: using sample documents");
             }
-            let mode = settings.mode;
+            // Phones only have the reader: Smartbox and XML signing need desktop
+            // PKCS#11 modules and a local web socket server.
+            let mode = if cfg!(mobile) {
+                Mode::Reader
+            } else {
+                settings.mode
+            };
             let run_in_background = settings.run_in_background;
             let secrets_path = history::secrets_path(path.as_deref());
             app.manage(history::HistoryState::new(secrets_path));
             let license_path = license::license_path(path.as_deref());
             app.manage(license::LicenseState::new(license_path, mock));
             app.manage(Shared::new(settings, mock, path));
+            transport::init(&handle);
             app.manage(SigningState::default());
             app.manage(SmartboxState::default());
             app.manage(fines::FinesCache::default());
@@ -79,7 +94,7 @@ pub fn run() {
                 let background = app
                     .try_state::<Shared>()
                     .is_some_and(|s| s.settings().run_in_background);
-                if background && app.tray_by_id(tray::TRAY_ID).is_some() {
+                if background && tray::has_tray(app) {
                     api.prevent_close();
                     let _ = window.hide();
                 }

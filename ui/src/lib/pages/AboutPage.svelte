@@ -15,7 +15,7 @@
   }
 
   const osName = $derived(
-    app.info ? ({ linux: "Linux", macos: "macOS", windows: "Windows" } as const)[app.info.os] : "",
+    app.info ? ({ linux: "Linux", macos: "macOS", windows: "Windows", android: "Android", ios: "iOS" } as const)[app.info.os] : "",
   );
 </script>
 

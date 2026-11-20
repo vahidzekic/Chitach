@@ -67,6 +67,55 @@ pub fn export_to(
     Ok(path)
 }
 
+/// Whether `target` (from the save dialog) is a URI rather than a file path.
+/// Android's save dialog returns `content://` URIs that `std::fs` cannot open.
+pub fn is_uri(target: &str) -> bool {
+    target.contains("://")
+}
+
+/// Write `bytes` to a save-dialog result: a plain path, or on phones a
+/// `content://` URI opened through the fs plugin.
+pub fn write_target(app: &AppHandle, target: &str, bytes: &[u8]) -> CmdResult<()> {
+    #[cfg(mobile)]
+    if is_uri(target) {
+        use std::io::Write;
+        use tauri_plugin_fs::{FilePath, FsExt, OpenOptions};
+        let fp: FilePath = target
+            .parse()
+            .map_err(|e| with_detail("error.saveFile", e))?;
+        let mut opts = OpenOptions::new();
+        opts.write(true).create(true).truncate(true);
+        let mut file = app
+            .fs()
+            .open(fp, opts)
+            .map_err(|e| with_detail("error.saveFile", e))?;
+        return file
+            .write_all(bytes)
+            .map_err(|e| with_detail("error.saveFile", e));
+    }
+    let _ = app;
+    std::fs::write(target, bytes).map_err(|e| with_detail("error.saveFile", e))
+}
+
+/// Export to a save-dialog result. Paths get the extension appended when
+/// missing; URIs are used as they are. Returns where the file went.
+pub fn export_to_target(
+    app: &AppHandle,
+    doc: &Document,
+    format: Format,
+    target: &str,
+    cyrillic: bool,
+) -> CmdResult<String> {
+    if is_uri(target) {
+        let bytes = render(doc, format, cyrillic)?;
+        write_target(app, target, &bytes)?;
+        Ok(target.to_string())
+    } else {
+        export_to(doc, format, Path::new(target), cyrillic)
+            .map(|p| p.to_string_lossy().into_owned())
+    }
+}
+
 pub fn suggest_file_name(doc: &Document, format: Format) -> String {
     let name = celik_export::file_name(doc, format.ext());
     // Keep file names portable.

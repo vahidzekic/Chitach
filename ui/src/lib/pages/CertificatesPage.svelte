@@ -4,7 +4,7 @@
   import { api } from "../api";
   import type { CertInfo } from "../api/types";
   import { t, translateError } from "../i18n/index.svelte";
-  import { app, openPath, saveFileAs, showError } from "../stores/app.svelte";
+  import { app, isUri, openPath, saveFileAs, showError } from "../stores/app.svelte";
   import { toast } from "../stores/toasts.svelte";
   import { baseName, formatCertDate } from "../util/format";
 
@@ -50,6 +50,10 @@
       const path = await saveFileAs(name, "cer", "DER");
       if (!path) return;
       await api.saveCertificate(c.index, path);
+      if (isUri(path)) {
+        toast("success", t("ui.certSaved"), { detail: name });
+        return;
+      }
       toast("success", t("ui.certSaved"), {
         detail: baseName(path),
         action: { label: t("ui.open"), run: () => void openPath(path) },
