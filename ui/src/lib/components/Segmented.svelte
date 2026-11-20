@@ -5,9 +5,12 @@
     value = $bindable(),
     options,
     label,
-  }: { value: T; options: { value: T; label: string; icon?: IconName }[]; label: string } = $props();
+    disabled = false,
+  }: { value: T; options: { value: T; label: string; icon?: IconName }[]; label: string; disabled?: boolean } =
+    $props();
 
   function key(e: KeyboardEvent) {
+    if (disabled) return;
     const i = options.findIndex((o) => o.value === value);
     let n = i;
     if (e.key === "ArrowRight" || e.key === "ArrowDown") n = (i + 1) % options.length;
@@ -27,6 +30,7 @@
       role="radio"
       aria-checked={value === o.value}
       tabindex={value === o.value ? 0 : -1}
+      {disabled}
       onclick={() => (value = o.value)}
     >
       {#if o.icon}<Icon name={o.icon} size={15} />{/if}
@@ -62,7 +66,11 @@
       background 0.15s,
       color 0.15s;
   }
-  button:hover {
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  button:hover:not(:disabled) {
     color: var(--text);
   }
   button[aria-checked="true"] {

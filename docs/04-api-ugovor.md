@@ -138,7 +138,7 @@ export interface HistoryApiResult {
   price: string | null;             // cena upita kako je javlja servis
   detail: string | null; checkedAt: number; cached: boolean;
 }
-// Chitach Pro (jednokratni Lemon Squeezy ključ; otključava proveru kazni i istoriju vozila)
+// Chitach Pro (Lemon Squeezy ključ; otključava sve osim čitanja kartica i čuvanja u PDF)
 export interface LicenseInfo {
   enabled: boolean;                 // zaključavanje uključeno (license::STORE_ID != 0 ili mock); inače je sve besplatno
   active: boolean;                  // Pro je uključen
@@ -146,7 +146,10 @@ export interface LicenseInfo {
   keyHint: string | null;           // poslednja 4 znaka ključa, npr. "…A1B2"
   email: string | null; validatedAt: number | null;
   buyUrl: string | null;            // stranica za kupovinu (license::BUY_URL)
+  features: ProFeature[];           // šta Pro otključava (license::Feature::ALL)
 }
+type ProFeature = "dataExport" | "autoSave" | "background" | "pin" | "certificates"
+  | "xmlSign" | "smartbox" | "fines" | "history";
 ```
 
 ## Komande
@@ -157,21 +160,21 @@ export interface LicenseInfo {
 | `get_state` | – | `AppState` | trenutno stanje (UI ga poziva pri startu) |
 | `select_reader` | `{ name: string \| null }` | `void` | `null` = automatski (prvi sa karticom) |
 | `reload_card` | – | `void` | ponovo pročitaj karticu |
-| `export_document` | `{ format: "pdf"\|"json"\|"xlsx", path: string }` | `string` (putanja) | snima trenutni dokument |
+| `export_document` | `{ format: "pdf"\|"json"\|"xlsx", path: string }` | `string` (putanja) | snima trenutni dokument; JSON i Excel zahtevaju Pro (`dataExport`) |
 | `suggest_file_name` | `{ format }` | `string` | npr. `petar_petrovic.pdf` |
 | `update_rfzo` | – | `Document` | ažurira "overena do" za zdravstvenu |
 | `pin_tries_left` | – | `number` | samo lična karta |
-| `change_pin` | `{ oldPin, newPin }` | `void` | greška `error.wrongPin:N` (N preostalih pokušaja) |
-| `list_certificates` | – | `CertInfo[]` | sertifikati sa lične karte |
-| `save_certificate` | `{ index, path }` | `void` | DER/.cer |
+| `change_pin` | `{ oldPin, newPin }` | `void` | Pro (`pin`); greška `error.wrongPin:N` (N preostalih pokušaja) |
+| `list_certificates` | – | `CertInfo[]` | Pro (`certificates`); sertifikati sa lične karte |
+| `save_certificate` | `{ index, path }` | `void` | Pro (`certificates`); DER/.cer |
 | `get_settings` | – | `Settings` | |
 | `save_settings` | `{ settings: Settings }` | `void` | primenjuje temu/jezik odmah, mod nakon restarta |
 | `check_update` | – | `UpdateInfo` | GitHub releases `vahidzekic/Chitach` |
 | `open_path` | `{ path }` | `void` | otvara fajl u podrazumevanom programu |
-| `sign_load_modules` | – | `CardVendor[]` | učitava PKCS#11 module iz podešavanja |
+| `sign_load_modules` | – | `CardVendor[]` | Pro (`xmlSign`); učitava PKCS#11 module iz podešavanja |
 | `sign_list_slots` | `{ vendor }` | `Slot[]` | |
-| `sign_login` | `{ vendor, slot, pin }` | `TokenCert[]` | |
-| `sign_xml_file` | `{ certId, inputPath, outputPath }` | `void` | |
+| `sign_login` | `{ vendor, slot, pin }` | `TokenCert[]` | Pro (`xmlSign`) |
+| `sign_xml_file` | `{ certId, inputPath, outputPath }` | `void` | Pro (`xmlSign`) |
 | `sign_logout` | – | `void` | |
 | `smartbox_status` | – | `SmartboxStatus` | |
 | `fines_providers` | – | `FinesInfo` | portali za tablicu trenutne saobraćajne (bez nje: svi, prazna tablica) |
@@ -184,8 +187,13 @@ export interface LicenseInfo {
 | `license_activate` | `{ key }` | `LicenseInfo` | Lemon Squeezy `licenses/activate` (šalje ključ i ime instance, npr. `Chitach (windows x86_64)`); prihvata samo ključeve prodavnice `license::STORE_ID`; čuva u `license.json` (Unix: 0600). Greške: `error.licenseInvalid`, `error.licenseLimit`, `error.licenseWrongProduct`, `error.licenseNetwork`. Mock: ključ `CHITACH-PRO-DEMO` |
 | `license_deactivate` | – | `LicenseInfo` | `licenses/deactivate` (oslobađa mesto), lokalni ključ se briše i bez interneta |
 
-Dok je `license::STORE_ID = 0`, zaključavanje je isključeno: provera kazni i istorija vozila su
-besplatne, a UI ne prikazuje ništa o Pro-u.
+Besplatno je samo čitanje tri kartice (lična, saobraćajna, zdravstvena, uz „overena do") i
+čuvanje u PDF. Sve ostalo je Pro: komande iz tabele označene sa „Pro" vraćaju
+`error.proRequired`, a bez Pro-a se ne pokreću ni automatsko čuvanje posle čitanja (`autoSave`),
+ikonica u traci i rad u pozadini (`background`) ni Smartbox server (`smartbox`).
+
+Dok je `license::STORE_ID = 0`, zaključavanje je isključeno: sve je besplatno, a UI ne prikazuje
+ništa o Pro-u.
 
 Ključ se pri startu ponovo proverava (`licenses/validate`) ako je od poslednje provere prošlo
 više od 7 dana; bez interneta Pro radi još 30 dana od poslednje uspešne provere. Refundiran ili

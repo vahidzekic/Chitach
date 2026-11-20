@@ -1,10 +1,26 @@
 <script lang="ts">
-  // Shown instead of the fines check and the vehicle history panels while Chitach Pro is
-  // not activated: what Pro unlocks, a buy button and the key field.
-  import Icon from "../../components/Icon.svelte";
+  // Shown in place of a Chitach Pro feature (fines and history panels, the certificates,
+  // XML signing and Smartbox pages) while Pro is not active: what Pro unlocks, a buy
+  // button and the key field.
+  import Icon, { type IconName } from "../../components/Icon.svelte";
   import { api } from "../../api";
+  import type { ProFeature } from "../../api/types";
   import { t } from "../../i18n/index.svelte";
   import { activateLicense, app } from "../../stores/app.svelte";
+
+  // One line per thing Pro unlocks; PIN change and certificates share a line.
+  const FEATURES: { key: string; icon: IconName; covers: ProFeature[] }[] = [
+    { key: "pro.featureFines", icon: "receipt", covers: ["fines"] },
+    { key: "pro.featureHistory", icon: "history", covers: ["history"] },
+    { key: "pro.featureExport", icon: "table", covers: ["dataExport", "autoSave"] },
+    { key: "pro.featureCertificates", icon: "shield", covers: ["pin", "certificates"] },
+    { key: "pro.featureXmlSign", icon: "pen", covers: ["xmlSign"] },
+    { key: "pro.featureSmartbox", icon: "server", covers: ["smartbox"] },
+    { key: "pro.featureBackground", icon: "monitor", covers: ["background"] },
+  ];
+  const features = $derived(
+    FEATURES.filter((f) => f.covers.some((c) => app.license?.features.includes(c) ?? true)),
+  );
 
   let key = $state("");
   let busy = $state(false);
@@ -38,8 +54,9 @@
     </div>
   </header>
   <ul>
-    <li><Icon name="receipt" size={14} />{t("pro.featureFines")}</li>
-    <li><Icon name="history" size={14} />{t("pro.featureHistory")}</li>
+    {#each features as f (f.key)}
+      <li><Icon name={f.icon} size={14} />{t(f.key)}</li>
+    {/each}
   </ul>
   {#if app.license?.stored && !app.license.active}
     <p class="warn">{t("pro.expired")}</p>

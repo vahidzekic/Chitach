@@ -8,7 +8,9 @@
   import SmartboxPage from "./lib/pages/SmartboxPage.svelte";
   import SettingsPage from "./lib/pages/SettingsPage.svelte";
   import AboutPage from "./lib/pages/AboutPage.svelte";
-  import { app, init } from "./lib/stores/app.svelte";
+  import ProLock from "./lib/pages/document/ProLock.svelte";
+  import { app, init, proUnlocked } from "./lib/stores/app.svelte";
+  import { t } from "./lib/i18n/index.svelte";
 
   let main: HTMLElement | undefined = $state();
 
@@ -29,6 +31,11 @@
     {#if app.loaded && app.settings}
       {#if app.page === "document"}
         <DocumentPage />
+      {:else if (app.page === "certificates" || app.page === "xmlSign" || app.page === "smartbox") && !proUnlocked()}
+        <div class="page">
+          <div class="page-header"><div><h1>{t(`nav.${app.page}`)}</h1></div></div>
+          <ProLock />
+        </div>
       {:else if app.page === "certificates"}
         <CertificatesPage />
       {:else if app.page === "xmlSign"}

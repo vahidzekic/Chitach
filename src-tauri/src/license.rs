@@ -1,5 +1,6 @@
-//! Chitach Pro licence: a one-time Lemon Squeezy license key that unlocks the fines check
-//! ("Provera kazni") and the vehicle history ("Istorija vozila").
+//! Chitach Pro licence: a Lemon Squeezy license key that unlocks the paid features listed in
+//! [`Feature`]. Reading the three cards, PDF export, the RFZO "verified until" query and
+//! `chitach-cli` stay free (policy: "Chitach Free i Pro", November 2026).
 //!
 //! Chitach is open source, so this is a gate for honest customers, not copy protection:
 //! anyone can build a copy without it. The key is checked against the public Lemon Squeezy
@@ -42,6 +43,44 @@ pub const MOCK_KEY: &str = "CHITACH-PRO-DEMO";
 /// Error returned by gated commands.
 pub const PRO_REQUIRED: &str = "error.proRequired";
 
+/// Paid (Pro) features. One place that says what is paid; every gate names its feature.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Feature {
+    /// JSON and Excel export (PDF stays free).
+    DataExport,
+    /// Automatic save when a card is read.
+    AutoSave,
+    /// Running in the system tray.
+    Background,
+    /// Changing the ID card PIN.
+    Pin,
+    /// Listing and saving the ID card certificates.
+    Certificates,
+    /// XML signing (PKCS#11).
+    XmlSign,
+    /// Smartbox emulation for ePorezi.
+    Smartbox,
+    /// Fines check.
+    Fines,
+    /// Vehicle history.
+    History,
+}
+
+impl Feature {
+    pub const ALL: [Feature; 9] = [
+        Feature::DataExport,
+        Feature::AutoSave,
+        Feature::Background,
+        Feature::Pin,
+        Feature::Certificates,
+        Feature::XmlSign,
+        Feature::Smartbox,
+        Feature::Fines,
+        Feature::History,
+    ];
+}
+
 /// Activated licence as stored in `license.json`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -77,6 +116,8 @@ pub struct LicenseInfo {
     pub email: Option<String>,
     pub validated_at: Option<i64>,
     pub buy_url: Option<String>,
+    /// The paid features ([`Feature::ALL`]), for the UI.
+    pub features: Vec<Feature>,
 }
 
 // ---------- Lemon Squeezy responses ----------
@@ -337,6 +378,7 @@ impl LicenseState {
             email: stored.as_ref().and_then(|s| s.email.clone()),
             validated_at: stored.as_ref().map(|s| s.validated_at),
             buy_url: (!BUY_URL.is_empty()).then(|| BUY_URL.to_string()),
+            features: Feature::ALL.to_vec(),
         }
     }
 
@@ -439,11 +481,21 @@ impl LicenseState {
         }
     }
 
+    /// Non-blocking check for background work (auto-save, tray, Smartbox): no network.
+    pub fn allows(&self, feature: Feature) -> bool {
+        let ok = !self.enabled() || self.info().active;
+        if !ok {
+            log::info!("{feature:?} needs Chitach Pro");
+        }
+        ok
+    }
+
     /// Gate for the Pro commands (blocking: may re-validate an expired grace period).
-    pub fn require(&self) -> CmdResult<()> {
+    pub fn require(&self, feature: Feature) -> CmdResult<()> {
         if !self.enabled() {
             return Ok(());
         }
+        log::debug!("checking Chitach Pro for {feature:?}");
         let stored = self.lock().clone();
         match stored {
             None => Err(PRO_REQUIRED.into()),
@@ -580,17 +632,21 @@ mod tests {
         // STORE_ID is 0 in the repository: no gate outside mock mode.
         let st = LicenseState::new(None, false);
         assert!(!st.info().enabled);
-        assert!(st.require().is_ok());
+        assert!(st.require(Feature::XmlSign).is_ok());
+        assert!(st.allows(Feature::Smartbox));
     }
 
     #[test]
     fn mock_activation() {
         let st = LicenseState::new(None, true);
-        assert_eq!(st.require(), Err(PRO_REQUIRED.to_string()));
+        assert_eq!(st.require(Feature::Fines), Err(PRO_REQUIRED.to_string()));
+        assert!(!st.allows(Feature::AutoSave));
         assert!(st.activate("wrong").is_err());
         let info = st.activate(MOCK_KEY).unwrap();
         assert!(info.active);
-        assert!(st.require().is_ok());
+        assert_eq!(info.features.len(), Feature::ALL.len());
+        assert!(st.require(Feature::Pin).is_ok());
+        assert!(st.allows(Feature::AutoSave));
         assert!(!st.deactivate().unwrap().stored);
     }
 }

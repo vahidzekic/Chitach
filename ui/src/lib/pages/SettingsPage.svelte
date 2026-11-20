@@ -22,6 +22,7 @@
     deactivateLicense,
     isMobileOs,
     previewSettings,
+    proUnlocked,
     saveSettings,
     showError,
   } from "../stores/app.svelte";
@@ -228,9 +229,15 @@
       <div class="desc">
         <label for="set-bg">{t("preference.runInBackground")}</label>
         <small>{t("settings.runInBackgroundDesc")}</small>
+        {#if !proUnlocked()}<small class="pro-hint"><Icon name="lock" size={12} />{t("pro.lockedHint")}</small>{/if}
       </div>
       <div class="ctl end">
-        <Switch id="set-bg" bind:checked={draft.runInBackground} label={t("preference.runInBackground")} />
+        <Switch
+          id="set-bg"
+          bind:checked={draft.runInBackground}
+          label={t("preference.runInBackground")}
+          disabled={!proUnlocked()}
+        />
       </div>
     </div>
     <div class="row">
@@ -268,8 +275,16 @@
       <div class="desc">
         <span>{t("preference.autoSave")}</span>
         <small>{t("settings.autoSaveDesc")}</small>
+        {#if !proUnlocked()}<small class="pro-hint"><Icon name="lock" size={12} />{t("pro.lockedHint")}</small>{/if}
       </div>
-      <div class="ctl"><Segmented bind:value={draft.autoSave} options={autoSaveOptions} label={t("preference.autoSave")} /></div>
+      <div class="ctl">
+        <Segmented
+          bind:value={draft.autoSave}
+          options={autoSaveOptions}
+          label={t("preference.autoSave")}
+          disabled={!proUnlocked()}
+        />
+      </div>
     </div>
     <div class="row" class:disabled={draft.autoSave === "off"}>
       <div class="desc"><label for="set-dir">{t("preference.autoSaveLocation")}</label></div>
@@ -562,6 +577,13 @@
   .desc small {
     font-size: 12.5px;
     color: var(--text-3);
+  }
+  .desc .pro-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 2px;
+    color: var(--accent-text);
   }
   .ctl {
     min-width: 0;

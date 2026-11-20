@@ -14,7 +14,7 @@ use crate::{
     fines::{self, FinesCache},
     fines_defs::FinesDefinitions,
     history::{self, HistoryState},
-    license::{LicenseInfo, LicenseState},
+    license::{Feature, LicenseInfo, LicenseState},
     settings::Settings,
     signing::{SigningState, SlotInfo, TokenCert},
     smartbox::{SmartboxState, SmartboxStatus},
@@ -72,6 +72,9 @@ fn current_document(shared: &Shared) -> CmdResult<Document> {
 #[tauri::command]
 pub async fn export_document(app: AppHandle, format: Format, path: String) -> CmdResult<String> {
     blocking(move || {
+        if format != Format::Pdf {
+            app.state::<LicenseState>().require(Feature::DataExport)?;
+        }
         let shared = app.state::<Shared>();
         let doc = current_document(&shared)?;
         let cyrillic = shared.settings().pdf_cyrillic_labels;
@@ -114,17 +117,26 @@ pub async fn pin_tries_left(app: AppHandle) -> CmdResult<u8> {
 
 #[tauri::command]
 pub async fn change_pin(app: AppHandle, old_pin: String, new_pin: String) -> CmdResult<()> {
-    blocking(move || crypto::change_pin(&app.state::<Shared>(), &old_pin, &new_pin)).await
+    blocking(move || {
+        app.state::<LicenseState>().require(Feature::Pin)?;
+        crypto::change_pin(&app.state::<Shared>(), &old_pin, &new_pin)
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn list_certificates(app: AppHandle) -> CmdResult<Vec<CertInfo>> {
-    blocking(move || crypto::list_certificates(&app.state::<Shared>())).await
+    blocking(move || {
+        app.state::<LicenseState>().require(Feature::Certificates)?;
+        crypto::list_certificates(&app.state::<Shared>())
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn save_certificate(app: AppHandle, index: usize, path: String) -> CmdResult<()> {
     blocking(move || {
+        app.state::<LicenseState>().require(Feature::Certificates)?;
         let der = crypto::certificate_der(&app.state::<Shared>(), index)?;
         export::write_target(&app, &path, &der)
     })
@@ -139,7 +151,8 @@ pub fn get_settings(state: State<'_, Shared>) -> Settings {
 #[tauri::command]
 pub fn save_settings(app: AppHandle, settings: Settings) -> CmdResult<()> {
     let shared = app.state::<Shared>();
-    let run_in_background = settings.run_in_background;
+    let run_in_background =
+        settings.run_in_background && app.state::<LicenseState>().allows(Feature::Background);
     {
         let mut s = shared.settings_mut();
         *s = settings;
@@ -170,6 +183,7 @@ pub fn open_path(app: AppHandle, path: String) -> CmdResult<()> {
 #[tauri::command]
 pub async fn sign_load_modules(app: AppHandle) -> CmdResult<Vec<CardVendor>> {
     blocking(move || {
+        app.state::<LicenseState>().require(Feature::XmlSign)?;
         let settings = app.state::<Shared>().settings().clone();
         app.state::<SigningState>().load_modules(&settings)
     })
@@ -188,7 +202,11 @@ pub async fn sign_login(
     slot: u64,
     pin: String,
 ) -> CmdResult<Vec<TokenCert>> {
-    blocking(move || app.state::<SigningState>().login(vendor, slot, &pin)).await
+    blocking(move || {
+        app.state::<LicenseState>().require(Feature::XmlSign)?;
+        app.state::<SigningState>().login(vendor, slot, &pin)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -199,6 +217,7 @@ pub async fn sign_xml_file(
     output_path: String,
 ) -> CmdResult<()> {
     blocking(move || {
+        app.state::<LicenseState>().require(Feature::XmlSign)?;
         app.state::<SigningState>()
             .sign_file(&cert_id, &input_path, &output_path)
     })
@@ -235,7 +254,7 @@ pub async fn fines_check(
     force: Option<bool>,
 ) -> CmdResult<fines::CheckResult> {
     blocking(move || {
-        app.state::<LicenseState>().require()?;
+        app.state::<LicenseState>().require(Feature::Fines)?;
         let shared = app.state::<Shared>();
         let plate = fines::document_plate(shared.current_document().as_ref())?;
         let provider = app
@@ -322,7 +341,7 @@ pub async fn history_api_check(
     force: Option<bool>,
 ) -> CmdResult<history::ApiResult> {
     blocking(move || {
-        app.state::<LicenseState>().require()?;
+        app.state::<LicenseState>().require(Feature::History)?;
         let shared = app.state::<Shared>();
         let doc = shared.current_document();
         let vin = history::document_vehicle(doc.as_ref())?

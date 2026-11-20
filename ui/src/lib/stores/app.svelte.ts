@@ -128,11 +128,17 @@ export async function init() {
       action,
     });
   });
-  void refreshLicense();
+  await refreshLicense();
   app.loaded = true;
 
   // Phones get updates from the app stores.
   if (app.settings?.checkUpdates && !api.isMock && !isMobileOs(app.info?.os)) void checkForUpdate(true);
+}
+
+/** Chitach Pro features are usable: Pro is active, or gating is off in this build (the default). */
+export function proUnlocked(): boolean {
+  const l = app.license;
+  return !l || !l.enabled || l.active;
 }
 
 export async function refreshLicense() {

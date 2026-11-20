@@ -399,7 +399,20 @@ export interface LicenseInfo {
   validatedAt: number | null;
   /** checkout page, when configured */
   buyUrl: string | null;
+  /** everything Chitach Pro unlocks (reading the three cards and PDF export stay free) */
+  features: ProFeature[];
 }
+
+export type ProFeature =
+  | "dataExport"
+  | "autoSave"
+  | "background"
+  | "pin"
+  | "certificates"
+  | "xmlSign"
+  | "smartbox"
+  | "fines"
+  | "history";
 
 export interface NotifyEvent {
   level: "info" | "success" | "error";
