@@ -53,6 +53,38 @@ jobs:
           cache: npm
           cache-dependency-path: ui/package-lock.json
 
+      # Maven Central rate-limits GitHub runners (HTTP 429), which breaks the
+      # Gradle build. Put Google's mirror of Maven Central in front of every
+      # repository list (including buildSrc and plugin resolution) and cache
+      # downloaded dependencies between runs.
+      - name: Gradle mirror
+        run: |
+          mkdir -p ~/.gradle/init.d
+          cat > ~/.gradle/init.d/maven-central-mirror.gradle <<'GRADLE'
+          def mirror = "https://maven-central.storage-download.googleapis.com/maven2/"
+          def front = { repos ->
+              def m = repos.maven { url = mirror; name = "MavenCentralMirror" }
+              repos.remove(m)
+              repos.addFirst(m)
+          }
+          beforeSettings { settings ->
+              front(settings.pluginManagement.repositories)
+              front(settings.dependencyResolutionManagement.repositories)
+          }
+          allprojects {
+              front(buildscript.repositories)
+              front(repositories)
+          }
+          GRADLE
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('crates/tauri-plugin-ccid/android/**', 'ui/package-lock.json') }}
+          restore-keys: gradle-${{ runner.os }}-
+
       - name: UI - install
         run: npm ci
         working-directory: ui
@@ -63,17 +95,6 @@ jobs:
         run: |
           npm run tauri -- android init --ci
           npm run tauri -- icon src-tauri/icons/icon.png
-          # buildSrc resolves the Kotlin Gradle plugin only from the Gradle plugin
-          # portal, which does not always serve the Kotlin artifacts; add Maven
-          # Central (and Google) as fallbacks.
-          f=src-tauri/gen/android/buildSrc/settings.gradle.kts
-          if grep -q pluginManagement "$f" 2>/dev/null; then
-            sed -i 's/gradlePluginPortal()/gradlePluginPortal()\n        mavenCentral()\n        google()/' "$f"
-          else
-            { printf 'pluginManagement {\n    repositories {\n        gradlePluginPortal()\n        mavenCentral()\n        google()\n    }\n}\n'; cat "$f" 2>/dev/null || true; } > "$f.new"
-            mv "$f.new" "$f"
-          fi
-          cat "$f"
 
       - name: Build APK
         run: npm run tauri -- android build --debug --apk --target aarch64 --ci
