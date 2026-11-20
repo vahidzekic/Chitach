@@ -70,7 +70,7 @@ jobs:
           if grep -q pluginManagement "$f" 2>/dev/null; then
             sed -i 's/gradlePluginPortal()/gradlePluginPortal()\n        mavenCentral()\n        google()/' "$f"
           else
-            { printf 'pluginManagement {\n    repositories {\n        gradlePluginPortal()\n        mavenCentral()\n        google()\n    }\n}\n'; cat "$f" 2>/dev/null; } > "$f.new"
+            { printf 'pluginManagement {\n    repositories {\n        gradlePluginPortal()\n        mavenCentral()\n        google()\n    }\n}\n'; cat "$f" 2>/dev/null || true; } > "$f.new"
             mv "$f.new" "$f"
           fi
           cat "$f"
