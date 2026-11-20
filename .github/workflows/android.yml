@@ -68,7 +68,10 @@ jobs:
               repos.addFirst(m)
           }
           beforeSettings { settings ->
-              front(settings.pluginManagement.repositories)
+              // An empty plugin repository list means "plugin portal"; keep it.
+              def plugins = settings.pluginManagement.repositories
+              if (plugins.isEmpty()) plugins.gradlePluginPortal()
+              front(plugins)
               front(settings.dependencyResolutionManagement.repositories)
           }
           allprojects {
