@@ -1,4 +1,4 @@
-//! USB CCID smart-card readers on Android.
+//! USB CCID smart-card readers on Android and iOS.
 //!
 //! Phones have no PC/SC service, so the Kotlin side of this plugin
 //! (`android/src/main/java/CcidPlugin.kt`) talks to the reader directly over the
@@ -7,6 +7,9 @@
 //!
 //! The Rust side only forwards calls. Everything here blocks, so call it from a
 //! worker thread, never from the main thread.
+//!
+//! On iOS the Swift side (`ios/Sources/CcidPlugin.swift`) uses CryptoTokenKit,
+//! which has built-in support for USB CCID readers (iOS 16+).
 //!
 //! On other platforms the plugin registers nothing and every call returns
 //! [`Error::Unsupported`].
@@ -19,6 +22,8 @@ use tauri::{
 
 #[cfg(target_os = "android")]
 const PLUGIN_IDENTIFIER: &str = "rs.chitach.ccid";
+#[cfg(target_os = "ios")]
+tauri::ios_plugin_binding!(init_plugin_ccid);
 
 /// A USB smart-card reader seen by the phone.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -60,13 +65,13 @@ impl std::error::Error for Error {}
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+#[cfg_attr(not(any(target_os = "android", target_os = "ios")), allow(dead_code))]
 #[derive(Deserialize)]
 struct ReadersResponse {
     readers: Vec<UsbReader>,
 }
 
-#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+#[cfg_attr(not(any(target_os = "android", target_os = "ios")), allow(dead_code))]
 #[derive(Deserialize)]
 struct HexResponse {
     hex: String,
@@ -74,13 +79,13 @@ struct HexResponse {
 
 /// Access to USB readers; get it with [`CcidExt::ccid`].
 pub struct Ccid<R: Runtime> {
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     handle: tauri::plugin::PluginHandle<R>,
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     _marker: std::marker::PhantomData<fn() -> R>,
 }
 
-#[cfg(target_os = "android")]
+#[cfg(any(target_os = "android", target_os = "ios"))]
 impl<R: Runtime> Ccid<R> {
     fn call<T: serde::de::DeserializeOwned>(
         &self,
@@ -121,7 +126,7 @@ impl<R: Runtime> Ccid<R> {
     }
 }
 
-#[cfg(not(target_os = "android"))]
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 impl<R: Runtime> Ccid<R> {
     pub fn readers(&self) -> Result<Vec<UsbReader>> {
         Err(Error::Unsupported)
@@ -174,7 +179,11 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             let ccid = Ccid {
                 handle: _api.register_android_plugin(PLUGIN_IDENTIFIER, "CcidPlugin")?,
             };
-            #[cfg(not(target_os = "android"))]
+            #[cfg(target_os = "ios")]
+            let ccid = Ccid {
+                handle: _api.register_ios_plugin(init_plugin_ccid)?,
+            };
+            #[cfg(not(any(target_os = "android", target_os = "ios")))]
             let ccid = Ccid::<R> {
                 _marker: std::marker::PhantomData,
             };

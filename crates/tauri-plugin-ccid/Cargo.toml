@@ -14,3 +14,7 @@ tauri = { version = "2", default-features = false }
 
 [build-dependencies]
 tauri-plugin = { version = "2", features = ["build"] }
+
+# register_ios_plugin needs the wry runtime on iOS.
+[target.'cfg(target_os = "ios")'.dependencies]
+tauri = { version = "2", default-features = false, features = ["wry"] }
