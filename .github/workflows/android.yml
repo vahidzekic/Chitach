@@ -1,0 +1,110 @@
+name: Android
+
+# Builds a debug APK (installable for testing, not for Google Play) so the
+# Android version can be tried on a phone. Nothing is published anywhere.
+
+on:
+  push:
+    branches: ["**"]
+    tags-ignore: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  apk:
+    name: Debug APK (arm64)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # The runner image ships the Android SDK and NDK.
+      - name: Android NDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          echo "NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: android
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      # Maven Central rate-limits GitHub runners (HTTP 429), which breaks the
+      # Gradle build. Put Google's mirror of Maven Central in front of every
+      # repository list (including buildSrc and plugin resolution) and cache
+      # downloaded dependencies between runs.
+      - name: Gradle mirror
+        run: |
+          mkdir -p ~/.gradle/init.d
+          cat > ~/.gradle/init.d/maven-central-mirror.gradle <<'GRADLE'
+          def mirror = "https://maven-central.storage-download.googleapis.com/maven2/"
+          def front = { repos ->
+              def m = repos.maven { url = mirror; name = "MavenCentralMirror" }
+              repos.remove(m)
+              repos.addFirst(m)
+          }
+          beforeSettings { settings ->
+              // An empty plugin repository list means "plugin portal"; keep it.
+              def plugins = settings.pluginManagement.repositories
+              if (plugins.isEmpty()) plugins.gradlePluginPortal()
+              front(plugins)
+              front(settings.dependencyResolutionManagement.repositories)
+          }
+          allprojects {
+              front(buildscript.repositories)
+              front(repositories)
+          }
+          GRADLE
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('crates/tauri-plugin-ccid/android/**', 'ui/package-lock.json') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: UI - install
+        run: npm ci
+        working-directory: ui
+
+      # The Android Studio project (src-tauri/gen/android) is generated here, not
+      # committed, until the Android version settles.
+      - name: Generate Android project
+        run: |
+          npm run tauri -- android init --ci
+          npm run tauri -- icon src-tauri/icons/icon.png
+
+      - name: Build APK
+        run: npm run tauri -- android build --debug --apk --target aarch64 --ci
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chitach-android-debug-apk
+          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 14

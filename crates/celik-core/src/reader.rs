@@ -139,35 +139,7 @@ impl CardTransport for PcscCard {
         let inner = self.lock();
         let card = inner.card();
         let mut buf = vec![0u8; pcsc::MAX_BUFFER_SIZE_EXTENDED];
-
-        let mut rsp = Self::transmit_raw(card, apdu, &mut buf)?;
-
-        if let [.., 0x6C, le] = rsp[..] {
-            let mut retry = apdu.to_vec();
-            if has_le(apdu) {
-                *retry.last_mut().expect("APDU with Le is not empty") = le;
-            } else {
-                retry.push(le);
-            }
-            rsp = Self::transmit_raw(card, &retry, &mut buf)?;
-        }
-
-        let mut data = Vec::new();
-        let mut guard = 0;
-        while let [.., 0x61, le] = rsp[..] {
-            data.extend_from_slice(&rsp[..rsp.len() - 2]);
-            guard += 1;
-            if guard > 256 {
-                return Err(CardError::Pcsc("too many GET RESPONSE rounds".into()));
-            }
-            rsp = Self::transmit_raw(card, &[apdu[0] & 0x03, 0xC0, 0x00, 0x00, le], &mut buf)?;
-        }
-        if data.is_empty() {
-            Ok(rsp)
-        } else {
-            data.extend_from_slice(&rsp);
-            Ok(data)
-        }
+        crate::card::transmit_with_status_handling(apdu, |a| Self::transmit_raw(card, a, &mut buf))
     }
 
     fn begin_transaction(&self) -> Result<()> {
@@ -212,15 +184,6 @@ impl Drop for PcscCard {
         if let Err((_, e)) = card.disconnect(Disposition::LeaveCard) {
             log::debug!("disconnecting card: {e}");
         }
-    }
-}
-
-/// Whether a short APDU carries an Le byte (case 2 or case 4).
-fn has_le(apdu: &[u8]) -> bool {
-    match apdu.len() {
-        0..=4 => false,
-        5 => true,
-        n => n == 6 + apdu[4] as usize,
     }
 }
 
@@ -507,14 +470,6 @@ mod tests {
             ),
             "StateIgnore StateChanged StateUnknown StatePresent StateAtrmatch StateExclusive StateMute StateUnpowered"
         );
-    }
-
-    #[test]
-    fn le_detection() {
-        assert!(!has_le(&[0, 0xA4, 0, 0]));
-        assert!(has_le(&[0, 0xB0, 0, 0, 4]));
-        assert!(!has_le(&[0, 0xA4, 0, 0, 2, 0x0F, 0x02]));
-        assert!(has_le(&[0, 0xA4, 0, 0, 2, 0x0F, 0x02, 4]));
     }
 
     #[test]

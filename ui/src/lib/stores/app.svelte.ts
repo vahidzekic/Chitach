@@ -40,6 +40,11 @@ export const app = $state<Store>({
   license: null,
 });
 
+/** Android and iOS: only the reader mode, no tray or desktop-only settings. */
+export function isMobileOs(os: AppInfo["os"] | undefined): boolean {
+  return os === "android" || os === "ios";
+}
+
 export function homePage(mode: Mode): Page {
   return mode === "xmlSign" ? "xmlSign" : mode === "smartbox" ? "smartbox" : "document";
 }
@@ -97,12 +102,13 @@ export async function init() {
   try {
     const [settings, state, info] = await Promise.all([api.getSettings(), api.getState(), api.getAppInfo()]);
     app.settings = settings;
-    app.mode = settings.mode;
+    // Phones always run the reader (Smartbox and XML signing are desktop-only).
+    app.mode = isMobileOs(info.os) ? "reader" : settings.mode;
     app.state = state;
     app.info = info;
     previewSettings(settings);
     const p = params.get("page") as Page | null;
-    app.page = p ?? homePage(settings.mode);
+    app.page = p ?? homePage(app.mode);
   } catch (e) {
     showError(e);
   }
@@ -125,7 +131,8 @@ export async function init() {
   await refreshLicense();
   app.loaded = true;
 
-  if (app.settings?.checkUpdates && !api.isMock) void checkForUpdate(true);
+  // Phones get updates from the app stores.
+  if (app.settings?.checkUpdates && !api.isMock && !isMobileOs(app.info?.os)) void checkForUpdate(true);
 }
 
 /** Chitach Pro features are usable: Pro is active, or gating is off in this build (the default). */
@@ -198,11 +205,16 @@ export async function exportDocument(format: ExportFormat): Promise<void> {
   try {
     const name = await api.suggestFileName(format);
     const path = await api.saveDialog({
-      defaultPath: joinPath(app.settings?.lastDir ?? "", name),
+      defaultPath: defaultSavePath(name),
       filters: [{ name: f.name, extensions: [f.ext] }],
     });
     if (!path) return;
     const out = await api.exportDocument(format, path);
+    if (isUri(out)) {
+      // Phones: the system picked the place (content:// URI); there is no path to show or open.
+      toast("success", t(f.saved), { detail: name });
+      return;
+    }
     rememberDir(out);
     void refreshSettings();
     toast("success", t(f.saved), {
@@ -216,9 +228,19 @@ export async function exportDocument(format: ExportFormat): Promise<void> {
 
 export async function saveFileAs(defaultName: string, ext: string, typeName: string): Promise<string | null> {
   const path = await api.saveDialog({
-    defaultPath: joinPath(app.settings?.lastDir ?? "", defaultName),
+    defaultPath: defaultSavePath(defaultName),
     filters: [{ name: typeName, extensions: [ext] }],
   });
-  if (path) rememberDir(path);
+  if (path && !isUri(path)) rememberDir(path);
   return path;
+}
+
+/** Save dialog result that is a URI (Android `content://`), not a file path. */
+export function isUri(path: string): boolean {
+  return path.includes("://");
+}
+
+/** Phones have no last folder to start in; the system picker gets just the name. */
+function defaultSavePath(name: string): string {
+  return isMobileOs(app.info?.os) ? name : joinPath(app.settings?.lastDir ?? "", name);
 }

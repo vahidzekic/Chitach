@@ -132,7 +132,7 @@
     </div>
   {/if}
 
-  <nav aria-label={t("nav.settings")}>
+  <nav class="secondary" aria-label={t("nav.settings")}>
     <ul>
       {#each bottomItems as item (item.page)}
         <li>
@@ -332,5 +332,66 @@
     font-weight: 600;
     background: var(--warning-soft);
     color: var(--warning-text);
+  }
+
+  /* Phones and narrow windows: the sidebar becomes a compact top bar. */
+  @media (max-width: 720px) {
+    .sidebar {
+      width: 100%;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 10px;
+      padding: calc(10px + env(safe-area-inset-top)) 12px 8px;
+      border-right: 0;
+      border-bottom: 1px solid var(--border);
+      overflow: visible;
+    }
+    .brand {
+      padding: 0;
+    }
+    .brand .tag,
+    .brand .name {
+      display: none;
+    }
+    .reader {
+      flex: 1 1 60%;
+      min-width: 0;
+      padding: 8px 10px;
+    }
+    .reader .label {
+      display: none;
+    }
+    .status {
+      margin-top: 6px;
+    }
+    ul {
+      flex-direction: row;
+      gap: 4px;
+    }
+    .nav-item {
+      height: 34px;
+      padding: 0 10px;
+      gap: 7px;
+    }
+    .nav-item.active::before {
+      display: none;
+    }
+    .secondary .nav-item span {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+    .demo {
+      margin-left: 0;
+      align-self: center;
+      padding: 6px;
+    }
+    .demo span {
+      display: none;
+    }
   }
 </style>

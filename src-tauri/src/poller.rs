@@ -2,7 +2,9 @@
 
 use std::time::Duration;
 
-use celik_core::{reader::ReaderMonitor, CardError, CardTransport, Document};
+#[cfg(desktop)]
+use celik_core::{reader::ReaderMonitor, CardError};
+use celik_core::{CardTransport, Document};
 use tauri::{AppHandle, Manager};
 
 use crate::{
@@ -23,7 +25,16 @@ pub fn spawn(app: AppHandle) {
     let mock = app.state::<Shared>().mock;
     let res = std::thread::Builder::new()
         .name("chitach-poller".into())
-        .spawn(move || if mock { run_mock(app) } else { run_pcsc(app) });
+        .spawn(move || {
+            if mock {
+                run_mock(app)
+            } else {
+                #[cfg(desktop)]
+                run_pcsc(app);
+                #[cfg(mobile)]
+                run_usb(app);
+            }
+        });
     if let Err(e) = res {
         log::error!("cannot start poller thread: {e}");
     }
@@ -85,6 +96,7 @@ fn after_read(app: &AppHandle, doc: Document) {
     std::thread::spawn(move || export::auto_save(&app, &doc, &settings));
 }
 
+#[cfg(desktop)]
 fn run_pcsc(app: AppHandle) {
     let mut monitor: Option<ReaderMonitor> = None;
     loop {
@@ -96,7 +108,7 @@ fn run_pcsc(app: AppHandle) {
                 Ok(m) => monitor.insert(m),
                 Err(e) => {
                     log::debug!("PC/SC unavailable: {e}");
-                    handle(&app, Vec::new(), &mut read_pcsc);
+                    handle(&app, Vec::new(), &mut read_card);
                     std::thread::sleep(Duration::from_secs(2));
                     continue;
                 }
@@ -106,24 +118,68 @@ fn run_pcsc(app: AppHandle) {
         match res {
             Ok(Ok(list)) => {
                 let readers = list.into_iter().map(ReaderInfo::from).collect();
-                handle(&app, readers, &mut read_pcsc);
+                handle(&app, readers, &mut read_card);
             }
             Ok(Err(CardError::NoReader)) => {
-                handle(&app, Vec::new(), &mut read_pcsc);
+                handle(&app, Vec::new(), &mut read_card);
                 std::thread::sleep(POLL);
             }
             Ok(Err(e)) => {
                 log::warn!("reader monitor: {e}");
                 monitor = None;
-                handle(&app, Vec::new(), &mut read_pcsc);
+                handle(&app, Vec::new(), &mut read_card);
                 std::thread::sleep(Duration::from_secs(1));
             }
             Err(_) => {
                 monitor = None;
-                handle(&app, Vec::new(), &mut read_pcsc);
+                handle(&app, Vec::new(), &mut read_card);
                 std::thread::sleep(Duration::from_secs(2));
             }
         }
+    }
+}
+
+/// Phones: poll the USB readers (Android USB host + CCID).
+#[cfg(mobile)]
+fn run_usb(app: AppHandle) {
+    let mut asked: std::collections::HashSet<String> = std::collections::HashSet::new();
+    loop {
+        match crate::transport::usb_readers() {
+            Ok(list) => {
+                // Ask once per plugged-in reader; Android shows a system dialog.
+                asked.retain(|id| list.iter().any(|r| &r.id == id));
+                for r in list.iter().filter(|r| !r.permission) {
+                    if asked.insert(r.id.clone()) {
+                        crate::transport::request_permission(&r.id);
+                    }
+                }
+                let tpdu_only: Vec<String> = list
+                    .iter()
+                    .filter(|r| r.tpdu_only)
+                    .map(|r| r.label.clone())
+                    .collect();
+                let readers = list
+                    .into_iter()
+                    .map(|r| ReaderInfo {
+                        name: r.label,
+                        card_present: r.card_present,
+                        atr: None,
+                    })
+                    .collect();
+                handle(&app, readers, &mut |key| {
+                    if tpdu_only.contains(&key.reader) {
+                        ReadOutcome::Error("error.readerUnsupported".into())
+                    } else {
+                        read_card(key)
+                    }
+                });
+            }
+            Err(e) => {
+                log::debug!("USB readers unavailable: {e}");
+                handle(&app, Vec::new(), &mut read_card);
+            }
+        }
+        std::thread::sleep(POLL);
     }
 }
 
@@ -146,11 +202,11 @@ pub fn outcome_from(result: Result<Document, String>, atr: Option<&str>) -> Read
     }
 }
 
-fn read_pcsc(key: &CardKey) -> ReadOutcome {
+fn read_card(key: &CardKey) -> ReadOutcome {
     let result = catch("error.readingCard", || {
-        let card = celik_core::reader::PcscCard::connect(&key.reader)
+        let card = crate::transport::connect(&key.reader)
             .map_err(|e| card_error("error.readingCard", &e))?;
-        read_with_transaction(&card).map_err(|e| card_error("error.readingCard", &e))
+        read_with_transaction(&*card).map_err(|e| card_error("error.readingCard", &e))
     });
     if let Err(e) = &result {
         log::warn!("reading card in {}: {e}", key.reader);

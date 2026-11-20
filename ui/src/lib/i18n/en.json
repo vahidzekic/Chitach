@@ -106,6 +106,7 @@
   "error.unknownCard": "Unknown card",
   "error.unknownCard.copyAtr": "Copy ATR",
   "error.unsupported": "Operation not supported for this card",
+  "error.readerUnsupported": "This reader is not supported on phones yet. Use a reader that exchanges whole APDUs (most current USB readers do).",
   "error.update": "Update check failed",
   "error.updateCheck": "Update check failed",
   "error.writingCert": "Error while writing certificate",

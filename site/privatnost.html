@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="sr-Latn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chitach – politika privatnosti</title>
+<meta name="description" content="Politika privatnosti aplikacije Chitach za računar, Android i iOS.">
+<link rel="icon" type="image/png" href="img/app-icon.png">
+<style>
+  :root {
+    --bg: #f7f8fa; --surface: #ffffff; --text: #16181d; --muted: #5b6270;
+    --border: #e2e5ea; --accent: #1f5fd1; --accent-text: #ffffff; --code: #eef1f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111318; --surface: #1a1d24; --text: #e9ebef; --muted: #a2a9b6;
+      --border: #2a2f39; --accent: #5b8ff0; --accent-text: #0d1117; --code: #232733;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--accent); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; }
+  header .brand { display: flex; gap: 10px; align-items: center; font-weight: 600; font-size: 18px;
+    text-decoration: none; color: var(--text); }
+  header nav { display: flex; gap: 16px; align-items: center; font-size: 15px; }
+  .lang { border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit; }
+  .hero { text-align: center; padding: 48px 0 32px; }
+  .hero img.icon { width: 112px; height: 112px; }
+  .hero h1 { font-size: clamp(32px, 6vw, 48px); margin: 12px 0 8px; }
+  .hero p { color: var(--muted); font-size: 18px; max-width: 640px; margin: 0 auto 24px; }
+  .btn { display: inline-block; background: var(--accent); color: var(--accent-text); font-weight: 600;
+    padding: 12px 22px; border-radius: 8px; text-decoration: none; margin: 4px; }
+  .btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--border); }
+  .version { color: var(--muted); font-size: 14px; margin-top: 8px; }
+  .shot { display: block; width: 100%; max-width: 880px; margin: 32px auto 0; border-radius: 10px;
+    border: 1px solid var(--border); box-shadow: 0 10px 40px rgba(0,0,0,.12); }
+  section { padding: 40px 0; }
+  h2 { font-size: 26px; margin: 0 0 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .card h3 { margin: 0 0 6px; font-size: 17px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px; }
+  .gallery figure { margin: 0; }
+  .gallery img { width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+  .gallery figcaption { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  code { background: var(--code); padding: 1px 6px; border-radius: 4px; font-size: 14px; word-break: break-word; }
+  .note { color: var(--muted); font-size: 15px; }
+  .table-scroll { overflow-x: auto; }
+  footer { border-top: 1px solid var(--border); padding: 24px 0 40px; color: var(--muted); font-size: 14px; }
+  [data-lang="en"] .sr, [data-lang="sr"] .en { display: none; }
+  @media (max-width: 560px) { header nav a.hide-sm { display: none; } }
+  main h1 { font-size: clamp(28px, 5vw, 38px); margin: 24px 0 4px; }
+  main h2 { font-size: 21px; margin: 32px 0 10px; }
+  main ul { padding-left: 22px; }
+  main li { margin: 6px 0; }
+  .updated { color: var(--muted); font-size: 15px; margin: 0 0 24px; }
+</style>
+</head>
+<body data-lang="sr">
+<div class="wrap">
+  <header>
+    <a class="brand" href="./"><img src="img/app-icon.png" width="32" height="32" alt="">Chitach</a>
+    <nav>
+      <a href="https://github.com/vahidzekic/Chitach">GitHub</a>
+      <button class="lang" id="lang" type="button">English</button>
+    </nav>
+  </header>
+
+  <main>
+    <div class="sr">
+      <h1>Politika privatnosti</h1>
+      <p class="updated">Važi za Chitach na računaru (Windows, macOS, Linux), Androidu i iOS-u. Poslednja izmena: 20. novembar 2026.</p>
+
+      <h2>Ukratko</h2>
+      <p>Chitach čita podatke sa vaše lične karte, zdravstvene knjižice i saobraćajne dozvole i prikazuje ih samo vama, na vašem uređaju. Nemamo server, nalog, reklame ni analitiku. Podaci sa kartice ne šalju se nama ni bilo kome drugom, osim kada sami pokrenete neku od provera navedenih ispod.</p>
+
+      <h2>Podaci sa kartice</h2>
+      <ul>
+        <li>Podaci se čitaju preko čitača kartica i drže se u memoriji aplikacije dok je kartica u čitaču.</li>
+        <li>Na disk se upisuju samo kada ih vi sačuvate (PDF, JSON, Excel, sertifikat) ili uključite automatsko čuvanje na računaru, i to na mesto koje vi izaberete.</li>
+        <li>PIN koji unesete za promenu PIN-a ili potpisivanje šalje se samo kartici i ne čuva se.</li>
+      </ul>
+
+      <h2>Kada aplikacija koristi internet</h2>
+      <p>Svaki od ovih zahteva ide direktno od vašeg uređaja ka navedenom servisu. Taj servis ima svoja pravila privatnosti.</p>
+      <ul>
+        <li><strong>RFZO provera overe</strong> (kada kliknete na nju): broj kartice i LBO sa zdravstvene knjižice šalju se sajtu rfzo.rs.</li>
+        <li><strong>Provera kazni za parkiranje</strong> (samo ako je uključite u podešavanjima): registarska oznaka vozila šalje se portalu izabranog grada.</li>
+        <li><strong>Istorija vozila</strong> (samo ako je uključite): broj šasije (VIN) šalje se servisu koji izaberete, uz vaš API ključ tog servisa ako ga koristite. Ključ se čuva samo na vašem uređaju i nikad se ne prikazuje u aplikaciji.</li>
+        <li><strong>Spisak portala za kazne</strong>: aplikacija preuzima potpisan spisak portala sa GitHub-a. Ne šalje nikakve vaše podatke.</li>
+        <li><strong>Provera nove verzije</strong> (samo na računaru, može se isključiti): aplikacija pita GitHub koja je najnovija verzija.</li>
+      </ul>
+
+      <h2>Šta ne radimo</h2>
+      <ul>
+        <li>Ne prikupljamo, ne čuvamo i ne prodajemo vaše podatke.</li>
+        <li>Nema praćenja, analitike, reklama ni deljenja podataka sa trećim stranama u marketinške svrhe.</li>
+        <li>Aplikacija ne zahteva nalog.</li>
+      </ul>
+
+      <h2>Dozvole na telefonu</h2>
+      <ul>
+        <li><strong>USB</strong>: da bi aplikacija mogla da koristi priključeni čitač kartica. Telefon vas pita pre prvog korišćenja čitača.</li>
+        <li><strong>Internet</strong>: samo za provere navedene iznad.</li>
+      </ul>
+
+      <h2>Brisanje podataka</h2>
+      <p>Sve što aplikacija čuva (podešavanja i API ključevi) nalazi se na vašem uređaju i briše se kada obrišete aplikaciju. Fajlove koje ste sami sačuvali brišete kao i bilo koje druge fajlove.</p>
+
+      <h2>Deca</h2>
+      <p>Aplikacija nije namenjena deci mlađoj od 13 godina i ne prikuplja podatke o njima.</p>
+
+      <h2>Kontakt</h2>
+      <p>Pitanja o privatnosti možete postaviti na <a href="https://github.com/vahidzekic/Chitach/issues">GitHub stranici projekta</a>. Kod aplikacije je otvoren, pa svako može da proveri šta aplikacija radi.</p>
+      <p>Ako se ova politika promeni, nova verzija biće objavljena na ovoj stranici sa novim datumom.</p>
+    </div>
+
+    <div class="en">
+      <h1>Privacy policy</h1>
+      <p class="updated">Applies to Chitach on desktop (Windows, macOS, Linux), Android and iOS. Last updated: November 20, 2026.</p>
+
+      <h2>In short</h2>
+      <p>Chitach reads data from your Serbian ID card, health insurance card and vehicle registration card and shows it only to you, on your device. There is no server, account, advertising or analytics. Card data is never sent to us or anyone else, except when you start one of the checks listed below.</p>
+
+      <h2>Card data</h2>
+      <ul>
+        <li>Data is read through the card reader and kept in the app's memory while the card is in the reader.</li>
+        <li>It is written to storage only when you save it (PDF, JSON, Excel, certificate) or turn on auto-save on desktop, in a location you choose.</li>
+        <li>A PIN you enter to change the PIN or to sign is sent only to the card and is never stored.</li>
+      </ul>
+
+      <h2>When the app uses the internet</h2>
+      <p>Each of these requests goes directly from your device to the named service, which has its own privacy rules.</p>
+      <ul>
+        <li><strong>RFZO insurance check</strong> (when you click it): the card number and insurant number (LBO) from the health card are sent to rfzo.rs.</li>
+        <li><strong>Parking fines check</strong> (only if you turn it on in settings): the vehicle's licence plate is sent to the chosen city's portal.</li>
+        <li><strong>Vehicle history</strong> (only if you turn it on): the vehicle identification number (VIN) is sent to the service you choose, with your own API key for that service if you use one. The key is stored only on your device and is never shown in the app.</li>
+        <li><strong>Fines portal list</strong>: the app downloads a signed list of portals from GitHub. It sends none of your data.</li>
+        <li><strong>Update check</strong> (desktop only, can be turned off): the app asks GitHub for the latest version.</li>
+      </ul>
+
+      <h2>What we don't do</h2>
+      <ul>
+        <li>We do not collect, store or sell your data.</li>
+        <li>There is no tracking, analytics, advertising or sharing of data with third parties for marketing.</li>
+        <li>The app does not require an account.</li>
+      </ul>
+
+      <h2>Phone permissions</h2>
+      <ul>
+        <li><strong>USB</strong>: so the app can use the connected card reader. The phone asks you before the reader is first used.</li>
+        <li><strong>Internet</strong>: only for the checks listed above.</li>
+      </ul>
+
+      <h2>Deleting data</h2>
+      <p>Everything the app stores (settings and API keys) stays on your device and is removed when you uninstall the app. Files you saved yourself are deleted like any other file.</p>
+
+      <h2>Children</h2>
+      <p>The app is not directed at children under 13 and collects no data about them.</p>
+
+      <h2>Contact</h2>
+      <p>Privacy questions can be raised on the <a href="https://github.com/vahidzekic/Chitach/issues">project's GitHub page</a>. The app is open source, so anyone can check what it does.</p>
+      <p>If this policy changes, the new version will be published on this page with a new date.</p>
+    </div>
+  </main>
+
+  <footer>
+    <p class="sr">Autor: Vahid Zekic · Chitach nije zvanična aplikacija MUP-a, RFZO-a niti bilo koje državne institucije.</p>
+    <p class="en">Author: Vahid Zekic · Chitach is not an official application of the Ministry of Interior, RFZO or any government institution.</p>
+  </footer>
+</div>
+<script>
+  (function () {
+    var body = document.body, btn = document.getElementById("lang");
+    function set(lang) {
+      body.dataset.lang = lang;
+      document.documentElement.lang = lang === "sr" ? "sr-Latn" : "en";
+      btn.textContent = lang === "sr" ? "English" : "Srpski";
+    }
+    set(location.hash === "#en" ? "en" : "sr");
+    btn.addEventListener("click", function () { set(body.dataset.lang === "sr" ? "en" : "sr"); });
+  })();
+</script>
+</body>
+</html>
