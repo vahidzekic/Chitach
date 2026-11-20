@@ -63,6 +63,17 @@ jobs:
         run: |
           npm run tauri -- android init --ci
           npm run tauri -- icon src-tauri/icons/icon.png
+          # buildSrc resolves the Kotlin Gradle plugin only from the Gradle plugin
+          # portal, which does not always serve the Kotlin artifacts; add Maven
+          # Central (and Google) as fallbacks.
+          f=src-tauri/gen/android/buildSrc/settings.gradle.kts
+          if grep -q pluginManagement "$f" 2>/dev/null; then
+            sed -i 's/gradlePluginPortal()/gradlePluginPortal()\n        mavenCentral()\n        google()/' "$f"
+          else
+            { printf 'pluginManagement {\n    repositories {\n        gradlePluginPortal()\n        mavenCentral()\n        google()\n    }\n}\n'; cat "$f" 2>/dev/null; } > "$f.new"
+            mv "$f.new" "$f"
+          fi
+          cat "$f"
 
       - name: Build APK
         run: npm run tauri -- android build --debug --apk --target aarch64 --ci
