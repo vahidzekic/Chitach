@@ -75,8 +75,11 @@ pub async fn export_document(app: AppHandle, format: Format, path: String) -> Cm
         let shared = app.state::<Shared>();
         let doc = current_document(&shared)?;
         let cyrillic = shared.settings().pdf_cyrillic_labels;
-        let out = export::export_to(&doc, format, std::path::Path::new(&path), cyrillic)?;
-        if let Some(dir) = out.parent() {
+        let out = export::export_to_target(&app, &doc, format, &path, cyrillic)?;
+        if export::is_uri(&out) {
+            return Ok(out);
+        }
+        if let Some(dir) = std::path::Path::new(&out).parent() {
             let mut s = shared.settings_mut();
             s.last_dir = dir.to_string_lossy().into_owned();
             if let Some(p) = &shared.settings_path {
@@ -85,7 +88,7 @@ pub async fn export_document(app: AppHandle, format: Format, path: String) -> Cm
                 }
             }
         }
-        Ok(out.to_string_lossy().into_owned())
+        Ok(out)
     })
     .await
 }
@@ -121,7 +124,11 @@ pub async fn list_certificates(app: AppHandle) -> CmdResult<Vec<CertInfo>> {
 
 #[tauri::command]
 pub async fn save_certificate(app: AppHandle, index: usize, path: String) -> CmdResult<()> {
-    blocking(move || crypto::save_certificate(&app.state::<Shared>(), index, &path)).await
+    blocking(move || {
+        let der = crypto::certificate_der(&app.state::<Shared>(), index)?;
+        export::write_target(&app, &path, &der)
+    })
+    .await
 }
 
 #[tauri::command]

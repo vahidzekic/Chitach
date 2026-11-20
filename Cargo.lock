@@ -674,6 +674,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-ccid",
  "tauri-plugin-dialog",
+ "tauri-plugin-fs",
  "tauri-plugin-opener",
  "ureq",
  "x509-parser",

@@ -38,3 +38,4 @@ celik-core = { workspace = true, features = ["pcsc", "rfzo"] }
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
 tauri-plugin-ccid = { path = "../crates/tauri-plugin-ccid" }
+tauri-plugin-fs = "2"

@@ -41,7 +41,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init());
     #[cfg(mobile)]
-    let builder = builder.plugin(tauri_plugin_ccid::init());
+    let builder = builder
+        .plugin(tauri_plugin_ccid::init())
+        // Writes to the content:// URIs returned by Android's save dialog.
+        .plugin(tauri_plugin_fs::init());
     builder
         .setup(|app| {
             let handle = app.handle().clone();

@@ -199,11 +199,16 @@ export async function exportDocument(format: ExportFormat): Promise<void> {
   try {
     const name = await api.suggestFileName(format);
     const path = await api.saveDialog({
-      defaultPath: joinPath(app.settings?.lastDir ?? "", name),
+      defaultPath: defaultSavePath(name),
       filters: [{ name: f.name, extensions: [f.ext] }],
     });
     if (!path) return;
     const out = await api.exportDocument(format, path);
+    if (isUri(out)) {
+      // Phones: the system picked the place (content:// URI); there is no path to show or open.
+      toast("success", t(f.saved), { detail: name });
+      return;
+    }
     rememberDir(out);
     void refreshSettings();
     toast("success", t(f.saved), {
@@ -217,9 +222,19 @@ export async function exportDocument(format: ExportFormat): Promise<void> {
 
 export async function saveFileAs(defaultName: string, ext: string, typeName: string): Promise<string | null> {
   const path = await api.saveDialog({
-    defaultPath: joinPath(app.settings?.lastDir ?? "", defaultName),
+    defaultPath: defaultSavePath(defaultName),
     filters: [{ name: typeName, extensions: [ext] }],
   });
-  if (path) rememberDir(path);
+  if (path && !isUri(path)) rememberDir(path);
   return path;
+}
+
+/** Save dialog result that is a URI (Android `content://`), not a file path. */
+export function isUri(path: string): boolean {
+  return path.includes("://");
+}
+
+/** Phones have no last folder to start in; the system picker gets just the name. */
+function defaultSavePath(name: string): string {
+  return isMobileOs(app.info?.os) ? name : joinPath(app.settings?.lastDir ?? "", name);
 }

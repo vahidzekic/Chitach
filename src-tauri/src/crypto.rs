@@ -134,12 +134,13 @@ pub fn list_certificates(shared: &Shared) -> CmdResult<Vec<CertInfo>> {
         .collect())
 }
 
-pub fn save_certificate(shared: &Shared, index: usize, path: &str) -> CmdResult<()> {
+/// DER bytes of certificate `index` (saved by the caller).
+pub fn certificate_der(shared: &Shared, index: usize) -> CmdResult<Vec<u8>> {
     let certs = certificates(shared)?;
-    let cert = certs
+    certs
         .get(index)
-        .ok_or_else(|| with_detail("error.certificates", format!("no certificate {index}")))?;
-    std::fs::write(path, &cert.der).map_err(|e| with_detail("error.saveFile", e))
+        .map(|c| c.der.clone())
+        .ok_or_else(|| with_detail("error.certificates", format!("no certificate {index}")))
 }
 
 #[cfg(test)]
