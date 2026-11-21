@@ -84,6 +84,7 @@
   "error.noModules": "Модули PKCS#11 не загружены",
   "error.noReader": "Считыватель не обнаружен",
   "error.noReaderExplanation": "Считыватель подключён к компьютеру?",
+  "error.noReaderExplanation.mobile": "Считыватель подключён к телефону (USB-C или OTG-адаптер)?",
   "error.notIdCard": "Это действие доступно только для удостоверений личности",
   "error.notLoggedIn": "Вход в токен не выполнен",
   "error.notMedicalCard": "Это действие доступно только для медицинских страховых карт",
