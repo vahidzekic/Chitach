@@ -1,0 +1,157 @@
+name: iOS TestFlight
+
+# Builds the iOS app with the newest Xcode on GitHub's Apple silicon runners and
+# uploads it to TestFlight (App Store Connect). Run by hand from the Actions tab.
+# Nothing is sent to App Review: that stays a manual step in App Store Connect.
+#
+# Uses the same App Store Connect API key as the macOS release (secrets
+# APPLE_API_KEY = key ID, APPLE_API_ISSUER, APPLE_API_KEY_P8 = contents of the .p8).
+# Xcode signs automatically with that key, so it needs the Admin or App Manager
+# role (Users and Access -> Integrations -> App Store Connect API).
+
+on:
+  # Build-only check (no upload) when the iOS setup changes.
+  pull_request:
+    paths:
+      - .github/workflows/ios.yml
+      - src-tauri/Info.ios.plist
+      - src-tauri/tauri.ios.conf.json
+      - crates/tauri-plugin-ccid/ios/**
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "Upload to TestFlight (otherwise only build)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  testflight:
+    name: iOS build (TestFlight on manual run)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      # Newest installed Xcode (Xcode 27 builds with the iOS 27 SDK, which gives full
+      # screen on new devices such as the unfolded iPhone Duo).
+      - name: Select Xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          xcode="$(ls -d /Applications/Xcode_*.app | grep -v -i beta | sort -V | tail -1)"
+          sudo xcode-select -s "$xcode/Contents/Developer"
+          xcodebuild -version
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ios
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Tools
+        run: |
+          command -v xcodegen || brew install xcodegen
+          command -v pod || brew install cocoapods
+
+      - name: UI - install
+        run: npm ci
+        working-directory: ui
+
+      - name: App Store Connect API key
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          if [ -z "$APPLE_API_KEY" ] || [ -z "$APPLE_API_KEY_P8" ]; then
+            echo "::error::APPLE_API_KEY / APPLE_API_KEY_P8 secrets are missing"; exit 1
+          fi
+          dir="$HOME/.appstoreconnect/private_keys"
+          mkdir -p "$dir"
+          printf '%s\n' "$APPLE_API_KEY_P8" > "$dir/AuthKey_$APPLE_API_KEY.p8"
+          echo "APPLE_API_KEY_PATH=$dir/AuthKey_$APPLE_API_KEY.p8" >> "$GITHUB_ENV"
+
+      # The Xcode project (src-tauri/gen/apple) is generated here, not committed.
+      # App Store icons must not have an alpha channel: build them from the opaque
+      # icon and strip alpha (docs/10-mobilna-verzija.md).
+      - name: Generate iOS project
+        run: |
+          npm run tauri -- ios init --ci
+          npm run tauri -- icon src-tauri/icons/ios-icon-1024.png
+          git checkout -- src-tauri/icons
+          git clean -fdq src-tauri/icons
+          for f in src-tauri/gen/apple/Assets.xcassets/AppIcon.appiconset/*.png; do
+            sips -s format jpeg "$f" --out "$RUNNER_TEMP/icon.jpg" >/dev/null
+            sips -s format png "$RUNNER_TEMP/icon.jpg" --out "$f" >/dev/null
+          done
+          if sips -g hasAlpha src-tauri/gen/apple/Assets.xcassets/AppIcon.appiconset/*.png | grep -q 'hasAlpha: yes'; then
+            echo "::error::an app icon still has an alpha channel"; exit 1
+          fi
+
+      # CFBundleVersion must grow with every upload: version + run number.
+      # Signing: with IOS_CERTIFICATE (base64 .p12 of the "Apple Distribution"
+      # certificate), IOS_CERTIFICATE_PASSWORD and IOS_MOBILE_PROVISION (base64 App
+      # Store provisioning profile for rs.chitach.app) Tauri signs manually; without
+      # them Xcode signs automatically through the API key, which then needs the
+      # Admin role (cloud signing).
+      # Pull requests: compile check only, for the simulator (no signing needed).
+      - name: Build for the simulator (PR check)
+        if: github.event_name != 'workflow_dispatch'
+        run: npm run tauri -- ios build --target aarch64-sim --debug --ci
+
+      - name: Build IPA
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_MOBILE_PROVISION: ${{ secrets.IOS_MOBILE_PROVISION }}
+        run: |
+          if [ -z "$IOS_CERTIFICATE" ]; then
+            unset IOS_CERTIFICATE IOS_CERTIFICATE_PASSWORD IOS_MOBILE_PROVISION
+            echo "Signing: automatic (API key)"
+          else
+            echo "Signing: manual (IOS_CERTIFICATE + IOS_MOBILE_PROVISION)"
+          fi
+          version="$(node -p "require('./src-tauri/tauri.conf.json').version")"
+          build="$version.${{ github.run_number }}"
+          echo "CFBundleVersion $build"
+          npm run tauri -- ios build --export-method app-store-connect --ci \
+            --config "{\"bundle\":{\"iOS\":{\"bundleVersion\":\"$build\"}}}"
+          ls -la src-tauri/gen/apple/build/arm64/
+
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          name: chitach-ios-ipa
+          path: src-tauri/gen/apple/build/arm64/*.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload to TestFlight
+        if: github.event_name == 'workflow_dispatch' && inputs.upload
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          ipa="$(ls src-tauri/gen/apple/build/arm64/*.ipa | head -1)"
+          xcrun altool --upload-app --type ios --file "$ipa" \
+            --apiKey "$APPLE_API_KEY" --apiIssuer "$APPLE_API_ISSUER"

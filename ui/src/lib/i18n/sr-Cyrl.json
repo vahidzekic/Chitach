@@ -84,7 +84,7 @@
   "error.noModules": "Нема учитаних PKCS#11 модула",
   "error.noReader": "Ниједан читач није детектован",
   "error.noReaderExplanation": "Да ли је читач повезан за рачунар?",
-  "error.noReaderExplanation.mobile": "Да ли је читач повезан на телефон (USB-C или OTG адаптер)?",
+  "error.noReaderExplanation.mobile": "Да ли је читач повезан на овај уређај (USB-C или адаптер)?",
   "error.notIdCard": "Ова акција је доступна само за личну карту",
   "error.notLoggedIn": "Нисте пријављени на токен",
   "error.notMedicalCard": "Ова акција је доступна само за здравствену књижицу",

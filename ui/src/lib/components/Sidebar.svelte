@@ -159,7 +159,7 @@
     display: flex;
     flex-direction: column;
     gap: 18px;
-    padding: 18px 14px 14px;
+    padding: calc(18px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
     background: var(--sidebar);
     border-right: 1px solid var(--border);
     overflow-y: auto;
