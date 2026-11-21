@@ -86,6 +86,10 @@ npm run tauri -- ios build --export-method app-store-connect
 kompajliranje LLVM-a (~45 min), pa je bolje zadržati postojeći CocoaPods. Za instalaciju na
 telefon kablom Xcode mora da podržava iOS verziju telefona; inače ide preko TestFlight-a.
 
+`src-tauri/Info.ios.plist` uključuje UIScene (UIApplicationSceneManifest), pa prozor prati veličinu
+ekrana na iPad-u i na rasklopljenom iPhone Duo-u. Za pun ekran na Duo-u build treba praviti sa
+Xcode 27 (iOS 27 SDK); sa starijim SDK-om iOS 27 aplikaciju prikazuje umanjenu.
+
 ## Sledeće faze
 
 1. Proba na pravom telefonu sa čitačem; izvoz preko Android "Podeli"; demo režim za recenzente.
