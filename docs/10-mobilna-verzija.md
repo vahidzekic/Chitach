@@ -27,8 +27,10 @@ Obrada `61xx`/`6Cxx` odgovora je u `celik_core::card::transmit_with_status_handl
 oba transporta.
 
 Podržani su čitači koji razmenjuju cele APDU komande (short ili extended APDU nivo u CCID
-deskriptoru), što je većina današnjih USB čitača. Čitači koji rade samo na TPDU nivou dobijaju
-poruku `error.readerUnsupported`; za njih bi trebalo dodati T=1 protokol u Kotlin deo.
+deskriptoru) i čitači na TPDU nivou (mnogi jeftini i kombinovani SD + smart card čitači). Za TPDU
+čitače Kotlin deo sam radi protokol kartice: iz ATR-a šalje SetParameters, pa razmenjuje T=1
+blokove (ISO 7816-3, LRC, ulančavanje, WTX, IFS) ili T=0 komande. Samo čitači na nivou karaktera
+dobijaju poruku `error.readerUnsupported`.
 
 ## Šta radi na telefonu
 
