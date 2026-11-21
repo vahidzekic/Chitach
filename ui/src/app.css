@@ -400,3 +400,12 @@ a {
     flex-wrap: wrap;
   }
 }
+
+/* iPad and unfolded phones: keep content clear of the status bar and home indicator
+   (the insets are 0 on desktop). Narrow screens use the top bar, which pads itself. */
+@media (min-width: 721px) {
+  main {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
