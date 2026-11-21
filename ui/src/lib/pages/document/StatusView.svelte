@@ -3,7 +3,7 @@
   import InsertCard from "../../components/InsertCard.svelte";
   import { api } from "../../api";
   import { t, translateError } from "../../i18n/index.svelte";
-  import { app, showError } from "../../stores/app.svelte";
+  import { app, isMobileOs, showError } from "../../stores/app.svelte";
   import { copyText } from "../../util/format";
   import { toast } from "../../stores/toasts.svelte";
 
@@ -74,7 +74,10 @@
     {:else if status === "noReader"}
       <InsertCard variant="noReader" />
       <h1>{t("error.noReader")}</h1>
-      <p>{t("error.noReaderExplanation")} {t("state.noReader.hint")}</p>
+      <p>
+        {t(isMobileOs(app.info?.os) ? "error.noReaderExplanation.mobile" : "error.noReaderExplanation")}
+        {t("state.noReader.hint")}
+      </p>
     {:else if status === "unknownCard"}
       <div class="big-ic warn"><Icon name="alert" size={34} /></div>
       <h1>{t("error.unknownCard")}</h1>

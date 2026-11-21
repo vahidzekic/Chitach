@@ -37,7 +37,8 @@ pub struct UsbReader {
     pub permission: bool,
     /// A card is inserted (only known once permission is granted).
     pub card_present: bool,
-    /// The reader only speaks TPDU (T=1 blocks), which is not supported yet.
+    /// The reader only works at character level, which is not supported
+    /// (TPDU-level readers are supported: the plugin does T=0 / T=1 itself).
     #[serde(default)]
     pub tpdu_only: bool,
 }
