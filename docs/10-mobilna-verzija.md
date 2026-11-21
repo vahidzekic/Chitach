@@ -90,7 +90,9 @@ telefon kablom Xcode mora da podržava iOS verziju telefona; inače ide preko Te
 pa se build za App Store pravi u GitHub Actions (`.github/workflows/ios.yml`, pokreće se ručno iz
 kartice Actions → "iOS TestFlight" → Run workflow). Koristi najnoviji Xcode na GitHub-ovom Apple
 silicon runneru i isti App Store Connect API ključ kao izdanje za macOS (`APPLE_API_KEY`,
-`APPLE_API_ISSUER`, `APPLE_API_KEY_P8`); ključ mora imati ulogu Admin ili App Manager. Build broj je
+`APPLE_API_ISSUER`, `APPLE_API_KEY_P8`); za automatsko potpisivanje ključ mora imati ulogu Admin. Bez toga se potpisuje ručno: secrets
+`IOS_CERTIFICATE` (base64 .p12 sertifikata "Apple Distribution"), `IOS_CERTIFICATE_PASSWORD` i
+`IOS_MOBILE_PROVISION` (base64 App Store profila za `rs.chitach.app`). Build broj je
 `verzija.broj_pokretanja`. Na App Review se šalje ručno u App Store Connect-u.
 
 `src-tauri/Info.ios.plist` uključuje UIScene (UIApplicationSceneManifest), pa prozor prati veličinu

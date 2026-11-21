@@ -105,11 +105,25 @@ jobs:
           fi
 
       # CFBundleVersion must grow with every upload: version + run number.
+      # Signing: with IOS_CERTIFICATE (base64 .p12 of the "Apple Distribution"
+      # certificate), IOS_CERTIFICATE_PASSWORD and IOS_MOBILE_PROVISION (base64 App
+      # Store provisioning profile for rs.chitach.app) Tauri signs manually; without
+      # them Xcode signs automatically through the API key, which then needs the
+      # Admin role (cloud signing).
       - name: Build IPA
         env:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_MOBILE_PROVISION: ${{ secrets.IOS_MOBILE_PROVISION }}
         run: |
+          if [ -z "$IOS_CERTIFICATE" ]; then
+            unset IOS_CERTIFICATE IOS_CERTIFICATE_PASSWORD IOS_MOBILE_PROVISION
+            echo "Signing: automatic (API key)"
+          else
+            echo "Signing: manual (IOS_CERTIFICATE + IOS_MOBILE_PROVISION)"
+          fi
           version="$(node -p "require('./src-tauri/tauri.conf.json').version")"
           build="$version.${{ github.run_number }}"
           echo "CFBundleVersion $build"
