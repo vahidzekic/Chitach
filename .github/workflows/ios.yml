@@ -37,7 +37,7 @@ env:
 
 jobs:
   testflight:
-    name: Build IPA and upload to TestFlight
+    name: iOS build (TestFlight on manual run)
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
@@ -53,7 +53,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-ios
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -75,6 +75,7 @@ jobs:
         working-directory: ui
 
       - name: App Store Connect API key
+        if: github.event_name == 'workflow_dispatch'
         env:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
@@ -110,7 +111,13 @@ jobs:
       # Store provisioning profile for rs.chitach.app) Tauri signs manually; without
       # them Xcode signs automatically through the API key, which then needs the
       # Admin role (cloud signing).
+      # Pull requests: compile check only, for the simulator (no signing needed).
+      - name: Build for the simulator (PR check)
+        if: github.event_name != 'workflow_dispatch'
+        run: npm run tauri -- ios build --target aarch64-sim --debug --ci
+
       - name: Build IPA
+        if: github.event_name == 'workflow_dispatch'
         env:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
@@ -132,6 +139,7 @@ jobs:
           ls -la src-tauri/gen/apple/build/arm64/
 
       - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
         with:
           name: chitach-ios-ipa
           path: src-tauri/gen/apple/build/arm64/*.ipa
