@@ -65,6 +65,27 @@ npm run tauri -- android init
 npm run tauri -- android dev        # telefon povezan kablom, uključen USB debugging
 ```
 
+### iOS build (na Mac-u)
+
+Potrebni Xcode (prijavljen na tim MW256GPMA4), Rust targeti `aarch64-apple-ios`, Node i CocoaPods.
+
+```sh
+cd ui && npm ci && cd ..
+npm run tauri -- ios init
+# App Store ne prihvata ikonu sa alfa kanalom: iOS ikone se prave iz neprovidne ikone
+npm run tauri -- icon src-tauri/icons/ios-icon-1024.png
+git checkout -- src-tauri/icons && git clean -fd src-tauri/icons
+for f in src-tauri/gen/apple/Assets.xcassets/AppIcon.appiconset/*.png; do
+  sips -s format jpeg "$f" --out /tmp/x.jpg >/dev/null && sips -s format png /tmp/x.jpg --out "$f" >/dev/null
+done
+sips -g hasAlpha src-tauri/gen/apple/Assets.xcassets/AppIcon.appiconset/*.png   # sve "no"
+npm run tauri -- ios build --export-method app-store-connect
+```
+
+`tauri ios init` pokušava da nadogradi CocoaPods preko Homebrew-a; na Intel Mac-u to znači
+kompajliranje LLVM-a (~45 min), pa je bolje zadržati postojeći CocoaPods. Za instalaciju na
+telefon kablom Xcode mora da podržava iOS verziju telefona; inače ide preko TestFlight-a.
+
 ## Sledeće faze
 
 1. Proba na pravom telefonu sa čitačem; izvoz preko Android "Podeli"; demo režim za recenzente.
