@@ -159,7 +159,8 @@
     display: flex;
     flex-direction: column;
     gap: 18px;
-    padding: calc(18px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
+    padding: calc(18px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom))
+      calc(14px + env(safe-area-inset-left));
     background: var(--sidebar);
     border-right: 1px solid var(--border);
     overflow-y: auto;
@@ -342,7 +343,8 @@
       flex-wrap: wrap;
       align-items: center;
       gap: 8px 10px;
-      padding: calc(10px + env(safe-area-inset-top)) 12px 8px;
+      padding: calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px
+        calc(12px + env(safe-area-inset-left));
       border-right: 0;
       border-bottom: 1px solid var(--border);
       overflow: visible;
