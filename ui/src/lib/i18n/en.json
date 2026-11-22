@@ -84,7 +84,7 @@
   "error.noModules": "No PKCS#11 modules loaded",
   "error.noReader": "No reader detected",
   "error.noReaderExplanation": "Is reader connected to the computer?",
-  "error.noReaderExplanation.mobile": "Is the reader connected to the phone (USB-C or OTG adapter)?",
+  "error.noReaderExplanation.mobile": "Is the reader connected to this device (USB-C or an adapter)?",
   "error.notIdCard": "This action is available only for identity cards",
   "error.notLoggedIn": "Not logged in to the token",
   "error.notMedicalCard": "This action is available only for health insurance cards",

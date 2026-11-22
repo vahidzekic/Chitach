@@ -394,9 +394,21 @@ a {
 }
 @media (max-width: 720px) {
   .page {
-    padding: 16px 14px calc(28px + env(safe-area-inset-bottom));
+    padding: 16px calc(14px + env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom))
+      calc(14px + env(safe-area-inset-left));
   }
   .page-header {
     flex-wrap: wrap;
+  }
+}
+
+/* iPad and unfolded phones: keep content clear of the status bar and home indicator
+   (the insets are 0 on desktop). Narrow screens use the top bar, which pads itself. Side insets matter on the
+   Duo's outer screen, where the camera island sits in the top-right corner. */
+@media (min-width: 721px) {
+  main {
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }

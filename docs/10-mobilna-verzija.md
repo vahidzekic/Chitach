@@ -86,6 +86,19 @@ npm run tauri -- ios build --export-method app-store-connect
 kompajliranje LLVM-a (~45 min), pa je bolje zadržati postojeći CocoaPods. Za instalaciju na
 telefon kablom Xcode mora da podržava iOS verziju telefona; inače ide preko TestFlight-a.
 
+**TestFlight iz GitHub-a:** Vahidov MacBook Pro 2019 (Intel) ne može da dobije macOS 27 ni Xcode 27,
+pa se build za App Store pravi u GitHub Actions (`.github/workflows/ios.yml`, pokreće se ručno iz
+kartice Actions → "iOS TestFlight" → Run workflow). Koristi najnoviji Xcode na GitHub-ovom Apple
+silicon runneru i isti App Store Connect API ključ kao izdanje za macOS (`APPLE_API_KEY`,
+`APPLE_API_ISSUER`, `APPLE_API_KEY_P8`); za automatsko potpisivanje ključ mora imati ulogu Admin. Bez toga se potpisuje ručno: secrets
+`IOS_CERTIFICATE` (base64 .p12 sertifikata "Apple Distribution"), `IOS_CERTIFICATE_PASSWORD` i
+`IOS_MOBILE_PROVISION` (base64 App Store profila za `rs.chitach.app`). Build broj je
+`verzija.broj_pokretanja`. Na App Review se šalje ručno u App Store Connect-u.
+
+`src-tauri/Info.ios.plist` uključuje UIScene (UIApplicationSceneManifest), pa prozor prati veličinu
+ekrana na iPad-u i na rasklopljenom iPhone Duo-u. Za pun ekran na Duo-u build treba praviti sa
+Xcode 27 (iOS 27 SDK); sa starijim SDK-om iOS 27 aplikaciju prikazuje umanjenu.
+
 ## Sledeće faze
 
 1. Proba na pravom telefonu sa čitačem; izvoz preko Android "Podeli"; demo režim za recenzente.
