@@ -1,8 +1,8 @@
 <script lang="ts">
   import Icon from "../components/Icon.svelte";
   import PinDialog from "./PinDialog.svelte";
-  import { api } from "../api";
-  import type { CertInfo } from "../api/types";
+  import { api } from "./api";
+  import type { CertInfo } from "./types";
   import { t, translateError } from "../i18n/index.svelte";
   import { app, isUri, openPath, saveFileAs, showError } from "../stores/app.svelte";
   import { toast } from "../stores/toasts.svelte";

@@ -22,14 +22,14 @@ use sha1::{Digest, Sha1};
 
 use crate::{
     error::CmdResult,
-    fines::{self, Fetched},
+    pro::fines::{self, Fetched},
     settings::HistorySettings,
 };
 
 /// Embedded provider definitions.
-pub const PROVIDERS_JSON: &str = include_str!("../providers/history.json");
+pub const PROVIDERS_JSON: &str = include_str!("../../providers/history.json");
 /// Embedded WMI table.
-pub const WMI_JSON: &str = include_str!("../providers/wmi.json");
+pub const WMI_JSON: &str = include_str!("../../providers/wmi.json");
 /// API secrets file in the app config dir.
 pub const SECRETS_FILE: &str = "secrets.json";
 

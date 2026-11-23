@@ -10,27 +10,33 @@ authors.workspace = true
 name = "chitach_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+# `pro` = Chitach Pro (official builds): the `src/pro` module and its dependencies.
+# Without it `src/pro_stub.rs` is used and the app is Chitach Free.
+[features]
+default = ["pro"]
+pro = ["dep:celik-sign", "dep:x509-parser", "dep:sha1", "dep:base64", "dep:ring"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
 celik-core = { workspace = true, features = ["rfzo"] }
 celik-export.workspace = true
-celik-sign.workspace = true
+celik-sign = { workspace = true, optional = true }
 serde.workspace = true
 serde_json.workspace = true
 log.workspace = true
-x509-parser.workspace = true
+x509-parser = { workspace = true, optional = true }
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 semver = "1"
-sha1 = "0.11"
+sha1 = { version = "0.11", optional = true }
 sys-locale = "0.3"
 ureq = "3"
-base64.workspace = true
-ring = "0.17"
+base64 = { workspace = true, optional = true }
+ring = { version = "0.17", optional = true }
 
 # PC/SC exists only on desktop systems; phones use USB CCID readers instead.
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]

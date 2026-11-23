@@ -1,12 +1,10 @@
 <script lang="ts">
   import DocHero from "./DocHero.svelte";
   import DocSections from "./DocSections.svelte";
-  import FinesPanel from "./FinesPanel.svelte";
-  import HistoryPanel from "./HistoryPanel.svelte";
-  import ProLock from "./ProLock.svelte";
+  import { pro } from "$pro";
   import type { VehicleDocument } from "../../api/types";
   import { t } from "../../i18n/index.svelte";
-  import { app } from "../../stores/app.svelte";
+  import { proAvailable } from "../../stores/app.svelte";
   import { isPast } from "../../util/format";
   import type { BadgeDef, SectionDef } from "./fields";
 
@@ -143,12 +141,8 @@
 
 <DocSections {sections} />
 
-{#if app.license && (!app.license.enabled || app.license.active)}
-  <FinesPanel />
-
-  <HistoryPanel />
-{:else if app.license}
-  <ProLock />
+{#if proAvailable() && pro.VehiclePanels}
+  <pro.VehiclePanels />
 {/if}
 
 <style>

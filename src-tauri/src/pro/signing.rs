@@ -3,14 +3,15 @@
 use std::sync::Mutex;
 
 use celik_sign::{
-    pkcs11::{CardVendor, Modules, NamedCert, Pkcs11Session},
+    pkcs11::{CardVendor, ModulePath, Modules, NamedCert, Pkcs11Session},
     xmlsign::{sign_xml, DigestSigner},
+    SignError,
 };
 use serde::Serialize;
 
 use crate::{
-    error::{catch, sign_error, with_detail, CmdResult},
-    settings::Settings,
+    error::{catch, with_detail, CmdResult},
+    settings::{Pkcs11Paths, Settings},
     state::lock,
 };
 
@@ -56,6 +57,55 @@ impl From<&NamedCert> for TokenCert {
             issuer: c.issuer.clone(),
             not_after: c.not_after.clone(),
         }
+    }
+}
+
+pub const ALL_VENDORS: [CardVendor; 5] = [
+    CardVendor::Mup,
+    CardVendor::Pks,
+    CardVendor::Posta,
+    CardVendor::Halcom,
+    CardVendor::Esmart,
+];
+
+/// PKCS#11 paths of the settings, per vendor.
+pub trait Pkcs11PathsExt {
+    fn get(&self, vendor: CardVendor) -> &str;
+    fn module_paths(&self, default_path: impl Fn(CardVendor) -> String) -> Vec<ModulePath>;
+}
+
+impl Pkcs11PathsExt for Pkcs11Paths {
+    fn get(&self, vendor: CardVendor) -> &str {
+        match vendor {
+            CardVendor::Mup => &self.mup,
+            CardVendor::Pks => &self.pks,
+            CardVendor::Posta => &self.posta,
+            CardVendor::Halcom => &self.halcom,
+            CardVendor::Esmart => &self.esmart,
+        }
+    }
+
+    fn module_paths(&self, default_path: impl Fn(CardVendor) -> String) -> Vec<ModulePath> {
+        ALL_VENDORS
+            .iter()
+            .filter_map(|&vendor| {
+                let p = self.get(vendor).trim();
+                let path = if p.is_empty() {
+                    default_path(vendor)
+                } else {
+                    p.to_string()
+                };
+                (!path.is_empty()).then_some(ModulePath { vendor, path })
+            })
+            .collect()
+    }
+}
+
+pub fn sign_error(context: &str, e: &SignError) -> String {
+    match e {
+        SignError::WrongPin => "error.wrongPin".into(),
+        SignError::NoModules => "error.noModules".into(),
+        other => with_detail(context, other),
     }
 }
 
@@ -198,6 +248,25 @@ fn close_session(inner: &mut Inner) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn module_paths_use_defaults_for_empty() {
+        let p = Pkcs11Paths {
+            pks: " /custom.so ".into(),
+            ..Default::default()
+        };
+        let paths = p.module_paths(|v| {
+            if v == CardVendor::Halcom {
+                String::new()
+            } else {
+                format!("default-{v:?}")
+            }
+        });
+        assert_eq!(paths.len(), 4);
+        assert_eq!(paths[0].path, "default-Mup");
+        assert_eq!(paths[1].path, "/custom.so");
+        assert!(paths.iter().all(|m| m.vendor != CardVendor::Halcom));
+    }
 
     #[test]
     fn hex_roundtrip() {

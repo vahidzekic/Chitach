@@ -62,6 +62,20 @@ jobs:
       - name: cargo test
         run: cargo test --workspace
 
+      # Chitach Free: the app without the Pro module (what a build of this repo alone gives
+      # once Pro lives in the private repo; see docs/11-free-i-pro.md).
+      - name: Free - UI type check and build
+        run: |
+          mv src/lib/pro "$RUNNER_TEMP/pro-ui"
+          npm run check
+          npm run build
+          mv "$RUNNER_TEMP/pro-ui" src/lib/pro
+        working-directory: ui
+      - name: Free - cargo clippy and test
+        run: |
+          cargo clippy -p chitach --all-targets --no-default-features -- -D warnings
+          cargo test -p chitach --no-default-features
+
   check:
     name: cargo check (${{ matrix.os }})
     strategy:

@@ -30,7 +30,8 @@ npm --prefix ui run check
 npm --prefix ui run build
 ```
 
-CI pokreće iste provere na svaki push i pull request.
+CI pokreće iste provere na svaki push i pull request, i još jednom bez Chitach Pro modula
+(Free build, v. [docs/11-free-i-pro.md](docs/11-free-i-pro.md)).
 
 ## Smernice
 

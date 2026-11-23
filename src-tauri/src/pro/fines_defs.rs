@@ -19,14 +19,14 @@ use std::time::{Duration, SystemTime};
 use base64::Engine;
 use serde::Serialize;
 
-use crate::fines::{self, url_host, Definitions, Provider};
+use crate::pro::fines::{self, url_host, Definitions, Provider};
 
 pub const REMOTE_URL: &str =
     "https://raw.githubusercontent.com/vahidzekic/Chitach/main/src-tauri/providers/fines.json";
 pub const REMOTE_SIG_URL: &str =
     "https://raw.githubusercontent.com/vahidzekic/Chitach/main/src-tauri/providers/fines.json.sig";
 /// Base64 Ed25519 public key (raw 32 bytes); `#` lines are comments. Empty = no downloads.
-pub const PUBLIC_KEY: &str = include_str!("../providers/fines.pub");
+pub const PUBLIC_KEY: &str = include_str!("../../providers/fines.pub");
 
 /// How often the remote definitions are fetched.
 pub const REFRESH_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);

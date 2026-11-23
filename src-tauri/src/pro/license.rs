@@ -21,7 +21,8 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{with_detail, CmdResult};
-use crate::fines::{encode_component, USER_AGENT};
+pub use crate::features::{Feature, PRO_REQUIRED};
+use crate::pro::fines::{encode_component, USER_AGENT};
 
 /// Lemon Squeezy store that sells Chitach Pro (0 = not configured yet: keys are rejected).
 pub const STORE_ID: u64 = 0;
@@ -40,47 +41,6 @@ pub const REVALIDATE_AFTER: i64 = 7 * 24 * 3600 * 1000;
 pub const OFFLINE_GRACE: i64 = 30 * 24 * 3600 * 1000;
 /// Key accepted without network in mock mode (`CHITACH_MOCK=1`).
 pub const MOCK_KEY: &str = "CHITACH-PRO-DEMO";
-/// Error returned by gated commands.
-pub const PRO_REQUIRED: &str = "error.proRequired";
-
-/// Paid (Pro) features. One place that says what is paid; every gate names its feature.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub enum Feature {
-    /// JSON and Excel export (PDF stays free).
-    DataExport,
-    /// Automatic save when a card is read.
-    AutoSave,
-    /// Running in the system tray.
-    Background,
-    /// Changing the ID card PIN.
-    Pin,
-    /// Listing and saving the ID card certificates.
-    Certificates,
-    /// XML signing (PKCS#11).
-    XmlSign,
-    /// Smartbox emulation for ePorezi.
-    Smartbox,
-    /// Fines check.
-    Fines,
-    /// Vehicle history.
-    History,
-}
-
-impl Feature {
-    pub const ALL: [Feature; 9] = [
-        Feature::DataExport,
-        Feature::AutoSave,
-        Feature::Background,
-        Feature::Pin,
-        Feature::Certificates,
-        Feature::XmlSign,
-        Feature::Smartbox,
-        Feature::Fines,
-        Feature::History,
-    ];
-}
-
 /// Activated licence as stored in `license.json`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

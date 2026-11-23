@@ -1,4 +1,5 @@
 // Global application state (card state, settings, navigation).
+import { pro } from "$pro";
 import { api } from "../api";
 import type { AppInfo, AppState, ExportFormat, LicenseInfo, Mode, Settings, UpdateInfo } from "../api/types";
 import { setLanguage, t, translateError } from "../i18n/index.svelte";
@@ -102,10 +103,11 @@ export async function init() {
   try {
     const [settings, state, info] = await Promise.all([api.getSettings(), api.getState(), api.getAppInfo()]);
     app.settings = settings;
-    // Phones always run the reader (Smartbox and XML signing are desktop-only).
-    app.mode = isMobileOs(info.os) ? "reader" : settings.mode;
-    app.state = state;
     app.info = info;
+    // Phones always run the reader (Smartbox and XML signing are desktop-only), and so
+    // does Chitach Free.
+    app.mode = isMobileOs(info.os) || !proAvailable() ? "reader" : settings.mode;
+    app.state = state;
     previewSettings(settings);
     const p = params.get("page") as Page | null;
     app.page = p ?? homePage(app.mode);
@@ -128,46 +130,24 @@ export async function init() {
       action,
     });
   });
-  await refreshLicense();
+  if (proAvailable()) await pro.init?.();
   app.loaded = true;
 
   // Phones get updates from the app stores.
   if (app.settings?.checkUpdates && !api.isMock && !isMobileOs(app.info?.os)) void checkForUpdate(true);
 }
 
-/** Chitach Pro features are usable: Pro is active, or gating is off in this build (the default). */
+/** Chitach Pro is in this build: its UI is bundled and the backend has it compiled in.
+ * False in Chitach Free, which shows nothing about Pro. */
+export function proAvailable(): boolean {
+  return pro.available && app.info?.pro !== false;
+}
+
+/** Chitach Pro features are usable: Pro is in this build, and it is active or gating is
+ * off (the default). */
 export function proUnlocked(): boolean {
   const l = app.license;
-  return !l || !l.enabled || l.active;
-}
-
-export async function refreshLicense() {
-  try {
-    app.license = await api.licenseInfo();
-  } catch {
-    /* not critical: Pro features stay locked */
-  }
-}
-
-/** Activate a Chitach Pro key; returns true on success. */
-export async function activateLicense(key: string): Promise<boolean> {
-  try {
-    app.license = await api.licenseActivate(key);
-    toast("success", t("pro.activated"));
-    return true;
-  } catch (e) {
-    showError(e, "error.license");
-    return false;
-  }
-}
-
-export async function deactivateLicense(): Promise<void> {
-  try {
-    app.license = await api.licenseDeactivate();
-    toast("success", t("pro.deactivated"));
-  } catch (e) {
-    showError(e, "error.license");
-  }
+  return proAvailable() && (!l || !l.enabled || l.active);
 }
 
 export async function openPath(path: string) {

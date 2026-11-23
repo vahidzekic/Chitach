@@ -2,11 +2,12 @@
   // Shown in place of a Chitach Pro feature (fines and history panels, the certificates,
   // XML signing and Smartbox pages) while Pro is not active: what Pro unlocks, a buy
   // button and the key field.
-  import Icon, { type IconName } from "../../components/Icon.svelte";
-  import { api } from "../../api";
-  import type { ProFeature } from "../../api/types";
-  import { t } from "../../i18n/index.svelte";
-  import { activateLicense, app } from "../../stores/app.svelte";
+  import Icon, { type IconName } from "../components/Icon.svelte";
+  import { api } from "./api";
+  import type { ProFeature } from "./types";
+  import { t } from "../i18n/index.svelte";
+  import { app } from "../stores/app.svelte";
+  import { activateLicense } from "./license";
 
   // One line per thing Pro unlocks; PIN change and certificates share a line.
   const FEATURES: { key: string; icon: IconName; covers: ProFeature[] }[] = [

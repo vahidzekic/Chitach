@@ -1,4 +1,5 @@
 // Minimal reactive i18n. One JSON dictionary per language, all with the same keys.
+import { pro } from "$pro";
 import type { Language } from "../api/types";
 import srLatn from "./sr-Latn.json";
 import srCyrl from "./sr-Cyrl.json";
@@ -7,11 +8,14 @@ import ru from "./ru.json";
 
 type Dict = Record<string, string>;
 
+// Chitach Pro brings its own keys (none in Chitach Free).
+const withPro = (lang: Language, d: Dict): Dict => ({ ...d, ...pro.messages?.[lang] });
+
 const dictionaries: Record<Language, Dict> = {
-  "sr-Latn": srLatn,
-  "sr-Cyrl": srCyrl,
-  en,
-  ru,
+  "sr-Latn": withPro("sr-Latn", srLatn),
+  "sr-Cyrl": withPro("sr-Cyrl", srCyrl),
+  en: withPro("en", en),
+  ru: withPro("ru", ru),
 };
 
 export const languageNames: Record<Language, string> = {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import Modal from "../components/Modal.svelte";
   import Icon from "../components/Icon.svelte";
-  import { api } from "../api";
+  import { api } from "./api";
   import { t, translateError } from "../i18n/index.svelte";
   import { toast } from "../stores/toasts.svelte";
 

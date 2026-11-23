@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import Icon from "../components/Icon.svelte";
-  import { api } from "../api";
-  import type { SmartboxStatus, Unlisten } from "../api/types";
+  import { api } from "./api";
+  import type { SmartboxStatus, Unlisten } from "./types";
   import { t, translateError } from "../i18n/index.svelte";
   import { navigate, showError } from "../stores/app.svelte";
   import { copyText } from "../util/format";

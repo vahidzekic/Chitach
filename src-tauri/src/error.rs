@@ -5,7 +5,6 @@
 //! follows `|` (e.g. `error.readingCard|PC/SC error: ...`).
 
 use celik_core::CardError;
-use celik_sign::SignError;
 
 pub type CmdResult<T> = Result<T, String>;
 
@@ -25,14 +24,6 @@ pub fn card_error(context: &str, e: &CardError) -> String {
         CardError::InvalidPin => "error.invalidPin".into(),
         CardError::Unsupported => "error.unsupported".into(),
         CardError::Network(d) => with_detail("error.network", d),
-        other => with_detail(context, other),
-    }
-}
-
-pub fn sign_error(context: &str, e: &SignError) -> String {
-    match e {
-        SignError::WrongPin => "error.wrongPin".into(),
-        SignError::NoModules => "error.noModules".into(),
         other => with_detail(context, other),
     }
 }

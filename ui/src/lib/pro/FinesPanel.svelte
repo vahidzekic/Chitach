@@ -3,9 +3,9 @@
   // optional (opt-in) automatic check for providers that allow it.
   import { onMount } from "svelte";
   import { slide } from "svelte/transition";
-  import Icon, { type IconName } from "../../components/Icon.svelte";
-  import Modal from "../../components/Modal.svelte";
-  import { api } from "../../api";
+  import Icon, { type IconName } from "../components/Icon.svelte";
+  import Modal from "../components/Modal.svelte";
+  import { api } from "./api";
   import type {
     FineItem,
     FinesCategory,
@@ -15,11 +15,11 @@
     FinesSettings,
     FinesStatus,
     Settings,
-  } from "../../api/types";
-  import { currentLanguage, hasKey, t } from "../../i18n/index.svelte";
-  import { app, saveSettings, showError } from "../../stores/app.svelte";
-  import { toast } from "../../stores/toasts.svelte";
-  import { copyText } from "../../util/format";
+  } from "./types";
+  import { currentLanguage, hasKey, t } from "../i18n/index.svelte";
+  import { app, saveSettings, showError } from "../stores/app.svelte";
+  import { toast } from "../stores/toasts.svelte";
+  import { copyText } from "../util/format";
 
   let info = $state<FinesInfo | null>(null);
   let results = $state<Record<string, FinesCheckResult>>({});

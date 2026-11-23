@@ -7,7 +7,7 @@
   import { api } from "../api";
   import type { ExportFormat } from "../api/types";
   import { t } from "../i18n/index.svelte";
-  import { app, exportDocument, proUnlocked, showError } from "../stores/app.svelte";
+  import { app, exportDocument, proAvailable, proUnlocked, showError } from "../stores/app.svelte";
   import { toast } from "../stores/toasts.svelte";
 
   const doc = $derived(app.state.status === "ready" ? app.state.document : null);
@@ -94,6 +94,7 @@
         </div>
         <div class="right">
           <span class="save-label">{t("ui.saveAs")}</span>
+          {#if proAvailable()}
           <div class="group">
             <button
               class="btn"
@@ -114,6 +115,7 @@
               <Icon name={proUnlocked() ? "table" : "lock"} size={16} /><span>Excel</span>
             </button>
           </div>
+          {/if}
           <button
             class="btn btn-primary"
             type="button"

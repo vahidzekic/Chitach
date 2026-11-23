@@ -1,0 +1,105 @@
+/* Settings page layout, shared with the Pro settings sections (global, under .settings). */
+.settings .group {
+  padding: 6px 20px 8px;
+  margin-bottom: 16px;
+}
+.settings .group h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14.5px;
+  padding: 14px 0 8px;
+  color: var(--text);
+}
+.settings .group h2 svg {
+  color: var(--accent);
+}
+.settings .group-desc {
+  font-size: 12.5px;
+  color: var(--text-3);
+  margin-bottom: 4px;
+}
+.settings .row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
+  align-items: center;
+  gap: 18px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+.settings .group h2 + .row,
+.settings .group-desc + .row {
+  border-top: 0;
+}
+.settings .row.disabled .desc {
+  opacity: 0.55;
+}
+.settings .desc {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.settings .desc label,
+.settings .desc span {
+  font-weight: 550;
+}
+.settings .desc small {
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+.settings .desc .pro-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  color: var(--accent-text);
+}
+.settings .ctl {
+  min-width: 0;
+}
+.settings .ctl.end {
+  display: flex;
+  justify-content: flex-end;
+}
+.settings .ctl.consent {
+  align-items: center;
+  gap: 8px;
+}
+.settings .ctl .seg {
+  flex-wrap: nowrap;
+}
+.settings .select-ic {
+  position: relative;
+}
+.settings .select-ic svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  pointer-events: none;
+}
+.settings .select-ic .select {
+  padding-left: 34px;
+}
+.settings .path-row {
+  display: flex;
+  gap: 8px;
+}
+.settings .path-row .input {
+  flex: 1;
+  min-width: 0;
+}
+.settings .input:disabled {
+  opacity: 0.55;
+}
+@media (max-width: 900px) {
+  .settings .row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .settings .ctl.end {
+    justify-content: flex-start;
+  }
+}

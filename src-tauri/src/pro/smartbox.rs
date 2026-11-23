@@ -12,9 +12,10 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{
-    error::{catch, sign_error, CmdResult},
+    error::{catch, CmdResult},
     events::SMARTBOX_STATUS,
-    signing::module_paths,
+    pro::signing::module_paths,
+    pro::signing::sign_error,
     state::{lock, Shared},
 };
 
