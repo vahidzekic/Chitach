@@ -3,25 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import type {
-  Api,
-  AppInfo,
-  AppState,
-  CardVendor,
-  CertInfo,
-  Document,
-  FinesCheckResult,
-  FinesInfo,
-  HistoryApiResult,
-  HistoryInfo,
-  LicenseInfo,
-  NotifyEvent,
-  Settings,
-  Slot,
-  SmartboxStatus,
-  TokenCert,
-  UpdateInfo,
-} from "./types";
+import type { Api, AppInfo, AppState, Document, NotifyEvent, Settings, UpdateInfo } from "./types";
 
 /** Tauri rejects with whatever the command returned as error; normalise to string. */
 async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
@@ -42,35 +24,14 @@ export const tauriApi: Api = {
   exportDocument: (format, path) => call<string>("export_document", { format, path }),
   suggestFileName: (format) => call<string>("suggest_file_name", { format }),
   updateRfzo: () => call<Document>("update_rfzo"),
-  pinTriesLeft: () => call<number>("pin_tries_left"),
-  changePin: (oldPin, newPin) => call("change_pin", { oldPin, newPin }),
-  listCertificates: () => call<CertInfo[]>("list_certificates"),
-  saveCertificate: (index, path) => call("save_certificate", { index, path }),
   getSettings: () => call<Settings>("get_settings"),
   saveSettings: (settings) => call("save_settings", { settings }),
   checkUpdate: () => call<UpdateInfo>("check_update"),
   openPath: (path) => call("open_path", { path }),
   openUrl: (url) => openUrl(url),
-  signLoadModules: () => call<CardVendor[]>("sign_load_modules"),
-  signListSlots: (vendor) => call<Slot[]>("sign_list_slots", { vendor }),
-  signLogin: (vendor, slot, pin) => call<TokenCert[]>("sign_login", { vendor, slot, pin }),
-  signXmlFile: (certId, inputPath, outputPath) => call("sign_xml_file", { certId, inputPath, outputPath }),
-  signLogout: () => call("sign_logout"),
-  smartboxStatus: () => call<SmartboxStatus>("smartbox_status"),
-  finesProviders: () => call<FinesInfo>("fines_providers"),
-  finesCheck: (providerId, force) => call<FinesCheckResult>("fines_check", { providerId, force: force ?? false }),
-  historyInfo: () => call<HistoryInfo>("history_info"),
-  historySetApiKey: (providerId, apiKey, secret) => call("history_set_api_key", { providerId, apiKey, secret }),
-  historyRemoveApiKey: (providerId) => call("history_remove_api_key", { providerId }),
-  historyApiCheck: (providerId, operation, force) =>
-    call<HistoryApiResult>("history_api_check", { providerId, operation, force: force ?? false }),
-  licenseInfo: () => call<LicenseInfo>("license_info"),
-  licenseActivate: (key) => call<LicenseInfo>("license_activate", { key }),
-  licenseDeactivate: () => call<LicenseInfo>("license_deactivate"),
 
   onAppState: (cb) => listen<AppState>("app-state", (e) => cb(e.payload)),
   onNotify: (cb) => listen<NotifyEvent>("notify", (e) => cb(e.payload)),
-  onSmartboxStatus: (cb) => listen<SmartboxStatus>("smartbox-status", (e) => cb(e.payload)),
 
   saveDialog: async (opts) => (await save(opts)) ?? null,
   openFileDialog: async (opts) => {

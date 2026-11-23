@@ -6,30 +6,16 @@
 //   &mode=reader|xmlSign|smartbox  &theme=light|dark|system  &lang=sr-Latn|sr-Cyrl|en|ru
 //   &os=linux|macos|windows|android|ios  (platform reported by getAppInfo; phones hide desktop-only settings)
 //   &page=document|certificates|xmlSign|smartbox|settings|about
-//   &fines=found|clean|manual|unavailable|parseError  (forced automatic fines check result)
-//   &history=ok|unauthorized|error|unavailable|parseError  (forced vehicle history API result)
-//   &historyKey=1  (a vehicle history API key is already stored)
+//   &fines=found|clean|manual|unavailable|parseError  (forced automatic fines check result, Pro)
+//   &history=ok|unauthorized|error|unavailable|parseError  (forced vehicle history API result, Pro)
+//   &historyKey=1  (a vehicle history API key is already stored, Pro)
 //   &pro=0|1  (Chitach Pro gating on: 0 = locked, activate with CHITACH-PRO-DEMO; 1 = activated)
+// The Pro commands are mocked in `../pro/api.ts`.
 // A small control object is exposed as `window.__chitachMock` (insert/remove cards).
-import type {
-  Api,
-  AppState,
-  CardVendor,
-  Document,
-  DocumentKind,
-  LicenseInfo,
-  NotifyEvent,
-  ReaderStatus,
-  Settings,
-  SmartboxStatus,
-} from "./types";
-import { mockFinesCheck, mockFinesInfo } from "./mockFines";
-import { mockHistoryApiCheck, mockHistoryInfo, mockHistoryRemoveKey, mockHistorySetKey } from "./mockHistory";
-import { sampleCerts, sampleId, sampleMedical, sampleTokenCerts, sampleVehicle } from "./mockData";
+import type { Api, AppState, Document, DocumentKind, NotifyEvent, ReaderStatus, Settings } from "./types";
+import { sampleId, sampleMedical, sampleVehicle } from "./mockData";
 
 const SETTINGS_KEY = "chitach.mock.settings";
-const LICENSE_KEY = "chitach.mock.license";
-const MOCK_PRO_KEY = "CHITACH-PRO-DEMO";
 
 export const defaultSettings: Settings = {
   language: "sr-Latn",
@@ -93,30 +79,6 @@ export function createMockApi(): Api {
   if (theme === "light" || theme === "dark" || theme === "system") settings.theme = theme;
   const lang = params.get("lang");
   if (lang === "sr-Latn" || lang === "sr-Cyrl" || lang === "en" || lang === "ru") settings.language = lang;
-  // Pro gating is off unless `?pro=` is given (as in a build without a configured store).
-  const proEnabled = params.has("pro");
-  let pro = params.get("pro") !== "0";
-  try {
-    const raw = localStorage.getItem(LICENSE_KEY);
-    if (raw !== null && params.get("pro") === null) pro = raw === "1";
-  } catch {
-    /* storage unavailable */
-  }
-  const features: LicenseInfo["features"] = ["dataExport", "autoSave", "background", "pin", "certificates", "xmlSign", "smartbox", "fines", "history"];
-  const licenseInfo = (): LicenseInfo =>
-    pro
-      ? { enabled: proEnabled, active: true, stored: true, keyHint: "…DEMO", email: "kupac@example.com", validatedAt: Date.now(), buyUrl: null, features }
-      : { enabled: proEnabled, active: false, stored: false, keyHint: null, email: null, validatedAt: null, buyUrl: "https://example.com/chitach-pro", features };
-  const setPro = (on: boolean) => {
-    pro = on;
-    try {
-      localStorage.setItem(LICENSE_KEY, on ? "1" : "0");
-    } catch {
-      /* storage unavailable */
-    }
-  };
-  if (params.get("historyKey") === "1") void mockHistorySetKey("vincario", "demo-key", "demo-secret");
-
   const readers: MockReader[] = [
     { name: "ACS ACR39U ICC Reader 00 00", card: null },
     { name: "Gemalto PC Twin Reader 01 00", card: null },
@@ -135,7 +97,6 @@ export function createMockApi(): Api {
 
   const stateListeners = new Set<(s: AppState) => void>();
   const notifyListeners = new Set<(n: NotifyEvent) => void>();
-  const smartboxListeners = new Set<(s: SmartboxStatus) => void>();
 
   function readerStatuses(): ReaderStatus[] {
     return readers.map((r) => ({ name: r.name, cardPresent: r.card !== null, atr: r.card ? ATRS[r.card] : null }));
@@ -253,14 +214,6 @@ export function createMockApi(): Api {
   };
   (window as unknown as { __chitachMock: typeof control }).__chitachMock = control;
 
-  const smartbox: SmartboxStatus = {
-    running: true,
-    address: "127.0.0.1:20090",
-    vendors: ["mup", "halcom"],
-    error: null,
-  };
-  let loggedIn = false;
-
   const api: Api = {
     isMock: true,
 
@@ -306,22 +259,6 @@ export function createMockApi(): Api {
       emit();
       return clone(state.document);
     },
-    async pinTriesLeft() {
-      if (state.document?.kind !== "id") throw "error.notIdCard";
-      return 3;
-    },
-    async changePin(oldPin) {
-      await delay(700);
-      if (oldPin === "0000") throw "error.wrongPin:2";
-    },
-    async listCertificates() {
-      await delay(300);
-      if (state.document?.kind !== "id") throw "error.notIdCard";
-      return clone(sampleCerts);
-    },
-    async saveCertificate() {
-      await delay(200);
-    },
     async getSettings() {
       return clone(settings);
     },
@@ -348,70 +285,6 @@ export function createMockApi(): Api {
     async openUrl(url) {
       window.open(url, "_blank", "noopener");
     },
-    async signLoadModules() {
-      await delay(300);
-      return ["mup", "halcom"] as CardVendor[];
-    },
-    async signListSlots(vendor) {
-      await delay(300);
-      return vendor === "mup"
-        ? [{ id: 0, description: "ACS ACR39U ICC Reader 00 00 (MUP eID)" }]
-        : [{ id: 1, description: "Halcom token (eToken 5110)" }];
-    },
-    async signLogin(_vendor, _slot, pin) {
-      await delay(700);
-      if (pin === "0000") throw "error.wrongPin";
-      loggedIn = true;
-      return clone(sampleTokenCerts);
-    },
-    async signXmlFile(_certId, _inputPath, outputPath) {
-      await delay(900);
-      if (!loggedIn) throw "error.notLoggedIn";
-      console.info("[mock] signed ->", outputPath);
-    },
-    async signLogout() {
-      loggedIn = false;
-    },
-    async smartboxStatus() {
-      return clone(smartbox);
-    },
-    async finesProviders() {
-      return mockFinesInfo(state.document?.kind === "vehicle" ? state.document.data.RegistrationNumberOfVehicle : "");
-    },
-    async finesCheck(providerId, force = false) {
-      if (proEnabled && !pro) throw "error.proRequired";
-      if (state.document?.kind !== "vehicle") throw "error.notVehicleCard";
-      return mockFinesCheck(state.document.data.RegistrationNumberOfVehicle, providerId, force, settings);
-    },
-    async historyInfo() {
-      return mockHistoryInfo(state.document?.kind === "vehicle" ? state.document.data : null);
-    },
-    async historySetApiKey(providerId, apiKey, secret) {
-      await mockHistorySetKey(providerId, apiKey, secret);
-    },
-    async historyRemoveApiKey(providerId) {
-      await mockHistoryRemoveKey(providerId);
-    },
-    async historyApiCheck(providerId, operation, force = false) {
-      if (proEnabled && !pro) throw "error.proRequired";
-      if (state.document?.kind !== "vehicle") throw "error.notVehicleCard";
-      return mockHistoryApiCheck(state.document.data, providerId, operation, force, settings);
-    },
-    async licenseInfo() {
-      return licenseInfo();
-    },
-    async licenseActivate(key) {
-      await delay(600);
-      if (!key.trim()) throw "error.licenseNoKey";
-      if (key.trim() !== MOCK_PRO_KEY) throw "error.licenseInvalid|license_key not found.";
-      setPro(true);
-      return licenseInfo();
-    },
-    async licenseDeactivate() {
-      await delay(300);
-      setPro(false);
-      return licenseInfo();
-    },
 
     async onAppState(cb) {
       stateListeners.add(cb);
@@ -420,10 +293,6 @@ export function createMockApi(): Api {
     async onNotify(cb) {
       notifyListeners.add(cb);
       return () => notifyListeners.delete(cb);
-    },
-    async onSmartboxStatus(cb) {
-      smartboxListeners.add(cb);
-      return () => smartboxListeners.delete(cb);
     },
 
     async saveDialog(opts) {

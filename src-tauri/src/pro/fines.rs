@@ -1,7 +1,7 @@
 //! Vehicle fines check ("Provera kazni"), see docs/07-istrazivanje-provera-kazni.md.
 //!
 //! Provider definitions are declarative JSON (`providers/fines.json`, embedded in the
-//! binary; newer signed copies are downloaded by [`crate::fines_defs`]). Four kinds exist:
+//! binary; newer signed copies are downloaded by [`crate::pro::fines_defs`]). Four kinds exist:
 //! - `link`: the UI opens the official portal in the system browser (optionally with the
 //!   plate in the URL); nothing is sent by the app.
 //! - `json_get`: an opt-in automatic check. Only the plate is sent, with a single GET to
@@ -34,7 +34,7 @@ use serde_json::Value;
 use crate::{error::CmdResult, settings::FinesSettings};
 
 /// Embedded provider definitions.
-pub const PROVIDERS_JSON: &str = include_str!("../providers/fines.json");
+pub const PROVIDERS_JSON: &str = include_str!("../../providers/fines.json");
 
 /// How long a check result is reused.
 pub const CACHE_TTL: Duration = Duration::from_secs(30 * 60);
@@ -493,7 +493,7 @@ pub struct FinesInfo {
     pub providers: Vec<ProviderView>,
     /// Which provider definitions are in use (set by the command).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub definitions: Option<crate::fines_defs::DefinitionsInfo>,
+    pub definitions: Option<crate::pro::fines_defs::DefinitionsInfo>,
 }
 
 /// Providers for a plate; those serving the plate's city come first (stable order otherwise).

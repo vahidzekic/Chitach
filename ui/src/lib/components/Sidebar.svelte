@@ -4,7 +4,7 @@
   import { api } from "../api";
   import type { CardStatus } from "../api/types";
   import { t } from "../i18n/index.svelte";
-  import { app, navigate, showError, type Page } from "../stores/app.svelte";
+  import { app, navigate, proAvailable, showError, type Page } from "../stores/app.svelte";
 
   interface NavItem {
     page: Page;
@@ -19,7 +19,7 @@
     if (mode === "xmlSign") return [{ page: "xmlSign", label: t("nav.xmlSign"), icon: "pen" }];
     if (mode === "smartbox") return [{ page: "smartbox", label: t("nav.smartbox"), icon: "server" }];
     const items: NavItem[] = [{ page: "document", label: t("nav.document"), icon: docIcon() }];
-    if (isId) items.push({ page: "certificates", label: t("nav.certificates"), icon: "shield" });
+    if (isId && proAvailable()) items.push({ page: "certificates", label: t("nav.certificates"), icon: "shield" });
     return items;
   });
 

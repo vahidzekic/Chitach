@@ -20,8 +20,8 @@ podeljeno u tri crate-a: `celik-core`, `celik-export` i `celik-sign`.
 │   poller.rs    nit "chitach-poller": prati čitače/kartice, čita dokument                      │
 │   events.rs    emitovanje "app-state", "notify", "smartbox-status"                            │
 │   export.rs    auto-čuvanje PDF-a, izvoz u fajl                                                │
-│   smartbox.rs  pokretanje/zaustavljanje Smartbox servera                                       │
-│   signing.rs   PKCS#11 sesija za XML potpisivanje                                              │
+│   pro/         Chitach Pro (feature `pro`): kazne, istorija, PIN i sertifikati, XML potpis,   │
+│                Smartbox, licenca; bez njega pro_stub.rs (docs/11-free-i-pro.md)               │
 │   settings.rs  settings.json u konfiguracionom direktorijumu                                   │
 │   tray.rs, update.rs, rfzo.rs                                                                  │
 ├──────────────┬─────────────────────────┬────────────────────────────────┬────────────────────┤

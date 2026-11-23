@@ -72,10 +72,13 @@ export interface CertInfo { index: number; label: string; subject: string; issue
 export interface Slot { id: number; description: string; }
 export interface TokenCert { id: string /* hex */; label: string; subject: string; issuer: string; notAfter: string; }
 export interface SmartboxStatus { running: boolean; address: string | null; vendors: CardVendor[]; error: string | null; }
-export interface AppInfo { version: string; os: "linux" | "macos" | "windows"; arch: string; }
+export interface AppInfo {
+  version: string; os: "linux" | "macos" | "windows" | "android" | "ios"; arch: string;
+  pro?: boolean;  // Chitach Pro je u buildu; false = Chitach Free (docs/11-free-i-pro.md)
+}
 export interface UpdateInfo { current: string; latest: string; newer: boolean; url: string; }
 
-// Provera kazni (src-tauri/src/fines.rs, definicije u src-tauri/providers/fines.json)
+// Provera kazni (src-tauri/src/pro/fines.rs, definicije u src-tauri/providers/fines.json)
 export type FinesCategory = "parking" | "person" | "toll";
 export interface FinesProvider {
   id: string; name: string; category: FinesCategory;
@@ -103,7 +106,7 @@ export interface FinesCheckResult {
   cached: boolean;
 }
 
-// Istorija vozila (src-tauri/src/history.rs, definicije u src-tauri/providers/history.json i wmi.json)
+// Istorija vozila (src-tauri/src/pro/history.rs, definicije u src-tauri/providers/history.json i wmi.json)
 export type HistoryCategory = "domestic" | "foreign" | "usa" | "api";
 export interface HistoryProvider {
   id: string; name: string; category: HistoryCategory;
@@ -153,6 +156,10 @@ type ProFeature = "dataExport" | "autoSave" | "background" | "pin" | "certificat
 ```
 
 ## Komande
+
+Komande od `pin_tries_left` do `license_deactivate` (osim `get_settings`, `save_settings`,
+`check_update` i `open_path`) postoje samo u buildu sa Chitach Pro
+([11-free-i-pro.md](11-free-i-pro.md)); u UI-ju su u `ui/src/lib/pro/api.ts`.
 
 | Komanda | Argumenti | Vraća | Opis |
 |---|---|---|---|

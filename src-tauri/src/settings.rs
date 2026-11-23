@@ -2,7 +2,6 @@
 
 use std::path::{Path, PathBuf};
 
-use celik_sign::pkcs11::{CardVendor, ModulePath};
 use serde::{Deserialize, Serialize};
 
 pub const FILE_NAME: &str = "settings.json";
@@ -56,42 +55,6 @@ pub struct Pkcs11Paths {
     pub posta: String,
     pub halcom: String,
     pub esmart: String,
-}
-
-pub const ALL_VENDORS: [CardVendor; 5] = [
-    CardVendor::Mup,
-    CardVendor::Pks,
-    CardVendor::Posta,
-    CardVendor::Halcom,
-    CardVendor::Esmart,
-];
-
-impl Pkcs11Paths {
-    pub fn get(&self, vendor: CardVendor) -> &str {
-        match vendor {
-            CardVendor::Mup => &self.mup,
-            CardVendor::Pks => &self.pks,
-            CardVendor::Posta => &self.posta,
-            CardVendor::Halcom => &self.halcom,
-            CardVendor::Esmart => &self.esmart,
-        }
-    }
-
-    /// Module paths for all vendors, substituting OS defaults for empty entries.
-    pub fn module_paths(&self, default_path: impl Fn(CardVendor) -> String) -> Vec<ModulePath> {
-        ALL_VENDORS
-            .iter()
-            .filter_map(|&vendor| {
-                let p = self.get(vendor).trim();
-                let path = if p.is_empty() {
-                    default_path(vendor)
-                } else {
-                    p.to_string()
-                };
-                (!path.is_empty()).then_some(ModulePath { vendor, path })
-            })
-            .collect()
-    }
 }
 
 /// Fines check ("Provera kazni") preferences.
@@ -309,25 +272,6 @@ mod tests {
     #[test]
     fn invalid_values_rejected() {
         assert!(serde_json::from_str::<Settings>(r#"{"theme":"blue"}"#).is_err());
-    }
-
-    #[test]
-    fn module_paths_use_defaults_for_empty() {
-        let p = Pkcs11Paths {
-            pks: " /custom.so ".into(),
-            ..Default::default()
-        };
-        let paths = p.module_paths(|v| {
-            if v == CardVendor::Halcom {
-                String::new()
-            } else {
-                format!("default-{v:?}")
-            }
-        });
-        assert_eq!(paths.len(), 4);
-        assert_eq!(paths[0].path, "default-Mup");
-        assert_eq!(paths[1].path, "/custom.so");
-        assert!(paths.iter().all(|m| m.vendor != CardVendor::Halcom));
     }
 
     #[test]

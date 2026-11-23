@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import Icon from "../components/Icon.svelte";
-  import { api } from "../api";
-  import type { CardVendor, Slot, TokenCert } from "../api/types";
+  import { api } from "./api";
+  import type { CardVendor, Slot, TokenCert } from "./types";
   import { t, translateError } from "../i18n/index.svelte";
   import { navigate, openPath, saveFileAs, showError } from "../stores/app.svelte";
   import { toast } from "../stores/toasts.svelte";

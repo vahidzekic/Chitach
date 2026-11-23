@@ -15,7 +15,11 @@
      */
     "allowJs": true,
     "checkJs": true,
-    "moduleDetection": "force"
+    "moduleDetection": "force",
+    /** `$pro`: Chitach Pro when src/lib/pro exists, else the Free stand-in (see vite.config.ts). */
+    "paths": {
+      "$pro": ["./src/lib/pro/index.ts", "./src/lib/pro-stub/index.ts"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"]
 }

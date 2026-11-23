@@ -1,19 +1,18 @@
 //! Chitach desktop app (Tauri v2 backend).
 
 pub mod commands;
-pub mod crypto;
 pub mod error;
 pub mod events;
 pub mod export;
-pub mod fines;
-pub mod fines_defs;
-pub mod history;
-pub mod license;
+pub mod features;
 pub mod poller;
+#[cfg(feature = "pro")]
+pub mod pro;
+#[cfg(not(feature = "pro"))]
+#[path = "pro_stub.rs"]
+pub mod pro;
 pub mod rfzo;
 pub mod settings;
-pub mod signing;
-pub mod smartbox;
 pub mod state;
 pub mod transport;
 pub mod tray;
@@ -22,9 +21,8 @@ pub mod update;
 use tauri::{Manager, WindowEvent};
 
 use crate::{
+    features::Feature,
     settings::{Mode, Settings},
-    signing::SigningState,
-    smartbox::SmartboxState,
     state::Shared,
 };
 
@@ -62,33 +60,16 @@ pub fn run() {
                 settings.mode
             };
             let run_in_background = settings.run_in_background;
-            let secrets_path = history::secrets_path(path.as_deref());
-            app.manage(history::HistoryState::new(secrets_path));
-            let license_path = license::license_path(path.as_deref());
-            app.manage(license::LicenseState::new(license_path, mock));
+            pro::setup(app, path.as_deref(), mock);
             app.manage(Shared::new(settings, mock, path));
             transport::init(&handle);
-            app.manage(SigningState::default());
-            app.manage(SmartboxState::default());
-            app.manage(fines::FinesCache::default());
-            let fines_cache_dir = handle.path().app_cache_dir().ok().map(|d| d.join("fines"));
-            app.manage(fines_defs::FinesDefinitions::new(fines_cache_dir));
-            if !mock {
-                fines_defs::spawn_refresh(handle.clone());
-                license::spawn_revalidate(handle.clone());
-            }
 
-            let pro = app.state::<license::LicenseState>();
-            let run_in_background = run_in_background && pro.allows(license::Feature::Background);
-            let smartbox_allowed = pro.allows(license::Feature::Smartbox);
+            let run_in_background = run_in_background && pro::allows(&handle, Feature::Background);
             if let Err(e) = tray::apply(&handle, run_in_background) {
                 log::warn!("tray: {e}");
             }
-            match mode {
-                Mode::Reader => poller::spawn(handle),
-                Mode::Smartbox if smartbox_allowed => smartbox::spawn(handle),
-                Mode::Smartbox => {}
-                Mode::XmlSign => {}
+            if !pro::start_mode(&handle, mode) {
+                poller::spawn(handle);
             }
             Ok(())
         })
@@ -104,45 +85,42 @@ pub fn run() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![
-            commands::get_app_info,
-            commands::get_state,
-            commands::select_reader,
-            commands::reload_card,
-            commands::export_document,
-            commands::suggest_file_name,
-            commands::update_rfzo,
-            commands::pin_tries_left,
-            commands::change_pin,
-            commands::list_certificates,
-            commands::save_certificate,
-            commands::get_settings,
-            commands::save_settings,
-            commands::check_update,
-            commands::open_path,
-            commands::sign_load_modules,
-            commands::sign_list_slots,
-            commands::sign_login,
-            commands::sign_xml_file,
-            commands::sign_logout,
-            commands::smartbox_status,
-            commands::fines_providers,
-            commands::fines_check,
-            commands::history_info,
-            commands::history_set_api_key,
-            commands::history_remove_api_key,
-            commands::history_api_check,
-            commands::license_info,
-            commands::license_activate,
-            commands::license_deactivate,
-        ])
+        .invoke_handler(invoke_handler())
         .build(tauri::generate_context!())
         .expect("error while building Chitach")
         .run(|app, event| {
             if let tauri::RunEvent::Exit = event {
-                if let Some(s) = app.try_state::<SmartboxState>() {
-                    s.stop();
-                }
+                pro::on_exit(app);
             }
         });
+}
+
+/// Free commands plus the Pro ones (none in Chitach Free), routed by name.
+fn invoke_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
+    let free = with_invoke_type(tauri::generate_handler![
+        commands::get_app_info,
+        commands::get_state,
+        commands::select_reader,
+        commands::reload_card,
+        commands::export_document,
+        commands::suggest_file_name,
+        commands::update_rfzo,
+        commands::get_settings,
+        commands::save_settings,
+        commands::check_update,
+        commands::open_path,
+    ]);
+    let pro = pro::invoke_handler();
+    move |invoke| {
+        if pro::COMMANDS.contains(&invoke.message.command()) {
+            pro(invoke)
+        } else {
+            free(invoke)
+        }
+    }
+}
+
+/// Pins the closure's argument type (`generate_handler!` alone leaves it open).
+fn with_invoke_type<F: Fn(tauri::ipc::Invoke) -> bool>(f: F) -> F {
+    f
 }

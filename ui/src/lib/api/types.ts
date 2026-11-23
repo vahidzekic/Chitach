@@ -209,39 +209,13 @@ export interface AppState {
   readId: number;
 }
 
-export interface CertInfo {
-  index: number;
-  label: string;
-  subject: string;
-  issuer: string;
-  notAfter: string;
-}
-
-export interface Slot {
-  id: number;
-  description: string;
-}
-
-export interface TokenCert {
-  /** hex */
-  id: string;
-  label: string;
-  subject: string;
-  issuer: string;
-  notAfter: string;
-}
-
-export interface SmartboxStatus {
-  running: boolean;
-  address: string | null;
-  vendors: CardVendor[];
-  error: string | null;
-}
-
 export interface AppInfo {
   version: string;
   os: "linux" | "macos" | "windows" | "android" | "ios";
   arch: string;
+  /** Chitach Pro is compiled into the app (official builds); false = Chitach Free.
+   * Missing in the browser mock, where the bundled UI decides. */
+  pro?: boolean;
 }
 
 export interface UpdateInfo {
@@ -251,141 +225,6 @@ export interface UpdateInfo {
   url: string;
 }
 
-export type FinesCategory = "parking" | "person" | "toll";
-/** "link": opened in the browser; "json_get" / "html_form" / "json_post": optional automatic check */
-export type FinesProviderKind = "link" | "json_get" | "html_form" | "json_post";
-
-export interface FinesProvider {
-  id: string;
-  /** fallback name; UI uses `fines.provider.<id>.name` when translated */
-  name: string;
-  category: FinesCategory;
-  /** plate city codes served, e.g. ["BG"] */
-  cities: string[];
-  kind: FinesProviderKind;
-  /** has an automatic check */
-  auto: boolean;
-  /** page to open (plate filled in where supported) */
-  url: string;
-  plateInUrl: boolean;
-  /** host the plate is sent to by the automatic check */
-  checkDomain: string | null;
-  /** serves the city of the plate */
-  matchesCity: boolean;
-}
-
-export interface FinesInfo {
-  plate: string;
-  normalizedPlate: string;
-  cityCode: string | null;
-  providers: FinesProvider[];
-  /** provider definitions in use: built in, or a newer signed download */
-  definitions?: { source: "embedded" | "remote"; updated: string };
-}
-
-export type FinesStatus = "clean" | "found" | "manual" | "unavailable" | "parseError";
-
-export interface FineItem {
-  date: string | null;
-  amount: string | null;
-  location: string | null;
-  description: string | null;
-  /** all scalar fields of the response item */
-  fields: Record<string, string>;
-}
-
-export interface FinesCheckResult {
-  providerId: string;
-  status: FinesStatus;
-  items: FineItem[];
-  detail: string | null;
-  /** unix time in ms */
-  checkedAt: number;
-  cached: boolean;
-}
-
-export type HistoryCategory = "domestic" | "foreign" | "usa" | "api";
-/** "link": opened in the browser; "api": report through an API with the user's own key */
-export type HistoryProviderKind = "link" | "api";
-
-export interface HistoryProvider {
-  id: string;
-  /** fallback name; UI uses `history.provider.<id>.name` when translated */
-  name: string;
-  category: HistoryCategory;
-  kind: HistoryProviderKind;
-  /** what the provider is searched by (copied when not in the URL) */
-  key: "vin" | "plate";
-  /** indicative price of a report, as published */
-  price: string | null;
-  url: string;
-  /** second page, e.g. the iOS app */
-  altUrl: string | null;
-  keyInUrl: boolean;
-  /** affiliate link (must be disclosed) */
-  partner: boolean;
-  /** api only */
-  operations: string[];
-  apiDomain: string | null;
-  /** api only: a key is stored */
-  configured: boolean;
-}
-
-export type HistoryCheckLevel = "ok" | "warning" | "info" | "unknown";
-
-/** Translated with `history.check.<id>.<variant>` and `args`. */
-export interface HistoryCheck {
-  id: string;
-  level: HistoryCheckLevel;
-  variant: string;
-  args: string[];
-}
-
-export interface VinDecoded {
-  wmi: string;
-  vds: string;
-  vis: string;
-  make: string | null;
-  /** ISO 3166-1 alpha-2 */
-  country: string | null;
-  northAmerica: boolean;
-  modelYear: number | null;
-  /** null outside North America */
-  checkDigitOk: boolean | null;
-}
-
-export interface HistoryInfo {
-  vin: string;
-  normalizedVin: string;
-  vinFormat: "valid" | "invalid" | "empty";
-  plate: string;
-  normalizedPlate: string;
-  make: string;
-  model: string;
-  yearOfProduction: string;
-  dateOfFirstRegistration: string;
-  decoded: VinDecoded | null;
-  checks: HistoryCheck[];
-  providers: HistoryProvider[];
-}
-
-export type HistoryApiStatus = "ok" | "unauthorized" | "error" | "unavailable" | "parseError";
-
-export interface HistoryApiResult {
-  providerId: string;
-  operation: string;
-  status: HistoryApiStatus;
-  /** the provider's own labels and values, in order */
-  fields: [string, string][];
-  /** price of this call as reported by the API */
-  price: string | null;
-  detail: string | null;
-  /** unix time in ms */
-  checkedAt: number;
-  cached: boolean;
-}
-
-/** Chitach Pro licence (unlocks the fines check and the vehicle history). */
 export interface LicenseInfo {
   /** Pro gating is on in this build; when false the features are free and Pro UI is hidden */
   enabled: boolean;
@@ -438,34 +277,14 @@ export interface Api {
   exportDocument(format: ExportFormat, path: string): Promise<string>;
   suggestFileName(format: ExportFormat): Promise<string>;
   updateRfzo(): Promise<Document>;
-  pinTriesLeft(): Promise<number>;
-  changePin(oldPin: string, newPin: string): Promise<void>;
-  listCertificates(): Promise<CertInfo[]>;
-  saveCertificate(index: number, path: string): Promise<void>;
   getSettings(): Promise<Settings>;
   saveSettings(settings: Settings): Promise<void>;
   checkUpdate(): Promise<UpdateInfo>;
   openPath(path: string): Promise<void>;
   openUrl(url: string): Promise<void>;
-  signLoadModules(): Promise<CardVendor[]>;
-  signListSlots(vendor: CardVendor): Promise<Slot[]>;
-  signLogin(vendor: CardVendor, slot: number, pin: string): Promise<TokenCert[]>;
-  signXmlFile(certId: string, inputPath: string, outputPath: string): Promise<void>;
-  signLogout(): Promise<void>;
-  smartboxStatus(): Promise<SmartboxStatus>;
-  finesProviders(): Promise<FinesInfo>;
-  finesCheck(providerId: string, force?: boolean): Promise<FinesCheckResult>;
-  historyInfo(): Promise<HistoryInfo>;
-  historySetApiKey(providerId: string, apiKey: string, secret: string): Promise<void>;
-  historyRemoveApiKey(providerId: string): Promise<void>;
-  historyApiCheck(providerId: string, operation: string, force?: boolean): Promise<HistoryApiResult>;
-  licenseInfo(): Promise<LicenseInfo>;
-  licenseActivate(key: string): Promise<LicenseInfo>;
-  licenseDeactivate(): Promise<LicenseInfo>;
 
   onAppState(cb: (s: AppState) => void): Promise<Unlisten>;
   onNotify(cb: (n: NotifyEvent) => void): Promise<Unlisten>;
-  onSmartboxStatus(cb: (s: SmartboxStatus) => void): Promise<Unlisten>;
 
   /** Native dialogs. Return null when cancelled. */
   saveDialog(opts: { defaultPath?: string; filters?: FileFilter[]; title?: string }): Promise<string | null>;

@@ -81,15 +81,14 @@ fn handle(
 /// Auto-save and bring the window back from the tray.
 fn after_read(app: &AppHandle, doc: Document) {
     let settings = app.state::<Shared>().settings().clone();
-    let pro = app.state::<crate::license::LicenseState>();
-    let background = pro.allows(crate::license::Feature::Background);
+    let background = crate::pro::allows(app, crate::features::Feature::Background);
     if background
         && settings.run_in_background
         && settings.auto_save != crate::settings::AutoSave::SaveAndOpen
     {
         crate::tray::show_main_window(app);
     }
-    if !pro.allows(crate::license::Feature::AutoSave) {
+    if !crate::pro::allows(app, crate::features::Feature::AutoSave) {
         return;
     }
     let app = app.clone();
