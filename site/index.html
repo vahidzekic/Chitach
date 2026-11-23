@@ -58,6 +58,21 @@
   code { background: var(--code); padding: 1px 6px; border-radius: 4px; font-size: 14px; word-break: break-word; }
   .note { color: var(--muted); font-size: 15px; }
   .table-scroll { overflow-x: auto; }
+  .stores { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+  .store { display: flex; gap: 18px; align-items: center; }
+  .store[hidden], #telefon[hidden], .nav-phone[hidden] { display: none; }
+  .store .qr { flex: none; background: #fff; border-radius: 8px; padding: 6px; line-height: 0;
+    border: 1px solid var(--border); }
+  .store .qr img { width: 120px; height: 120px; image-rendering: pixelated; }
+  .store h3 { margin: 0 0 4px; font-size: 17px; }
+  .store p { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+  .badge { display: inline-flex; align-items: center; gap: 10px; background: #000; color: #fff;
+    border: 1px solid #a6a6a6; border-radius: 9px; padding: 7px 16px 7px 12px; text-decoration: none;
+    line-height: 1.15; }
+  .badge svg { width: 24px; height: 24px; flex: none; }
+  .badge small { display: block; font-size: 11px; }
+  .badge b { display: block; font-size: 19px; font-weight: 600; letter-spacing: -.2px; }
+  @media (max-width: 560px), (pointer: coarse) { .store .qr, .store .qr-hint { display: none; } }
   footer { border-top: 1px solid var(--border); padding: 24px 0 40px; color: var(--muted); font-size: 14px; }
   [data-lang="en"] .sr, [data-lang="sr"] .en { display: none; }
   @media (max-width: 560px) { header nav a.hide-sm { display: none; } }
@@ -68,6 +83,7 @@
   <header>
     <a class="brand" href="#"><img src="img/app-icon.png" width="32" height="32" alt="">Chitach</a>
     <nav>
+      <a class="hide-sm nav-phone" href="#telefon" hidden><span class="sr">Telefon</span><span class="en">Phone</span></a>
       <a class="hide-sm" href="#preuzimanje"><span class="sr">Preuzimanje</span><span class="en">Download</span></a>
       <a class="hide-sm" href="#potpisivanje"><span class="sr">Potpisivanje</span><span class="en">Code signing</span></a>
       <a href="https://github.com/vahidzekic/Chitach">GitHub</a>
@@ -130,6 +146,41 @@
       <span class="en">Screenshots show made-up sample data.</span></p>
   </section>
 
+  <!-- Mobile apps. Hidden until a store listing is live: switch it on in STORES (script at the bottom). -->
+  <section id="telefon" hidden>
+    <h2><span class="sr">Na telefonu</span><span class="en">On your phone</span></h2>
+    <p class="note"><span class="sr">Chitach postoji i za Android i iPhone. Za čitanje kartice telefonu treba USB čitač
+        pametnih kartica (USB-C ili preko adaptera). Kartice nemaju NFC, pa ih telefon ne može pročitati bez čitača.</span>
+      <span class="en">Chitach is also available for Android and iPhone. To read a card, the phone needs a USB smart-card
+        reader (USB-C or via an adapter). The cards have no NFC, so a phone cannot read them without a reader.</span></p>
+    <div class="stores">
+      <div class="card store" data-store="ios" hidden>
+        <a class="qr" href="https://apps.apple.com/app/id6837721736"><img src="img/qr-ios.svg" width="120" height="120"
+          alt="QR kod za App Store / App Store QR code"></a>
+        <div>
+          <h3>iPhone</h3>
+          <p><span class="sr">iOS 16 ili noviji. <span class="qr-hint">Skenirajte QR kod kamerom telefona.</span></span>
+            <span class="en">iOS 16 or later. <span class="qr-hint">Scan the QR code with the phone camera.</span></span></p>
+          <a class="badge" href="https://apps.apple.com/app/id6837721736">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 12.7c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.48.83-.72 0-1.82-.81-3-.79-1.54.02-2.97.9-3.76 2.28-1.6 2.78-.41 6.9 1.15 9.16.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.77.74 2.98.72 1.23-.02 2.01-1.12 2.76-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.65zM14.1 5.95c.63-.77 1.06-1.83.94-2.89-.91.04-2.01.61-2.66 1.37-.58.67-1.09 1.75-.96 2.79 1.02.08 2.05-.52 2.68-1.27z"/></svg>
+            <span><small><span class="sr">Preuzmite sa</span><span class="en">Download on the</span></small><b>App Store</b></span></a>
+        </div>
+      </div>
+      <div class="card store" data-store="android" hidden>
+        <a class="qr" href="https://play.google.com/store/apps/details?id=rs.chitach.app"><img src="img/qr-android.svg" width="120" height="120"
+          alt="QR kod za Google Play / Google Play QR code"></a>
+        <div>
+          <h3>Android</h3>
+          <p><span class="sr">Telefon sa USB priključkom (OTG). <span class="qr-hint">Skenirajte QR kod kamerom telefona.</span></span>
+            <span class="en">A phone with a USB (OTG) port. <span class="qr-hint">Scan the QR code with the phone camera.</span></span></p>
+          <a class="badge" href="https://play.google.com/store/apps/details?id=rs.chitach.app">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#00d7fe" d="M3.6 2.2 13.4 12l-9.8 9.8c-.36-.18-.6-.56-.6-1.03V3.23c0-.47.24-.85.6-1.03z"/><path fill="#ffce00" d="m16.7 15.3-3.3-3.3 3.3-3.3 3.72 2.13c1.06.6 1.06 1.74 0 2.34z"/><path fill="#ff3a44" d="M16.7 15.3 13.4 12l-9.8 9.8c.36.2.83.18 1.3-.08z"/><path fill="#00f076" d="M16.7 8.7 4.9 2.28c-.47-.26-.94-.28-1.3-.08L13.4 12z"/></svg>
+            <span><small><span class="sr">Nabavite na</span><span class="en">Get it on</span></small><b>Google Play</b></span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="preuzimanje">
     <h2><span class="sr">Preuzimanje</span><span class="en">Download</span></h2>
     <div class="table-scroll">
@@ -183,6 +234,19 @@
   </footer>
 </div>
 <script>
+  (function () {
+    // Switch a store on here once its public listing is live (each one independently).
+    var STORES = { ios: false, android: false };
+    var any = false;
+    document.querySelectorAll("[data-store]").forEach(function (el) {
+      if (STORES[el.dataset.store]) { el.hidden = false; any = true; }
+    });
+    if (any || location.search.indexOf("preview-stores") !== -1) {
+      if (!any) document.querySelectorAll("[data-store]").forEach(function (el) { el.hidden = false; });
+      document.getElementById("telefon").hidden = false;
+      document.querySelector(".nav-phone").hidden = false;
+    }
+  })();
   (function () {
     var body = document.body, btn = document.getElementById("lang");
     function set(lang) {
