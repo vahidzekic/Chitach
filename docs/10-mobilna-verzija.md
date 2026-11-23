@@ -94,3 +94,17 @@ telefon kablom Xcode mora da podržava iOS verziju telefona; inače ide preko Te
 3. iOS: Swift deo plugina preko CryptoTokenKit (`TKSmartCard`, iOS 16+), TestFlight, App Store.
 4. Chitach Pro na telefonu ide preko Apple/Google pretplate (pravila prodavnica), ne preko
    Lemon Squeezy linka.
+
+## Linkovi prodavnica na sajtu
+
+Sajt ima sekciju „Na telefonu“ (`#telefon`) sa bedževima, linkovima i QR kodovima za App Store
+(`https://apps.apple.com/app/id6837721736`) i Google Play
+(`https://play.google.com/store/apps/details?id=rs.chitach.app`). Sakrivena je dok prodavnica nije javna.
+Uključuje se posebno za svaku platformu u `site/index.html`:
+
+```js
+var STORES = { ios: false, android: false };   // npr. { ios: true, android: false }
+```
+
+Pregled pre uključivanja: `https://vahidzekic.github.io/Chitach/?preview-stores`.
+QR kodovi su `site/img/qr-*.svg`; ako se URL promeni: `pip install segno && python3 scripts/site-store-qr.py`.
