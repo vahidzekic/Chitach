@@ -100,7 +100,10 @@ pub fn build(doc: &VehicleDocument) -> Result<Vec<u8>> {
 
     w.put_data("Datum izdavanja", &doc.issuing_date);
     w.tab();
-    w.put_underline(&format!("Važi do: {}", doc.expiry_date), 12.0);
+    w.put_underline(
+        &format!("Važi do: {}", expiry_label(&doc.expiry_date)),
+        12.0,
+    );
     w.new_line();
 
     w.put_data("Saobraćajnu izdao", &doc.state_issuing);
@@ -200,4 +203,26 @@ pub fn build(doc: &VehicleDocument) -> Result<Vec<u8>> {
         title: format!("{} {}", doc.vehicle_make, doc.commercial_description),
         subject: "Saobraćajna dozvola".into(),
     })
+}
+
+/// The card stores 31.12.9999 when the document has no expiry date.
+fn expiry_label(date: &str) -> &str {
+    if date.trim_end_matches('.').ends_with(".9999") {
+        "bez ograničenja"
+    } else {
+        date
+    }
+}
+
+#[cfg(test)]
+mod expiry_tests {
+    use super::expiry_label;
+
+    #[test]
+    fn unlimited_expiry() {
+        assert_eq!(expiry_label("31.12.9999"), "bez ograničenja");
+        assert_eq!(expiry_label("31.12.9999."), "bez ograničenja");
+        assert_eq!(expiry_label("14.06.2027"), "14.06.2027");
+        assert_eq!(expiry_label(""), "");
+    }
 }
