@@ -7,6 +7,14 @@ export function parseDate(s: string | null | undefined): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+/**
+ * True for the "no expiry" placeholder (year 9999, e.g. "31.12.9999") that
+ * vehicle registration cards store in the validity field.
+ */
+export function isUnlimitedDate(s: string | null | undefined): boolean {
+  return parseDate(s)?.getFullYear() === 9999;
+}
+
 export function isPast(s: string): boolean | null {
   const d = parseDate(s);
   return d ? d.getTime() < Date.now() : null;

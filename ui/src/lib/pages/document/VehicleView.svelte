@@ -7,7 +7,7 @@
   import type { VehicleDocument } from "../../api/types";
   import { t } from "../../i18n/index.svelte";
   import { app } from "../../stores/app.svelte";
-  import { isPast } from "../../util/format";
+  import { isPast, isUnlimitedDate } from "../../util/format";
   import type { BadgeDef, SectionDef } from "./fields";
 
   let { doc }: { doc: VehicleDocument } = $props();
@@ -25,7 +25,9 @@
 
   const badges = $derived.by<BadgeDef[]>(() => {
     const b: BadgeDef[] = [{ label: t("doc.type.vehicle"), tone: "accent", icon: "car" }];
-    const expired = isPast(doc.ExpiryDate);
+    // The card stores 31.12.9999 ("no expiry") here; the registration itself
+    // is renewed yearly and that date is not written to the chip.
+    const expired = isUnlimitedDate(doc.ExpiryDate) ? null : isPast(doc.ExpiryDate);
     if (expired === true) b.push({ label: t("doc.expired"), tone: "danger", icon: "alert" });
     else if (expired === false) b.push({ label: t("doc.validUntil", doc.ExpiryDate), tone: "success", icon: "check" });
     if (doc.VehicleCategory) b.push({ label: doc.VehicleCategory, tone: "neutral" });
@@ -41,11 +43,15 @@
           { label: t("vehicle.stateIssuing"), value: doc.StateIssuing },
           { label: t("vehicle.authorityIssuing"), value: doc.AuthorityIssuing },
           { label: t("vehicle.issuingDate"), value: doc.IssuingDate },
-          { label: t("vehicle.expiryDate"), value: doc.ExpiryDate },
+          {
+            label: t("vehicle.expiryDate"),
+            value: isUnlimitedDate(doc.ExpiryDate) ? t("vehicle.unlimited") : doc.ExpiryDate,
+          },
           { label: t("vehicle.competentAuthority"), value: doc.CompetentAuthority, wide: true },
           { label: t("vehicle.unambiguousNumber"), value: doc.UnambiguousNumber, mono: true },
           { label: t("vehicle.serialNumber"), value: doc.SerialNumber, mono: true },
         ],
+        note: isUnlimitedDate(doc.ExpiryDate) ? t("vehicle.expiryNote") : undefined,
       },
       {
         title: t("vehicle.vehicleInformation"),
